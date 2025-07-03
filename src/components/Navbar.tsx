@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { motion } from "motion/react";
+import { AnimatedButton } from "@/components/animated/AnimatedButton";
+import { FadeIn } from "@/components/animated/FadeIn";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,67 +19,97 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-lg border-b border-white/10">
+    <motion.nav 
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border"
+    >
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center space-x-2 hover:scale-105 transition-transform duration-300">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">Ø</span>
-            </div>
-            <span className="text-white font-bold text-xl">ONDA</span>
-          </Link>
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
+                <span className="text-background font-bold text-sm">Ø</span>
+              </div>
+              <span className="text-foreground font-bold text-xl">ONDA</span>
+            </Link>
+          </motion.div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`text-sm font-medium transition-all duration-300 hover:text-purple-400 ${
-                  isActive(item.path)
-                    ? "text-purple-400 border-b-2 border-purple-400 pb-1"
-                    : "text-white hover:scale-105"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
+          <FadeIn delay={0.2}>
+            <div className="hidden md:flex items-center space-x-8">
+              {navItems.map((item, index) => (
+                <motion.div
+                  key={item.path}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <Link
+                    to={item.path}
+                    className={`text-sm font-medium transition-all duration-300 ${
+                      isActive(item.path)
+                        ? "text-foreground border-b-2 border-foreground pb-1"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </FadeIn>
 
           {/* Mobile Menu Button */}
-          <Button
+          <AnimatedButton
             variant="ghost"
             size="sm"
-            className="md:hidden text-white hover:bg-white/10"
+            className="md:hidden"
             onClick={() => setIsOpen(!isOpen)}
           >
             <Menu className="w-5 h-5" />
-          </Button>
+          </AnimatedButton>
         </div>
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden border-t border-white/10 py-4 animate-fade-in">
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden border-t border-border py-4"
+          >
             <div className="flex flex-col space-y-3">
-              {navItems.map((item) => (
-                <Link
+              {navItems.map((item, index) => (
+                <motion.div
                   key={item.path}
-                  to={item.path}
-                  className={`text-sm font-medium px-2 py-2 rounded-lg transition-all duration-300 ${
-                    isActive(item.path)
-                      ? "text-purple-400 bg-purple-400/10"
-                      : "text-white hover:bg-white/10 hover:text-purple-400"
-                  }`}
-                  onClick={() => setIsOpen(false)}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
                 >
-                  {item.label}
-                </Link>
+                  <Link
+                    to={item.path}
+                    className={`text-sm font-medium px-2 py-2 rounded-lg transition-all duration-300 block ${
+                      isActive(item.path)
+                        ? "text-foreground bg-accent"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    }`}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
-    </nav>
+    </motion.nav>
   );
 };
 
