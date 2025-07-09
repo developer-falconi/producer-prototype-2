@@ -181,6 +181,8 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                               onChange={(e) => handleInputChange(index, 'docNumber', e.target.value)}
                               className="p-3 bg-transparent text-white rounded-lg transition-all duration-200"
                               placeholder="12345678"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
                             />
                           </motion.div>
                         )}
@@ -236,6 +238,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                               onChange={(e) => handleInputChange(index, 'phone', e.target.value)}
                               className="p-3 bg-transparent text-white rounded-lg transition-all duration-200"
                               placeholder="+54 9 11 1234-5678"
+                              inputMode="numeric"
                             />
                           </motion.div>
                         )}
