@@ -1,17 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Ticket, Images } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
-import { useProducer } from "@/context/ProducerContext";
-import { useEffect } from "react";
-import { initializeGoogleAnalytics } from "@/lib/analytics";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-
-const navItems = [
-  { path: "/", label: "Inicio", icon: <Home size={20} /> },
-  { path: "/events", label: "Eventos", icon: <Ticket size={20} /> },
-  { path: "/gallery", label: "Galería", icon: <Images size={20} /> }
-];
+import { Menu } from "lucide-react";
+import { motion } from "motion/react";
+import { AnimatedButton } from "@/components/animated/AnimatedButton";
+import { FadeIn } from "@/components/animated/FadeIn";
 
 const Navbar = () => {
   const { producer } = useProducer();
@@ -48,39 +39,97 @@ const Navbar = () => {
   }, [producer]);
 
   return (
-    <nav
-      className={cn(
-        "fixed inset-x-0 z-40 bg-black/20 backdrop-blur-lg",
-        isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
-      )}
+    <motion.nav 
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border"
     >
       <div className="max-w-7xl mx-auto px-4">
-        {isMobile ? (
-          <div className="flex justify-around items-center h-12">
-            {navItems.map(renderLink)}
-          </div>
-        ) : (
-          <div className="flex items-center justify-between h-16">
-            <>
-              <Link
-                to="/"
-                className="flex items-center gap-2 font-bold text-white hover:scale-105 transition"
-              >
-                <Avatar>
-                  <AvatarImage className="rounded-full bg-gray-800" src={producer?.logo} alt={producer?.name || 'logo'} />
-                  <AvatarFallback>{producer?.name}</AvatarFallback>
-                </Avatar>
-                {producer?.name} Universe
-              </Link>
-            </>
+        <div className="flex items-center justify-between h-16">
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
+                <span className="text-background font-bold text-sm">Ø</span>
+              </div>
+              <span className="text-foreground font-bold text-xl">ONDA</span>
+            </Link>
+          </motion.div>
 
-            <div className="flex items-center space-x-8">
-              {navItems.slice(0, 3).map(renderLink)}
+          {/* Desktop Navigation */}
+          <FadeIn delay={0.2}>
+            <div className="hidden md:flex items-center space-x-8">
+              {navItems.map((item, index) => (
+                <motion.div
+                  key={item.path}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <Link
+                    to={item.path}
+                    className={`text-sm font-medium transition-all duration-300 ${
+                      isActive(item.path)
+                        ? "text-foreground border-b-2 border-foreground pb-1"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                </motion.div>
+              ))}
             </div>
-          </div>
+          </FadeIn>
+
+          {/* Mobile Menu Button */}
+          <AnimatedButton
+            variant="ghost"
+            size="sm"
+            className="md:hidden"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <Menu className="w-5 h-5" />
+          </AnimatedButton>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden border-t border-border py-4"
+          >
+            <div className="flex flex-col space-y-3">
+              {navItems.map((item, index) => (
+                <motion.div
+                  key={item.path}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                >
+                  <Link
+                    to={item.path}
+                    className={`text-sm font-medium px-2 py-2 rounded-lg transition-all duration-300 block ${
+                      isActive(item.path)
+                        ? "text-foreground bg-accent"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    }`}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         )}
       </div>
-    </nav>
+    </motion.nav>
   );
 };
 
