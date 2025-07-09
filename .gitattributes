@@ -1,0 +1,5 @@
+# never merge any incoming changes under dist/, always keep the current branch’s copy
+build/**  merge=ours
+
+# (optional) hide dist/ changes from git diffs
+build/**  diff=none
