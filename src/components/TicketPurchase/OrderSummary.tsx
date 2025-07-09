@@ -17,13 +17,13 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   const total = subtotal + mercadoPagoFee;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 p-8">
       <h2 className="text-xl font-semibold text-gray-300">Confirmar Compra</h2>
 
       <div className="space-y-4">
-        <div className="bg-gray-300/80 rounded-lg p-4">
+        <div className="bg-gray-300/60 rounded-lg p-4">
           <h3 className="font-medium text-black mb-2">Resumen de la compra</h3>
-          <div className="space-y-2 text-sm text-foreground">
+          <div className="space-y-2 text-sm text-foreground font-medium">
             <div className="flex justify-between">
               <span>Evento:</span>
               <span>{eventData.name}</span>
@@ -45,8 +45,8 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
           </div>
         </div>
 
-        <div className="bg-muted/50 rounded-lg p-4">
-          <div className="flex justify-between items-center mb-2 text-foreground">
+        <div className="bg-gray-300/60 rounded-lg p-4">
+          <div className="flex justify-between items-center mb-2 text-foreground font-medium">
             <span>Subtotal:</span>
             <span>{formatPrice(subtotal)}</span>
           </div>

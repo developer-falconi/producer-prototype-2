@@ -87,7 +87,7 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
         </div>
       </div>
 
-      <div className="space-y-3 my-4 p-2">
+      <div className="space-y-3 my-4 p-6">
         {participants.map((person, index) => (
           <motion.div key={index} className="flex items-center justify-between" variants={itemVariants}>
             <div className="flex items-center">
@@ -110,7 +110,7 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
         ))}
       </div>
       <motion.div
-        className="p-2 bg-zinc-900 text-gray-300 flex-grow"
+        className="p-6 bg-zinc-900 text-gray-300 flex-grow"
         variants={itemVariants}
         initial="hidden"
         animate="visible"

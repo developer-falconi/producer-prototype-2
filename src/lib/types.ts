@@ -102,10 +102,6 @@ export interface TicketFormData {
   comprobante?: File | null;
 }
 
-export type ApiResponse<T> =
-  | { success: true; data: T }
-  | { success: false; data?: never; message?: string };
-
 export enum SpinnerSize {
   SMALL = "small",
   MEDIUM = "medium",
@@ -157,3 +153,36 @@ export interface PaymentStatus {
   status: string;
   params: Record<string, string>;
 }
+
+export interface Voucher {
+  id: number;
+  email: string;
+  total: number;
+  url: string;
+  sent: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface VoucherClient {
+  id: number;
+  voucher: Voucher;
+  client: Client;
+}
+
+export interface Client {
+  id: number;
+  fullName: string;
+  phone: string;
+  docNumber: string;
+  gender: GenderEnum;
+  type: ClientTypeEnum;
+  createdAt: string;
+  updatedAt: string;
+  voucherClients: VoucherClient[];
+  tickets: any[];
+};
+
+export type ApiResponse<T> =
+  | { success: true; data: T; message?: string, status?: string }
+  | { success: false; data?: any; message?: string, status?: string };

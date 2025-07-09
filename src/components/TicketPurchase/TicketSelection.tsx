@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { cn, formatPrice } from '@/lib/utils';
-import { Event, PurchaseData, Prevent } from '@/lib/types';
+import { Event, PurchaseData, Prevent, PreventStatusEnum } from '@/lib/types';
 import { Button } from '../ui/button';
 import { motion, Easing } from 'framer-motion';
 
@@ -17,68 +17,46 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
   onUpdatePurchase
 }) => {
   const allAvailablePrevents = useMemo(() => {
-    // Filter prevents that are active and have available quantity
     return (eventData.prevents || []).filter(
-      (p: Prevent) => p.status === 'ACTIVE' && p.quantity > 0
+      (p: Prevent) => p.status === PreventStatusEnum.ACTIVE && p.quantity > 0
     );
   }, [eventData.prevents]);
 
   const initialSelectedPrevent = useMemo(() => {
-    // 1. If purchaseData already has a selectedPrevent and it's active and available
     if (purchaseData.selectedPrevent && allAvailablePrevents.some(p => p.id === purchaseData.selectedPrevent!.id)) {
       return purchaseData.selectedPrevent;
     }
-    // 2. Otherwise, try to use eventData.lastPrevent if it's active and available
     if (eventData.featuredPrevent && allAvailablePrevents.some(p => p.id === eventData.featuredPrevent!.id)) {
       return eventData.featuredPrevent;
     }
-    // 3. If neither, pick the first active and available prevent
     if (allAvailablePrevents.length > 0) {
       return allAvailablePrevents[0];
     }
-    return undefined; // No prevent selected initially
+    return undefined;
   }, [purchaseData.selectedPrevent, allAvailablePrevents, eventData.featuredPrevent]);
 
   const [localSelectedPrevent, setLocalSelectedPrevent] = useState<Prevent | undefined>(initialSelectedPrevent);
 
-  // Synchronize local selectedPrevent state with parent's initial selection or eventData changes
   useEffect(() => {
-    // Only update if initialSelectedPrevent has changed from the current local state
-    // or if localSelectedPrevent is null/undefined and initialSelectedPrevent is not
     if (initialSelectedPrevent?.id !== localSelectedPrevent?.id) {
       setLocalSelectedPrevent(initialSelectedPrevent);
-      // Immediately inform parent if initial selection is made or cleared
       if (initialSelectedPrevent) {
         onUpdatePurchase({ selectedPrevent: initialSelectedPrevent, ticketQuantity: 1 });
       } else {
-        onUpdatePurchase({ selectedPrevent: null, ticketQuantity: 0 }); // No prevent selected, quantity 0
+        onUpdatePurchase({ selectedPrevent: null, ticketQuantity: 0 });
       }
     }
   }, [initialSelectedPrevent, localSelectedPrevent, onUpdatePurchase]);
 
-
-  // Derive the currently selected prevent object based on local state (or parent's, if synchronized)
-  // This ensures 'selectedPrevent' always reflects the actual prevent object
   const selectedPrevent = allAvailablePrevents.find(p => p.id === localSelectedPrevent?.id);
-
-
-  // Max tickets for the *selected* prevent, capped at 10 for quantity selector
-  // If no prevent is selected or prevent has no quantity, maxTickets is 0
   const maxTickets = selectedPrevent?.quantity ? Math.min(10, selectedPrevent.quantity) : 0;
-
-  // Ticket price based on the selected prevent (parse to number, default to 0)
   const ticketPrice = selectedPrevent?.price || 0;
-
-  // Subtotal based on selected prevent's price and current quantity from parent's purchaseData
   const subtotal = ticketPrice * purchaseData.ticketQuantity;
 
-  // State to control showing extended quantities (5+)
   const [showMoreQuantities, setShowMoreQuantities] = useState(
     purchaseData.ticketQuantity >= 5 && maxTickets >= 5
   );
 
-  // Effect to synchronize showMoreQuantities if purchaseData.ticketQuantity changes externally
-  // or if maxTickets changes (e.g., when a different prevent is selected)
   useEffect(() => {
     setShowMoreQuantities(purchaseData.ticketQuantity >= 5 && maxTickets >= 5);
   }, [purchaseData.ticketQuantity, maxTickets]);
@@ -95,9 +73,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
     },
   };
 
-  // Handler for selecting a specific quantity
   const handleSelectQuantity = (quantity: number) => {
-    // Ensure the selected quantity does not exceed the maximum available for the current prevent
     const actualQuantity = Math.min(quantity, maxTickets);
 
     if (actualQuantity <= 4 && showMoreQuantities) {
@@ -108,33 +84,25 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
     onUpdatePurchase({ ticketQuantity: actualQuantity });
   };
 
-  // Handler for clicking a prevent (ticket type) button
   const handleSelectPreventType = (prevent: Prevent) => {
-    setLocalSelectedPrevent(prevent); // Update local state
-    onUpdatePurchase({ selectedPrevent: prevent }); // Inform parent about the new selected prevent
+    setLocalSelectedPrevent(prevent);
+    onUpdatePurchase({ selectedPrevent: prevent });
 
-    // Reset quantity to 1 (or 0 if new prevent has 0 quantity) when changing prevent type,
-    // or keep it if current quantity is valid for the new prevent
     const newMaxTicketsForPrevent = Math.min(10, prevent.quantity);
     if (purchaseData.ticketQuantity === 0 || purchaseData.ticketQuantity > newMaxTicketsForPrevent) {
       onUpdatePurchase({ ticketQuantity: newMaxTicketsForPrevent > 0 ? 1 : 0 });
     }
-    setShowMoreQuantities(false); // Collapse quantity options when changing prevent type
+    setShowMoreQuantities(false);
   };
 
-  // Handler for clicking the "5+" button
   const handleShowMoreQuantities = () => {
     setShowMoreQuantities(true);
-    // If current quantity is less than 5, default to 5 tickets when "5+" is clicked
-    if (purchaseData.ticketQuantity < 5 && maxTickets >= 5) { // Ensure maxTickets allows 5
+    if (purchaseData.ticketQuantity < 5 && maxTickets >= 5) {
       onUpdatePurchase({ ticketQuantity: 5 });
     }
   };
 
-  // Determine if the "5+" button should be rendered
   const shouldRender5PlusButton = maxTickets >= 5 && !showMoreQuantities;
-
-  // Check if any prevents are available to display
   const noTicketsAvailableGlobally = allAvailablePrevents.length === 0;
 
   return (
@@ -144,14 +112,14 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
       variants={{
         visible: { transition: { staggerChildren: 0.1 } }
       }}
-      className="space-y-8 p-4"
+      className="space-y-4 p-8"
     >
       {/* 1. Select Ticket Type Section */}
       <motion.h2 variants={itemVariants} className="text-lg font-bold text-gray-100 mb-4">
         Seleccionar Tipo de Entrada
       </motion.h2>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {noTicketsAvailableGlobally ? (
           <p className="text-gray-400 text-center col-span-full">No hay entradas activas disponibles para este evento.</p>
         ) : (
@@ -160,9 +128,9 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
               key={prevent.id}
               onClick={() => handleSelectPreventType(prevent)}
               className={cn(
-                "flex flex-col items-start p-4 rounded-xl shadow-md transition-all duration-200 ease-in-out text-left h-auto min-h-[80px]",
+                "flex flex-col items-start p-4 rounded-xl shadow-md transition-all duration-200 ease-in-out text-left h-auto",
                 localSelectedPrevent?.id === prevent.id
-                  ? "bg-black/20 border-2 border-blue-700 text-blue-700 scale-105 font-bold"
+                  ? "bg-black/20 border-2 border-blue-700 text-blue-700 font-bold"
                   : "bg-zinc-800 text-gray-200 border-2 border-zinc-700 hover:border-gray-500 hover:bg-zinc-700 hover:text-white"
               )}
             >
@@ -208,7 +176,6 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
                 onClick={handleShowMoreQuantities}
                 className={cn(
                   "flex items-center justify-center p-2 rounded-xl shadow-md transition-all duration-200 ease-in-out",
-                  // Highlight 5+ button if a quantity >= 5 is selected
                   purchaseData.ticketQuantity >= 5
                     ? "bg-black/20 border-2 border-blue-700 text-blue-700 scale-105 font-bold"
                     : "bg-zinc-800 text-gray-200 border-2 border-zinc-700 hover:border-gray-500 hover:bg-zinc-700 hover:text-white"

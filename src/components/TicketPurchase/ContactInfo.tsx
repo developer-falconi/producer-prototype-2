@@ -50,7 +50,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 p-8">
       <motion.h2 variants={itemVariants} className="text-lg font-bold text-gray-100 mb-4">
         Información de Contacto
       </motion.h2>

@@ -38,8 +38,12 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const ticketPrice = purchaseData.selectedPrevent?.price || eventData?.featuredPrevent?.price || 0;
-  const subtotal = ticketPrice * purchaseData.ticketQuantity;
-  const mercadoPagoFee = subtotal * 0.0824;
+  const subtotalWithoutFees = ticketPrice * purchaseData.ticketQuantity;
+  const mercadoPagoFee = subtotalWithoutFees * 0.0824;
+
+  const subtotal = purchaseData.paymentMethod === 'mercadopago'
+    ? subtotalWithoutFees + mercadoPagoFee
+    : subtotalWithoutFees;
 
   useEffect(() => {
     if (eventData.oAuthMercadoPago?.mpPublicKey) {
@@ -83,13 +87,23 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
 
   return (
     <motion.div
-      className="space-y-6"
+      className="space-y-4 p-8"
       initial="hidden"
       animate="visible"
       variants={itemVariants}
     >
+      <motion.h3
+        variants={itemVariants}
+        className="px-6 border-green-700 bg-green-700/10 py-2 text-lg font-bold text-gray-100 mb-4 rounded-lg border"
+      >
+        <div className="flex justify-between">
+          <span>Subtotal:</span>
+          <span>{formatPrice(subtotal)}</span>
+        </div>
+      </motion.h3>
+
       <motion.h2 variants={itemVariants} className="text-lg font-bold text-gray-100 mb-4">
-        Método de Pago
+        Selecciona método de pago
       </motion.h2>
 
       <div className="space-y-4">
@@ -106,7 +120,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium text-gray-300">Transferencia Bancaria</h3>
-              <p className="text-sm text-blue-700">Sin comisiones (acreditacion manual)</p>
+              <p className="text-sm text-blue-700">Sin comisiones <br />(Acreditación manual)</p>
             </div>
             <div className="text-right">
               <p className="font-medium text-gray-300">0%</p>
@@ -132,13 +146,12 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
               </div>
               <div className="text-right">
                 <p className="font-medium text-gray-300">8.24%</p>
-                <p className="text-xs text-gray-400">{formatPrice(mercadoPagoFee)}</p>
+                <p className="text-xs text-gray-400">+ {formatPrice(mercadoPagoFee)}</p>
               </div>
             </div>
           </motion.div>
         )}
 
-        {/* Conditionally render bank account and receipt upload for bank transfer */}
         {purchaseData.paymentMethod === 'bank_transfer' && (
           <div className="space-y-4 p-4 bg-green-700/20 border border-green-700 rounded-lg">
             <div className="text-lg text-gray-300">
@@ -150,8 +163,8 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
               <label className="block text-gray-300 font-medium mb-2">Adjuntar comprobante</label>
               <input
                 type="file"
-                onChange={handleFileChange} // Handle file selection
-                className="border border-gray-300 p-2 rounded-lg text-gray-300 w-full"
+                onChange={handleFileChange}
+                className="border border-gray-300 p-2 rounded-lg text-gray-300 w-full cursor-pointer hover:border-2"
               />
             </div>
           </div>
@@ -161,7 +174,6 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
           <p className='text-destructive'>{error}</p>
         )}
 
-        {/* Conditionally render "Redireccion" button for MercadoPago */}
         {purchaseData.paymentMethod === 'mercadopago' && (
           <div className="mt-4">
             {!preferenceId || !publicKey ? (

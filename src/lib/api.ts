@@ -1,4 +1,4 @@
-import { ApiResponse, ClientTypeEnum, Event, Participant, PreferenceData, Producer } from "./types";
+import { ApiResponse, Client, ClientTypeEnum, Event, Participant, PreferenceData, Producer } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
 
@@ -54,7 +54,7 @@ export async function fetchProducerGalleryData(): Promise<ApiResponse<Producer>>
   }
 }
 
-export async function submitTicketForm(formData: FormData, eventId: number, preventId: number | null): Promise<ApiResponse<any>> {
+export async function submitTicketForm(formData: FormData, eventId: number, preventId: number | null): Promise<ApiResponse<Client[]>> {
   try {
     let url = `${API_URL}/client/create/${eventId}?type=${ClientTypeEnum.REGULAR}`;
     if (preventId) {

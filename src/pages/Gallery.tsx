@@ -356,7 +356,7 @@ const Gallery = () => {
             >
               <h3 className="text-2xl font-bold text-gray-800 mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
               <p className="text-gray-700 mb-6">
-                Únete a nuestra comunidad y no te pierdas ningún evento exclusivo de ONDA Producciones
+                Únete a nuestra comunidad y no te pierdas ningún evento exclusivo de {producer.name}
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <motion.div variants={buttonVariants}>

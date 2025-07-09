@@ -17,7 +17,7 @@ const SmallSpinner: React.FC<SpinnerProps> = ({
   };
 
   return (
-    <div className={`inline-block ${sizeClasses[size]} ${className}`}>
+    <div className={`flex items-center justify-center ${sizeClasses[size]} ${className}`}>
       <svg 
         className="animate-spin text-white" 
         xmlns="http://www.w3.org/2000/svg" 

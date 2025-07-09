@@ -24,12 +24,12 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
   );
 
   const title = isSuccess ? '¡Compra Exitosa! 🎉' : 'Error en la Compra 😔';
-  const message = status?.message || (isSuccess
-    ? 'Tu entrada ha sido confirmada. Recibirás un email con todos los detalles del evento.'
-    : 'Hubo un problema al procesar tu compra. Por favor, inténtalo de nuevo o contacta a soporte.');
+  const message = isSuccess
+    ? 'Tu entrada ha sido confirmada.\nUna vez validado tu pago.\nRecibirás un email con todos los detalles del evento.\nNo olvides revisar tu casilla de spam'
+    : 'Hubo un problema al procesar tu compra. Por favor, inténtalo de nuevo o contacta a soporte.';
 
   return (
-    <div className="min-h-full flex flex-col items-center justify-center p-4 text-center">
+    <div className="h-full flex flex-col items-center justify-center p-6 text-center">
       <div className="max-w-md w-full">
         <div className="mb-6">
           <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center shadow-glow ${isSuccess ? 'bg-gradient-to-br from-green-600 to-green-800 animate-party-bounce' : 'bg-gradient-to-br from-red-600 to-red-800'}`}>
@@ -41,7 +41,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
           {title}
         </h1>
 
-        <p className="text-gray-300 mb-6 animate-fade-in">
+        <p className="text-gray-300 mb-6 animate-fade-in whitespace-pre-line">
           {message}
         </p>
 
@@ -54,7 +54,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
         )}
 
         <div className="mt-8">
-          <Button onClick={onResetAndClose} className="w-full bg-gray-500">
+          <Button onClick={onResetAndClose} className="w-full bg-gray-500 hover:bg-gray-500/80">
             Cerrar
           </Button>
         </div>

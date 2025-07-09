@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SmallSpinner from '../SmallSpinner';
 
@@ -23,6 +23,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   onComplete,
   isSubmitting
 }) => {
+  const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === totalSteps - 2;
 
   return (
@@ -31,7 +32,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
         {currentStep > 0 && (
           <Button
             onClick={onPrevious}
-            className="flex-1 bg-red-700"
+            className="flex-1 bg-red-700 hover:bg-red-700/80"
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
             Anterior
@@ -42,11 +43,18 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
           onClick={isLastStep ? onComplete : onNext}
           disabled={!canProceed}
           className={cn(
-            "flex-1", isLastStep ? 'bg-blue-700' : 'bg-green-700'
+            "flex-1", 
+            isLastStep ? 'bg-blue-700 hover:bg-blue-700/80' : 'bg-green-700 hover:bg-green-700/80',
+            isFirstStep ? 'w-full bg-red-700 hover:bg-red-700/80' : '',
           )}
         >
-          {isLastStep ? (
+          {isFirstStep ? (
             <div className='flex items-center gap-2'>
+              <Ticket className="w-4 h-4 mr-2" />
+              Comprar Tickets
+            </div>
+          ) : isLastStep ? (
+            <div className='flex items-center justify-center gap-2'>
               {isSubmitting ? (
                 <SmallSpinner />
               ) : (

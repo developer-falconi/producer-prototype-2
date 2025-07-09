@@ -64,7 +64,7 @@ const Navbar = () => {
             <>
               <Link
                 to="/"
-                className="flex items-center gap-2 font-bold text-white hover:scale-105 transition"
+                className="flex items-center gap-2 font-medium text-white hover:scale-105 transition"
               >
                 <Avatar>
                   <AvatarImage className="rounded-full bg-gray-800" src={producer?.logo} alt={producer?.name || 'logo'} />

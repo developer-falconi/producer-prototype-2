@@ -41,7 +41,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     paymentMethod: null
   });
   const [fullEventDetails, setFullEventDetails] = useState<Event | null>(null);
-  const [purchaseFlowCompleted, setPurchaseFlowCompleted] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<{ status: 'success' | 'error', message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -60,6 +59,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         try {
           setLoadingDetails(true);
           const resp = await fetchProducerEventDetailData(initialEvent.id);
+
           if (resp.success && resp.data) {
             setFullEventDetails(resp.data);
             const activePrevents = (resp.data.prevents || []).filter((p: Prevent) => p.status === 'ACTIVE' && p.quantity > 0);
@@ -145,8 +145,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     }
   };
 
+  const adjustedSteps = steps.slice(1, steps.length - 1);
+
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
+    if (currentStep < adjustedSteps.length) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -166,8 +168,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       comprobante: undefined,
       paymentMethod: null
     });
-    setSubmissionStatus(null);
-    setPurchaseFlowCompleted(false);
   }
 
   const handleComplete = async () => {
@@ -177,6 +177,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     }));
 
     setIsSubmitting(true);
+    setSubmissionStatus(null);
 
     try {
       const submitData = new FormData();
@@ -187,19 +188,17 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       }
 
       const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.selectedPrevent.id);
-
       if (result.success) {
         setSubmissionStatus({ status: 'success', message: result['message'] || "¡Compra Exitosa! 🎉" });
-        setPurchaseFlowCompleted(true);
-        // handleReset();
       } else {
         setSubmissionStatus({ status: 'error', message: result['message'] || "Error al procesar tu compra. Por favor, inténtalo de nuevo." });
       }
+
+      setCurrentStep(steps.length - 1);
     } catch (error) {
       setSubmissionStatus({ status: 'error', message: "Error enviando información" });
     } finally {
       setIsSubmitting(false);
-      setCurrentStep(steps.length - 1);
     }
   };
 
@@ -207,8 +206,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     setCurrentStep(0);
     setFullEventDetails(null);
     setErrorDetails(null);
-    setSubmissionStatus(null);
-    setPurchaseFlowCompleted(false);
     onClose();
   };
 
@@ -265,14 +262,12 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           />
         );
       case steps.length - 1:
-        return (
-          <PurchaseStatus
-            purchaseData={purchaseData}
-            total={total}
-            status={submissionStatus}
-            onResetAndClose={resetAndClose}
-          />
-        );
+        return (<PurchaseStatus
+          purchaseData={purchaseData}
+          total={total}
+          status={submissionStatus}
+          onResetAndClose={resetAndClose}
+        />);
       default:
         return null;
     }
@@ -301,10 +296,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
           <motion.div
             key="sheet"
-            className="relative mx-auto w-full max-w-lg md:max-w-4xl h-[90vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden"
+            className="relative mx-auto overflow-x-hidden w-full max-w-lg md:max-w-4xl h-[90vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            exit={{ y: "100%" }}
+            exit={{ y: "0%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             drag="y"
             dragDirectionLock
@@ -328,10 +323,12 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               ) : (
                 <>
                   {/* Progress Bar */}
-                  <ProgressBar currentStep={currentStep} steps={steps} />
+                  {currentStep > 0 && currentStep < steps.length - 1 && (
+                    <ProgressBar currentStep={currentStep} steps={steps} />
+                  )}
 
                   {/* Content */}
-                  <div className="p-4 animate-fade-in">
+                  <div className="h-full animate-fade-in">
                     {renderCurrentStep()}
                   </div>
                 </>

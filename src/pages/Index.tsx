@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Event, PaymentStatus } from "@/lib/types";
 import { fetchProducerEventDetailData } from "@/lib/api";
 import PaymentResult from "@/components/PaymentResult";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const { producer, loadingProducer } = useProducer();
@@ -85,7 +86,7 @@ const Index = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-200 to-gray-400">
+    <div className="container-app flex flex-col min-h-screen bg-gradient-to-br from-gray-200 to-gray-400">
       <AnimatePresence>
         {isDialogVisible && (
           <motion.div
@@ -141,8 +142,14 @@ const Index = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 relative">
               {producer.name}, <br /> Universe
+
+              <Link to='https://www.produtik.com' target="_blank">
+                <div className="absolute top-2/3 right-1/4 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+                  By Produtik
+                </div>
+              </Link>
             </h1>
             <p className="text-base sm:text-lg text-gray-700 mb-8">
               Más que eventos, nuestra pasión hecha realidad: un ecosistema completo donde cada detalle te sorprenderá.
@@ -191,7 +198,7 @@ const Index = () => {
       </section>
 
       {/* MISSION */}
-      <section className="py-12 sm:py-20">
+      <section className="py-12 sm:py-20 px-4">
         <motion.div
           className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8"
           initial="hidden"
@@ -211,7 +218,7 @@ const Index = () => {
             className="text-lg sm:text-xl text-gray-800 leading-relaxed"
             variants={{ hidden: {}, visible: {} }}
           >
-            En ONDA Producciones cada evento es una conexión auténtica entre música, arte y gastronomía, diseñada para emocionar.
+            En {producer.name} cada evento es una conexión auténtica entre música, arte y gastronomía, diseñada para emocionar.
           </motion.p>
         </motion.div>
       </section>

@@ -8,6 +8,7 @@ import { motion, AnimatePresence, Easing } from "framer-motion";
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import '../../App.css';
+import { Check } from 'lucide-react';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -79,7 +80,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 p-8">
       <motion.h2 variants={itemVariants} className="text-lg font-bold text-gray-100 mb-4">
         Datos de los Asistentes
       </motion.h2>
@@ -249,8 +250,10 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                         >
                           <Button
                             onClick={() => handleCompleteClick(index)}
-                            className="bg-party-primary text-white hover:bg-party-primary/90 transition-colors duration-200 py-2 px-4 rounded-md"
+                            variant='default'
+                            className="text-white border bg-green-800 transition-colors duration-200 py-2 px-4 rounded-md"
                           >
+                            <Check className='h-4 w-4' />
                             Completado
                           </Button>
                         </motion.div>
