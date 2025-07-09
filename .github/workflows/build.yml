@@ -1,0 +1,67 @@
+name: Build Vite Project
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git for merge
+        run: |
+          git config user.email "developerfalconi@gmail.com"
+          git config user.name "developer-falconi"
+
+      - name: Sync with main (auto-resolve conflicts with main)
+        run: |
+          git fetch origin main
+          git merge origin/main --no-edit -X theirs
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+
+      - name: Install dependencies and update lock file
+        run: npm install
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_APP_API_BE: ${{ secrets.VITE_APP_API_BE }}
+          CI: true
+
+      - name: Configure Git for commit
+        run: |
+          git config --local user.email "developerfalconi@gmail.com"
+          git config --local user.name "developer-falconi"
+
+      - name: Add and commit build folder
+        run: |
+          git add build
+          if git diff --cached --quiet; then
+            echo "No changes to commit in build folder"
+          else
+            git commit -m "Add production build"
+          fi
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.TOKEN_GITHUB }}
+          branch: ${{ github.ref_name }}

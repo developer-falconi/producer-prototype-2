@@ -1,78 +1,81 @@
-
-import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Home, Ticket, Images } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
+import { useProducer } from "@/context/ProducerContext";
+import { useEffect } from "react";
+import { initializeGoogleAnalytics } from "@/lib/analytics";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+
+const navItems = [
+  { path: "/", label: "Inicio", icon: <Home size={20} /> },
+  { path: "/events", label: "Eventos", icon: <Ticket size={20} /> },
+  { path: "/gallery", label: "Galería", icon: <Images size={20} /> }
+];
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const { producer } = useProducer();
+  const isMobile = useIsMobile();
   const location = useLocation();
-
   const isActive = (path: string) => location.pathname === path;
 
-  const navItems = [
-    { path: "/", label: "Inicio" },
-    { path: "/events", label: "Eventos" },
-    { path: "/gallery", label: "Galería" },
-  ];
+  const renderLink = (item: typeof navItems[number]) => (
+    <Link
+      key={item.path}
+      to={item.path}
+      className={cn(
+        "flex items-center space-x-2 px-3 py-2 rounded-lg transition",
+        isActive(item.path) ? "text-blue-800" : "text-white hover:text-blue-800"
+      )}
+    >
+      {item.icon}
+      {!isMobile && <span>{item.label}</span>}
+    </Link>
+  );
+
+  useEffect(() => {
+    if (producer) {
+      document.title = `${producer.name} Platform`;
+      const faviconLink = document.querySelector("link[rel='icon']") as HTMLLinkElement;
+      if (faviconLink) {
+        faviconLink.href = producer.logo || '/favicon.svg';
+      }
+
+      if (producer.googleAnalyticsId) initializeGoogleAnalytics(producer.googleAnalyticsId);
+    } else {
+      document.title = 'Producer Platform';
+    }
+  }, [producer]);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/20 backdrop-blur-lg border-b border-white/10">
+    <nav
+      className={cn(
+        "fixed inset-x-0 z-40 bg-black/20 backdrop-blur-lg",
+        isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
+      )}
+    >
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center space-x-2 hover:scale-105 transition-transform duration-300">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">Ø</span>
-            </div>
-            <span className="text-white font-bold text-xl">ONDA</span>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`text-sm font-medium transition-all duration-300 hover:text-purple-400 ${
-                  isActive(item.path)
-                    ? "text-purple-400 border-b-2 border-purple-400 pb-1"
-                    : "text-white hover:scale-105"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+        {isMobile ? (
+          <div className="flex justify-around items-center h-12">
+            {navItems.map(renderLink)}
           </div>
+        ) : (
+          <div className="flex items-center justify-between h-16">
+            <>
+              <Link
+                to="/"
+                className="flex items-center gap-2 font-medium text-white hover:scale-105 transition"
+              >
+                <Avatar>
+                  <AvatarImage className="rounded-full bg-gray-800" src={producer?.logo} alt={producer?.name || 'logo'} />
+                  <AvatarFallback>{producer?.name}</AvatarFallback>
+                </Avatar>
+                {producer?.name} Universe
+              </Link>
+            </>
 
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="md:hidden text-white hover:bg-white/10"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-        </div>
-
-        {/* Mobile Navigation */}
-        {isOpen && (
-          <div className="md:hidden border-t border-white/10 py-4 animate-fade-in">
-            <div className="flex flex-col space-y-3">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`text-sm font-medium px-2 py-2 rounded-lg transition-all duration-300 ${
-                    isActive(item.path)
-                      ? "text-purple-400 bg-purple-400/10"
-                      : "text-white hover:bg-white/10 hover:text-purple-400"
-                  }`}
-                  onClick={() => setIsOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            <div className="flex items-center space-x-8">
+              {navItems.slice(0, 3).map(renderLink)}
             </div>
           </div>
         )}
