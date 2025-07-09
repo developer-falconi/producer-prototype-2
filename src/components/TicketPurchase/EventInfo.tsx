@@ -1,7 +1,7 @@
 import React from 'react';
 import { Easing, motion } from 'framer-motion';
 import { Event } from '@/lib/types';
-import { formatDate, formatTime } from '@/lib/utils'; // Assuming formatDate exists and can handle 'DD MMM,YYYY'
+import { formatDate, formatTime } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Calendar } from 'lucide-react';
 
