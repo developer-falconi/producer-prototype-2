@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Play, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,8 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useProducer } from "@/context/ProducerContext";
+import { motion, AnimatePresence, Variants } from "framer-motion";
+import Spinner from "@/components/Spinner";
+import { cn } from "@/lib/utils";
 
 const Gallery = () => {
+  const { producer } = useProducer();
   const [mediaContent, setMediaContent] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -121,15 +125,51 @@ const Gallery = () => {
     { key: "experiences", label: "Experiencias", icon: ImageIcon }
   ];
 
-  const filteredContent = selectedCategory === "all" 
-    ? mediaContent 
+  const filteredContent = selectedCategory === "all"
+    ? mediaContent
     : mediaContent.filter(item => item.category === selectedCategory);
 
-  const renderMediaCard = (item, index) => {
+  const containerVariants: Variants = { // Explicitly typed as Variants
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants: Variants = { // Explicitly typed as Variants
+    hidden: { y: 20, opacity: 0, scale: 0.95 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 10
+      } as const // Added 'as const' to help TypeScript infer the literal type
+    },
+    exit: { opacity: 0, scale: 0.8, transition: { duration: 0.2 } }
+  };
+
+  const buttonVariants: Variants = { // Explicitly typed as Variants
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } }
+  };
+
+  const textVariants: Variants = { // Explicitly typed as Variants
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  };
+
+  // Moved renderMediaCard inside the component to ensure it's in scope
+  const renderMediaCard = (item: any, index: number) => { // Added type for item and index for clarity
     if (item.type === "video") {
       return (
-        <Card 
-          key={item.id} 
+        <Card
+          key={item.id}
           className="bg-white/10 backdrop-blur-lg border-white/20 overflow-hidden group hover:bg-white/15 transition-all duration-500 hover:scale-105 animate-fade-in"
           style={{ animationDelay: `${0.1 * index}s` }}
         >
@@ -137,8 +177,8 @@ const Gallery = () => {
             <Dialog>
               <DialogTrigger asChild>
                 <div className="relative overflow-hidden cursor-pointer">
-                  <img 
-                    src={item.thumbnail} 
+                  <img
+                    src={item.thumbnail}
                     alt={item.title}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
                   />
@@ -170,8 +210,8 @@ const Gallery = () => {
     }
 
     return (
-      <Card 
-        key={item.id} 
+      <Card
+        key={item.id}
         className="bg-white/10 backdrop-blur-lg border-white/20 overflow-hidden group hover:bg-white/15 transition-all duration-500 hover:scale-105 animate-fade-in"
         style={{ animationDelay: `${0.1 * index}s` }}
       >
@@ -179,8 +219,8 @@ const Gallery = () => {
           <Dialog>
             <DialogTrigger asChild>
               <div className="relative overflow-hidden cursor-pointer">
-                <img 
-                  src={item.thumbnail} 
+                <img
+                  src={item.thumbnail}
                   alt={item.title}
                   className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
                 />
@@ -193,8 +233,8 @@ const Gallery = () => {
               </div>
             </DialogTrigger>
             <DialogContent className="max-w-4xl bg-black/90 border-white/20">
-              <img 
-                src={item.url} 
+              <img
+                src={item.url}
                 alt={item.title}
                 className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
               />
@@ -207,100 +247,145 @@ const Gallery = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        <Navbar />
-        <div className="pt-32 pb-20 px-4 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-white text-lg">Cargando galería...</p>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-200 via-gray-200 to-gray-400">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="flex items-center justify-center"
+        >
+          <Spinner />
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <Navbar />
-      
-      <div className="pt-32 pb-20 px-4">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="relative min-h-screen bg-gradient-to-br from-gray-200 via-gray-200 to-gray-400"
+    >
+      <div className="container">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12 animate-fade-in">
-            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+          <div className="text-center mb-12">
+            <motion.h1
+              variants={textVariants}
+              className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4"
+            >
               Galería ONDA
-            </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            </motion.h1>
+            <motion.p
+              variants={textVariants}
+              className="text-xl text-gray-700 max-w-2xl mx-auto"
+            >
               Revive los mejores momentos de nuestros eventos a través de imágenes, videos y experiencias únicas
-            </p>
+            </motion.p>
           </div>
 
           {/* Category Filters */}
-          <div className="flex flex-wrap justify-center gap-4 mb-12 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="flex flex-wrap justify-center gap-4 mb-12"
+          >
             {categories.map((category) => {
               const Icon = category.icon;
               return (
-                <Button
-                  key={category.key}
-                  onClick={() => setSelectedCategory(category.key)}
-                  variant={selectedCategory === category.key ? "default" : "outline"}
-                  className={`px-6 py-2 rounded-full transition-all duration-300 ${
-                    selectedCategory === category.key
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                      : "border-white/30 text-white hover:bg-white/10 hover:scale-105"
-                  }`}
-                >
-                  <Icon className="w-4 h-4 mr-2" />
-                  {category.label}
-                </Button>
+                <motion.div key={category.key} variants={buttonVariants}>
+                  <Button
+                    onClick={() => setSelectedCategory(category.key)}
+                    variant={selectedCategory === category.key ? "default" : "outline"}
+                    className={cn(
+                      "px-6 py-2 rounded-full transition-all duration-300",
+                      selectedCategory === category.key
+                        ? "bg-blue-800 text-white hover:bg-blue-800/80 hover:scale-105"
+                        : "border-white/30 text-white bg-gray-800 hover:bg-gray-800/80 hover:scale-105"
+                    )}
+                  >
+                    <Icon className="w-4 h-4 mr-2" />
+                    {category.label}
+                  </Button>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
 
           {/* Media Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredContent.map((item, index) => renderMediaCard(item, index))}
-          </div>
-
-          {filteredContent.length === 0 && (
-            <div className="text-center py-12 animate-fade-in">
-              <div className="text-gray-400 text-lg mb-4">No hay contenido disponible</div>
-              <p className="text-gray-500">Selecciona otra categoría para ver más contenido</p>
-            </div>
-          )}
+          <AnimatePresence mode="wait"> {/* Use AnimatePresence for exit animations on filter change */}
+            <motion.div
+              key={selectedCategory} // Key change to re-render and animate on category change
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden" // Define exit for the grid container
+              className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            >
+              {filteredContent.length > 0 ? (
+                filteredContent.map((item, index) => (
+                  <motion.div key={item.id} variants={itemVariants}>
+                    {renderMediaCard(item, index)}
+                  </motion.div>
+                ))
+              ) : (
+                <motion.div
+                  key="no-content"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center py-12 col-span-full" // Ensure it spans all columns
+                >
+                  <div className="text-gray-400 text-lg mb-4">No hay contenido disponible</div>
+                  <p className="text-gray-500">Selecciona otra categoría para ver más contenido</p>
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
           {/* Call to Action */}
-          <div className="text-center mt-16 animate-fade-in">
-            <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-8 max-w-2xl mx-auto">
-              <h3 className="text-2xl font-bold text-white mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
-              <p className="text-gray-300 mb-6">
+          <motion.div
+            variants={textVariants}
+            className="text-center mt-8"
+          >
+            <motion.div
+              variants={itemVariants} // Reusing itemVariants for the CTA box
+              className="bg-gray-800/20 backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
+            >
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
+              <p className="text-gray-700 mb-6">
                 Únete a nuestra comunidad y no te pierdas ningún evento exclusivo de ONDA Producciones
               </p>
               <div className="flex flex-wrap justify-center gap-4">
-                <Button 
-                  asChild 
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
-                >
-                  <a href="/events">Ver Próximos Eventos</a>
-                </Button>
-                <Button 
-                  asChild 
-                  variant="outline" 
-                  className="border-white/30 text-white hover:bg-white/10 px-8 py-3 rounded-full transition-all duration-300"
-                >
-                  <a href="https://instagram.com/somos_onda" target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Síguenos
-                  </a>
-                </Button>
+                <motion.div variants={buttonVariants}>
+                  <Button
+                    asChild
+                    className="bg-gray-800 hover:bg-gray-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
+                  >
+                    <a href="/events">Ver Próximos Eventos</a>
+                  </Button>
+                </motion.div>
+                <motion.div variants={buttonVariants}>
+                  <Button
+                    asChild
+                    className="bg-blue-800 hover:bg-blue-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
+                  >
+                    <a href="https://instagram.com/somos_onda" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Síguenos
+                    </a>
+                  </Button>
+                </motion.div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
 
-      <Footer />
-    </div>
+      <Footer producer={producer} />
+    </motion.div>
   );
 };
 

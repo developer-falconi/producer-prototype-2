@@ -1,0 +1,105 @@
+import { CircleDollarSign } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn, formatEventDate, formatEventPrice } from "@/lib/utils";
+import { Event } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { SetURLSearchParams } from "react-router-dom";
+import { TicketPurchaseFlow } from "./TicketPurchase/TicketPurchaseFlow";
+
+interface EventCardProps {
+  event: Event;
+  initialOpenEventId: number | null;
+  setSearchParams: SetURLSearchParams;
+}
+
+const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSearchParams }) => {
+  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
+
+  useEffect(() => {
+    if (initialOpenEventId && event.id === initialOpenEventId) {
+      setIsEventDetailsOpen(true);
+    }
+  }, [initialOpenEventId, event.id]);
+
+  const statusColors = {
+    ACTIVE: "bg-green-500",
+    COMPLETED: "bg-blue-800",
+    INACTIVE: "bg-red-500",
+    CANCELLED: "bg-yellow-500"
+  };
+
+  const statusColor = statusColors[event?.status] || "bg-gray-500";
+
+  const handleCardClick = () => {
+    setIsEventDetailsOpen(true);
+    setSearchParams(prev => {
+      prev.set('event', String(event.id));
+      return prev;
+    });
+  };
+
+  const handleCloseDetails = () => {
+    setIsEventDetailsOpen(false);
+    setSearchParams(prev => {
+      prev.delete('event');
+      return prev;
+    });
+  };
+
+  return (
+    <>
+      <Card
+        onClick={handleCardClick}
+        className={cn(
+          "bg-white/10 backdrop-blur-lg border-white/20 overflow-hidden cursor-pointer",
+          "group hover:bg-white/15 transition-all duration-500 hover:scale-105 animate-fade-in z-10"
+        )}
+      >
+        <CardContent className="p-0 relative min-h-[500px]">
+          <img
+            src={event.logo}
+            alt={event.name}
+            className="absolute inset-0 w-full h-full aspect-9/16 object-cover group-hover:scale-110 transition-transform duration-700"
+          />
+          <div className="absolute inset-0 flex flex-col justify-between p-6 backdrop-blur-xs bg-black/60">
+            <div className={cn(
+              'absolute top-2 right-2', statusColor,
+              'text-white rounded-md px-2 py-1 text-xs h-11 w-11',
+              'flex items-center justify-center'
+            )}>
+              <div className="flex flex-col items-center font-medium">
+                <span className="m-0 text-sm">{formatEventDate(event.startDate).split(' ')[0]}</span>
+                <span className="m-0">{formatEventDate(event.startDate).split(' ')[1]}</span>
+              </div>
+            </div>
+
+            {/* event Details */}
+            <div className="flex flex-col justify-end h-full">
+              <div className="space-y-4">
+                <h3 className="text-white font-semibold text-lg line-clamp-2">{event.name}</h3>
+
+                <div className="flex justify-between space-y-2">
+                  <div className="flex items-center gap-2 text-white text-sm font-medium">
+                    <CircleDollarSign className="w-4 h-4 text-white" />
+                    <span className="text-base font-semibold text-white">
+                      {formatEventPrice(event.prevents?.[0]?.price)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      {isEventDetailsOpen && (
+        <TicketPurchaseFlow
+          initialEvent={event}
+          isOpen={isEventDetailsOpen}
+          onClose={handleCloseDetails}
+        />
+      )}
+    </>
+  );
+};
+
+export default EventCard;
