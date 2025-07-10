@@ -25,7 +25,7 @@ const Navbar = () => {
       to={item.path}
       className={cn(
         "flex items-center space-x-2 px-3 py-2 rounded-lg transition",
-        isActive(item.path) ? "text-blue-800" : "text-white hover:text-blue-800"
+        isActive(item.path) ? "bg-blue-800 rounded-lg text-white" : "text-white hover:text-blue-800"
       )}
     >
       {item.icon}
@@ -50,7 +50,7 @@ const Navbar = () => {
   return (
     <nav
       className={cn(
-        "fixed inset-x-0 z-40 bg-black/20 backdrop-blur-lg",
+        "fixed inset-x-0 z-40 bg-black/80 backdrop-blur-lg",
         isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
       )}
     >

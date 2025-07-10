@@ -1,10 +1,9 @@
-import { Phone } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Producer } from "@/lib/types";
 
 const Footer = ({ producer }: { producer: Producer }) => {
   return (
-    <footer className="bg-black/40 backdrop-blur-sm border-t border-white/10 p-4">
+    <footer className="bg-black/20 backdrop-blur-sm border-t border-white/10 p-4">
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-3 gap-8 mb-4">
           <div className="space-y-4">

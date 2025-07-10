@@ -13,6 +13,7 @@ import { fetchProducerEventDetailData, submitTicketForm } from '@/lib/api';
 import Spinner from '../Spinner';
 import { Button } from '../ui/button';
 import { EventInfo } from './EventInfo';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const steps = [
   'Seleccionar Entradas',
@@ -52,6 +53,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isOpen && !fullEventDetails) {
@@ -90,6 +92,18 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       })();
     }
   }, [isOpen, initialEvent.id, fullEventDetails]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   // Handlers
   const onUpdatePurchase = (data: Partial<PurchaseData>) => {
@@ -206,6 +220,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     setCurrentStep(0);
     setFullEventDetails(null);
     setErrorDetails(null);
+    handleReset();
     onClose();
   };
 
@@ -296,7 +311,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
           <motion.div
             key="sheet"
-            className="relative mx-auto overflow-x-hidden w-full max-w-lg md:max-w-4xl h-[90vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden"
+            className="relative mx-auto w-full max-w-lg md:max-w-4xl h-[85vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "0%" }}
@@ -328,7 +343,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                   )}
 
                   {/* Content */}
-                  <div className="h-full animate-fade-in">
+                  <div className="overflow-hidden animate-fade-in">
                     {renderCurrentStep()}
                   </div>
                 </>

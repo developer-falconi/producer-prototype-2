@@ -18,15 +18,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure Git for merge
+      - name: Configure Git
         run: |
           git config user.email "developerfalconi@gmail.com"
           git config user.name "developer-falconi"
 
-      - name: Sync with main (auto-resolve conflicts with main)
+      - name: Clean existing build folder (from Git and local)
         run: |
-          git fetch origin main
-          git merge origin/main --no-edit -X theirs
+          echo "Removing old 'build' folder from Git tracking and local directory..."
+          git rm -rf --ignore-unmatch build || true
+          rm -rf build || true
+          echo "Old 'build' folder removed."
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.TOKEN_GITHUB }}
+          branch: ${{ github.ref_name }}
 
       - name: Set up Node
         uses: actions/setup-node@v4

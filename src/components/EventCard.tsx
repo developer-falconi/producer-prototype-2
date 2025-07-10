@@ -61,9 +61,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSea
             alt={event.name}
             className="absolute inset-0 w-full h-full aspect-9/16 object-cover group-hover:scale-110 transition-transform duration-700"
           />
-          <div className="absolute inset-0 flex flex-col justify-between p-6 backdrop-blur-xs bg-black/60">
+          <div className="absolute inset-0 flex flex-col justify-between p-6 bg-gradient-to-t from-black via-black/50 to-transparent">
             <div className={cn(
-              'absolute top-2 right-2', statusColor,
+              'absolute bottom-6 right-6', statusColor,
               'text-white rounded-md px-2 py-1 text-xs h-11 w-11',
               'flex items-center justify-center'
             )}>
@@ -79,7 +79,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSea
                 <h3 className="text-white font-semibold text-lg line-clamp-2">{event.name}</h3>
 
                 <div className="flex justify-between space-y-2">
-                  <div className="flex items-center gap-2 text-white text-sm font-medium">
+                  <div className="flex just items-center gap-2 text-white text-sm font-medium">
                     <CircleDollarSign className="w-4 h-4 text-white" />
                     <span className="text-base font-semibold text-white">
                       {formatEventPrice(event.prevents?.[0]?.price)}
