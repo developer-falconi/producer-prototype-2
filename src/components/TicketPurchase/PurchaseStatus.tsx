@@ -26,7 +26,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
   const title = isSuccess ? '¡Compra Exitosa! 🎉' : 'Error en la Compra 😔';
   const message = isSuccess
     ? 'Tu entrada ha sido confirmada.\nUna vez validado tu pago.\nRecibirás un email con todos los detalles del evento.\nNo olvides revisar tu casilla de spam'
-    : 'Hubo un problema al procesar tu compra. Por favor, inténtalo de nuevo o contacta a soporte.';
+    : status?.message || 'Hubo un problema al procesar tu compra. Por favor, inténtalo de nuevo o contacta a soporte.';
 
   return (
     <div className="h-full flex flex-col items-center justify-center p-6 text-center">

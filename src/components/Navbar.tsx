@@ -46,6 +46,8 @@ const Navbar = () => {
       document.title = 'Producer Platform';
     }
   }, [producer]);
+  
+  if(!producer) return
 
   return (
     <nav
@@ -67,7 +69,7 @@ const Navbar = () => {
                 className="flex items-center gap-2 font-medium text-white hover:scale-105 transition"
               >
                 <Avatar>
-                  <AvatarImage className="rounded-full bg-gray-800" src={producer?.logo} alt={producer?.name || 'logo'} />
+                  <AvatarImage src={producer?.logo} alt={producer?.name || 'logo'} />
                   <AvatarFallback>{producer?.name}</AvatarFallback>
                 </Avatar>
                 {producer?.name} Universe

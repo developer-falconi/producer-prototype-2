@@ -22,10 +22,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSea
   }, [initialOpenEventId, event.id]);
 
   const statusColors = {
-    ACTIVE: "bg-green-500",
+    ACTIVE: "bg-green-800",
     COMPLETED: "bg-blue-800",
-    INACTIVE: "bg-red-500",
-    CANCELLED: "bg-yellow-500"
+    INACTIVE: "bg-orange-800",
+    CANCELLED: "bg-red-800"
   };
 
   const statusColor = statusColors[event?.status] || "bg-gray-500";

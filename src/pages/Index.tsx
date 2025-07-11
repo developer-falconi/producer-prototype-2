@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Users, Award, TrendingUp } from "lucide-react";
+import { Users, Award, TrendingUp, ExternalLink } from "lucide-react";
 import Footer from "@/components/Footer";
 import Spinner from "@/components/Spinner";
 import FeaturedEvent from "@/components/FeaturedEvent";
@@ -110,7 +110,14 @@ const Index = () => {
 
   if (!producer) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white">Error al cargar los datos del productor.</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-400">
+        <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
+        <Link to='https://www.produtik.com' target="_blank">
+          <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+            Encontranos en Produtik <ExternalLink className="h-4 w-4" />
+          </div>
+        </Link>
+      </div>
     );
   }
 
@@ -191,7 +198,7 @@ const Index = () => {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.6 }}
               >
-                <span className="absolute top-0 -left-2 bg-gray-700 text-white px-4 py-1 rounded-t-lg rounded-bl-lg uppercase text-xs sm:text-sm">
+                <span className="absolute top-2 left-2 bg-blue-800 text-white px-4 py-1 rounded-lg uppercase text-sm font-semibold z-40">
                   Destacado
                 </span>
                 <FeaturedEvent activeEvent={activeEvent} />

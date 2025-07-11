@@ -9,6 +9,7 @@ import { useProducer } from "@/context/ProducerContext";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import Spinner from "@/components/Spinner";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 const Gallery = () => {
   const { producer } = useProducer();
@@ -256,6 +257,19 @@ const Gallery = () => {
         >
           <Spinner />
         </motion.div>
+      </div>
+    );
+  }
+
+  if (!producer) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-400">
+        <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
+        <Link to='https://www.produtik.com' target="_blank">
+          <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+            Encontranos en Produtik <ExternalLink className="h-4 w-4" />
+          </div>
+        </Link>
       </div>
     );
   }
