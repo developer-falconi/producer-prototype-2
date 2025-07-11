@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Footer from "@/components/Footer";
 import Spinner from "@/components/Spinner";
 import EventCard from "@/components/EventCard";
@@ -80,13 +80,16 @@ const Events = () => {
       </div>
     );
   }
+
   if (!producer) {
     return (
-      <div className="relative min-h-screen bg-gradient-to-br from-gray-200 via-gray-200 to-gray-400">
-        <div className="pt-2 px-4 flex flex-col items-center justify-center text-gray-900">
-          <span>Error al cargar los datos del productor.</span>
-          <Button onClick={() => window.location.reload()}>Recargar</Button>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-400">
+        <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
+        <Link to='https://www.produtik.com' target="_blank">
+          <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+            Encontranos en Produtik <ExternalLink className="h-4 w-4" />
+          </div>
+        </Link>
       </div>
     );
   }

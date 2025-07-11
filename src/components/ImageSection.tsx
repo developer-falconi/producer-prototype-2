@@ -46,7 +46,11 @@ export default function ImageSection({ producer }: ImageSectionProps) {
         animate="visible"
         variants={popVariant}
       >
-        <img src={producer.logo} alt={producer.name} className="w-full h-full object-contain" />
+        <img
+          src={producer.logo}
+          alt={producer.name}
+          className="w-full h-full object-contain bg-gradient-to-br from-black to-gray-600 backdrop-blur-md"
+        />
       </motion.div>
 
       <motion.div
@@ -56,7 +60,10 @@ export default function ImageSection({ producer }: ImageSectionProps) {
         animate="visible"
         variants={popVariant}
       >
-        <Button asChild className="px-6 py-2 rounded-full bg-gradient-to-r from-gray-700 to-gray-500 transition-all duration-300 hover:scale-105 text-white">
+        <Button
+          asChild
+          className="px-6 py-2 rounded-full bg-gradient-to-br from-black to-gray-600 backdrop-blur-md transition-all duration-300 hover:scale-105 text-white"
+        >
           <Link to="/events">Explorar Eventos</Link>
         </Button>
         <Button

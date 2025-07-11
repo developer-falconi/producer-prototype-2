@@ -5,10 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(dateString: string, formatType: 'full' | 'shortMonth' = 'full'): string {
+export function formatDate(dateString: string, formatType: 'full' | 'short' = 'full'): string {
   const date = new Date(dateString);
 
-  if (formatType === 'shortMonth') {
+  if (formatType === 'short') {
     const day = date.getDate();
     const monthNamesShort = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
     const month = monthNamesShort[date.getMonth()];
