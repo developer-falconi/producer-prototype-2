@@ -8,12 +8,12 @@ import { ProgressBar } from './ProgressBar';
 import { ClientData, Event, GenderEnum, Prevent, PurchaseData } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from './NavigationButtons';
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { motion, AnimatePresence, PanInfo, useAnimation, useDragControls, useAnimate, useMotionValue } from "framer-motion";
 import { fetchProducerEventDetailData, submitTicketForm } from '@/lib/api';
 import Spinner from '../Spinner';
 import { Button } from '../ui/button';
 import { EventInfo } from './EventInfo';
-import { useIsMobile } from '@/hooks/use-mobile';
+import useMeasure from "react-use-measure";
 
 const steps = [
   'Seleccionar Entradas',
@@ -53,7 +53,12 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
+  const scrollableContentRef = useRef<HTMLDivElement>(null);
+
+  const [scope, animate] = useAnimate();
+  const [sheetRef, { height }] = useMeasure();
+  const y = useMotionValue(0);
+  const dragControls = useDragControls();
 
   useEffect(() => {
     if (isOpen && !fullEventDetails) {
@@ -216,7 +221,14 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     }
   };
 
-  const resetAndClose = () => {
+  const handleCloseDrawer = async () => {
+    animate(scope.current, { opacity: [1, 0] });
+    const yStart = typeof y.get() === "number" ? y.get() : 0;
+    await animate("#ticket-sheet", { y: [yStart, height] }, {
+      ease: "easeInOut",
+      duration: 0.3
+    });
+
     setCurrentStep(0);
     setFullEventDetails(null);
     setErrorDetails(null);
@@ -224,9 +236,11 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     onClose();
   };
 
-  const onDragEnd = (_: any, info: PanInfo) => {
-    if (info.offset.y > 100) {
-      resetAndClose();
+  const onDragEndSheet = (_: any, info: PanInfo) => {
+    if (y.get() >= 100) {
+      handleCloseDrawer();
+    } else {
+      animate(y, 0, { type: "spring", stiffness: 300, damping: 30 });
     }
   };
 
@@ -281,7 +295,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           purchaseData={purchaseData}
           total={total}
           status={submissionStatus}
-          onResetAndClose={resetAndClose}
+          onResetAndClose={handleCloseDrawer}
         />);
       default:
         return null;
@@ -293,6 +307,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       {isOpen && (
         <motion.div
           key="modal-container"
+          ref={scope}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -301,31 +316,43 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         >
           <motion.div
             key="backdrop"
-            ref={backdropRef}
             className="fixed inset-0 bg-black/50 z-40"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={resetAndClose}
+            onClick={handleCloseDrawer}
           />
 
           <motion.div
-            key="sheet"
+            id="ticket-sheet"
+            ref={sheetRef}
             className="relative mx-auto w-full max-w-lg md:max-w-4xl h-[85vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden"
             initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "0%" }}
+            animate={{ y: "0%" }}
+            exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            style={{ y }}
             drag="y"
-            dragDirectionLock
-            dragConstraints={{ top: 0, bottom: 0 }}
-            onDragEnd={onDragEnd}
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ top: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={onDragEndSheet}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-center mt-2">
-              <div className="w-12 h-1 rounded-full bg-gray-300 cursor-grab" />
+            <div
+              className="flex justify-center mt-1 cursor-grab"
+            >
+              <button
+                onPointerDown={(e) => {
+                  dragControls.start(e);
+                }}
+                className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"
+              ></button>
             </div>
-            <div className="flex-grow overflow-y-auto pt-2">
+
+            <div
+              ref={scrollableContentRef}
+              className="flex-grow pt-1 relative"
+              style={{ overflowY: 'auto' }}
+            >
               {loadingDetails ? (
                 <Spinner textColor="text-white" borderColor="border-transparent border-t-white" />
               ) : errorDetails ? (
@@ -343,7 +370,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                   )}
 
                   {/* Content */}
-                  <div className="overflow-hidden animate-fade-in">
+                  <div className="animate-fade-in">
                     {renderCurrentStep()}
                   </div>
                 </>
