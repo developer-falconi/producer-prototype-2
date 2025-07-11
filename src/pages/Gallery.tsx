@@ -275,7 +275,7 @@ const Gallery = () => {
               variants={textVariants}
               className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4"
             >
-              Galería ONDA
+              Galería {producer.name}
             </motion.h1>
             <motion.p
               variants={textVariants}

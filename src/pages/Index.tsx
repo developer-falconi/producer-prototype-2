@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Users, Award, TrendingUp } from "lucide-react";
 import Footer from "@/components/Footer";
@@ -11,6 +11,7 @@ import { Event, PaymentStatus } from "@/lib/types";
 import { fetchProducerEventDetailData } from "@/lib/api";
 import PaymentResult from "@/components/PaymentResult";
 import { Link } from "react-router-dom";
+import { CountingNumber } from "@/components/animate-ui/text/counting-number";
 
 const Index = () => {
   const { producer, loadingProducer } = useProducer();
@@ -21,6 +22,9 @@ const Index = () => {
   const [loadingEventPayment, setLoadingEventPayment] = useState<boolean>(false);
   const [eventBought, setEventBought] = useState<Event>();
   const [isDialogVisible, setIsDialogVisible] = useState<boolean>(false);
+
+  const [statsInView, setStatsInView] = useState(false);
+  const statsSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -70,6 +74,31 @@ const Index = () => {
       return () => clearTimeout(timer);
     }
   }, [paymentStatus]);
+
+  useEffect(() => {
+    if (!producer || !statsSectionRef.current) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setStatsInView(true);
+        observer.unobserve(entry.target);
+      }
+    }, {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.5,
+    });
+
+    observer.observe(statsSectionRef.current);
+
+    return () => {
+      if (statsSectionRef.current) {
+        observer.unobserve(statsSectionRef.current);
+      }
+    };
+  }, [producer]);
 
   if (loadingProducer) {
     return (
@@ -173,25 +202,35 @@ const Index = () => {
       </section>
 
       {/* STATS */}
-      <section className="py-12 sm:py-20 bg-black/20 backdrop-blur-sm">
+      <section
+        className="py-12 sm:py-20 bg-black/20 backdrop-blur-sm"
+        ref={statsSectionRef}
+      >
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
             { icon: Users, num: producer.totalClients, label: "Tickets Vendidos" },
             { icon: Award, num: producer.totalEvents, label: "Eventos Exitosos" },
-            { icon: TrendingUp, num: "100%", label: "Satisfacción" },
+            { icon: TrendingUp, num: 100, label: "Satisfacción" },
           ].map(({ icon: Icon, num, label }, i) => (
             <motion.div
               key={i}
               className="text-center space-y-2"
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              animate={statsInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ delay: 0.2 + i * 0.2 }}
             >
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-zinc-700 to-slate-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-white">{num}</div>
-              <div className="text-gray-900 font-medium text-sm sm:text-base">{label}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-white">
+                {statsInView ? (
+                  <CountingNumber number={Number(num)} />
+                ) : (0)}
+                {label === 'Satisfacción' && '%'}
+              </div>
+              <div className="text-gray-900 font-medium text-sm sm:text-base">
+                {label}
+              </div>
             </motion.div>
           ))}
         </div>
