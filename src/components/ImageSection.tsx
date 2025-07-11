@@ -46,7 +46,7 @@ export default function ImageSection({ producer }: ImageSectionProps) {
         animate="visible"
         variants={popVariant}
       >
-        <img src={producer.logo} alt={producer.name} className="w-full h-full object-cover" />
+        <img src={producer.logo} alt={producer.name} className="w-full h-full object-contain" />
       </motion.div>
 
       <motion.div
