@@ -61,7 +61,7 @@ jobs:
 
       - name: Add and commit build folder
         run: |
-          git add build
+          git add -f build
           if git diff --cached --quiet; then
             echo "No changes to commit in build folder"
           else
