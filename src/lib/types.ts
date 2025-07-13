@@ -33,6 +33,7 @@ export interface Producer {
   email: Email;
   totalEvents: number;
   totalClients: number;
+  webDetails: WebDetails;
 }
 
 export interface Email {
@@ -182,6 +183,13 @@ export interface Client {
   voucherClients: VoucherClient[];
   tickets: any[];
 };
+
+export interface WebDetails {
+  id: number;
+  subtitle: string;
+  mission: string;
+  presentation: string;
+}
 
 export type ApiResponse<T> =
   | { success: true; data: T; message?: string, status?: string }

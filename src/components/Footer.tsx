@@ -17,8 +17,11 @@ const Footer = ({ producer }: { producer: Producer }) => {
               </span>
             </div>
             <p className="text-gray-900 text-sm">
-              Creamos experiencias únicas que conectan artistas con audiencias a
-              través de eventos memorables.
+              {
+                producer.webDetails && producer.webDetails.presentation
+                  ? producer.webDetails.presentation
+                  : `Creamos experiencias únicas que conectan artistas con audiencias a través de eventos memorables.`
+              }
             </p>
           </div>
 

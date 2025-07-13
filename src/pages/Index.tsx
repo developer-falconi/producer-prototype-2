@@ -122,7 +122,7 @@ const Index = () => {
   }
 
   return (
-    <div className="container-app flex flex-col min-h-screen bg-gradient-to-br from-gray-200 to-gray-400">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-200 to-gray-400">
       <AnimatePresence>
         {isDialogVisible && (
           <motion.div
@@ -160,7 +160,7 @@ const Index = () => {
           "relative flex-grow h-auto md:h-[calc(100vh-4rem)] overflow-hidden"
         )}
       >
-        <div className="md:absolute md:inset-0 flex flex-col lg:flex-row items-center justify-center">
+        <div className="md:absolute md:inset-0 flex flex-col md:flex-row items-center justify-center">
           {/* IMAGE + ICONS */}
           <motion.div
             className="w-full lg:w-1/2 p-4"
@@ -182,13 +182,17 @@ const Index = () => {
               {producer.name}, <br /> Universe
 
               <Link to='https://www.produtik.com' target="_blank">
-                <div className="absolute top-2/3 right-1/4 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+                <div className="absolute top-2/3 right-5 md:right-1/3 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
                   By Produtik
                 </div>
               </Link>
             </h1>
             <p className="text-base sm:text-lg text-gray-700 mb-8">
-              Más que eventos, nuestra pasión hecha realidad: un ecosistema completo donde cada detalle te sorprenderá.
+              {
+                producer.webDetails && producer.webDetails.subtitle
+                  ? producer.webDetails.subtitle
+                  : 'Más que eventos, nuestra pasión hecha realidad: un ecosistema completo donde cada detalle te sorprenderá.'
+              }
             </p>
 
             {activeEvent && (
@@ -264,7 +268,11 @@ const Index = () => {
             className="text-lg sm:text-xl text-gray-800 leading-relaxed"
             variants={{ hidden: {}, visible: {} }}
           >
-            En {producer.name} cada evento es una conexión auténtica entre música, arte y gastronomía, diseñada para emocionar.
+            {
+              producer.webDetails && producer.webDetails.mission
+                ? producer.webDetails.mission
+                : `En ${producer.name} cada evento es una conexión auténtica entre música, arte y gastronomía, diseñada para emocionar.`
+            }
           </motion.p>
         </motion.div>
       </section>
