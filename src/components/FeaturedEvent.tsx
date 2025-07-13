@@ -13,7 +13,7 @@ const FeaturedEvent: React.FC<FeaturedEventCardProps> = ({ activeEvent }) => {
   const isMobile = useIsMobile();
 
   return (
-    <div className="relative w-full p-4 sm:p-6 md:p-8 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-black to-gray-600 backdrop-blur-md border border-gray-700/50">
+    <div className="relative w-full p-6 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-black to-gray-600 backdrop-blur-md border border-gray-700/50">
       <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-2">
         {isMobile && (
           <div className="w-full flex justify-center items-center">
