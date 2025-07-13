@@ -160,7 +160,7 @@ const Index = () => {
           "relative flex-grow h-auto md:h-[calc(100vh-4rem)] overflow-hidden"
         )}
       >
-        <div className="md:absolute md:inset-0 flex flex-col md:flex-row items-center justify-center">
+        <div className="md:absolute md:inset-0 flex flex-col md:flex-row items-center justify-center md:pt-12">
           {/* IMAGE + ICONS */}
           <motion.div
             className="w-full lg:w-1/2 p-4"
@@ -197,7 +197,7 @@ const Index = () => {
 
             {activeEvent && (
               <motion.div
-                className="relative max-w-md mx-auto lg:mx-0"
+                className="relative max-w-lg mx-auto lg:mx-0"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.6 }}
