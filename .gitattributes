@@ -1,8 +1,5 @@
-# .gitattributes at repo root on main branch
-dist/** merge=ours
-build/** merge=ours
+# never merge any incoming changes under dist/, always keep the current branch’s copy
+build/**  merge=ours
 
-git config merge.ours.name "Keep ours merge driver"
-git config merge.ours.driver true
-git commit -m "chore: register ours merge driver" .gitattributes
-git push origin main
+# (optional) hide dist/ changes from git diffs
+build/**  diff=none

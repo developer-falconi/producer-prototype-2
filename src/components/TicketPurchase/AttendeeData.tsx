@@ -9,6 +9,17 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import '../../App.css';
 import { Check } from 'lucide-react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -21,6 +32,19 @@ const itemVariants = {
     },
   },
 };
+
+const clientSchema = z.object({
+  fullName: z.string().min(1, "El nombre completo es obligatorio."),
+  docNumber: z.string()
+    .regex(/^[0-9]+$/, "El número de documento debe contener solo números.")
+    .min(1, "El número de documento es obligatorio."),
+  phone: z.string()
+    .regex(/^[0-9]+$/, "El teléfono debe contener solo números.")
+    .min(1, "El teléfono es obligatorio."),
+  gender: z.enum([GenderEnum.HOMBRE, GenderEnum.MUJER, GenderEnum.OTRO], {
+    errorMap: () => ({ message: "El género es obligatorio." })
+  })
+});
 
 interface AttendeeDataProps {
   purchaseData: PurchaseData;
@@ -37,8 +61,22 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
     new Array(purchaseData.clients.length).fill(false)
   );
 
-  const isClientFormComplete = (client: ClientData) => {
-    return !!client.fullName && !!client.docNumber && !!client.gender && !!client.phone;
+  const form = useForm<z.infer<typeof clientSchema>>({
+    resolver: zodResolver(clientSchema),
+    defaultValues: purchaseData.clients[activeIndex] as z.infer<typeof clientSchema>,
+    mode: "onChange"
+  });
+
+  const { reset, control, handleSubmit, formState: { errors } } = form;
+
+  useEffect(() => {
+    if (purchaseData.clients[activeIndex]) {
+      reset(purchaseData.clients[activeIndex] as z.infer<typeof clientSchema>);
+    }
+  }, [activeIndex, purchaseData.clients, reset]);
+
+  const isClientFormComplete = (clientFormData: z.infer<typeof clientSchema>) => {
+    return !!clientFormData.fullName && !!clientFormData.docNumber && !!clientFormData.gender && !!clientFormData.phone;
   };
 
   const handleInputChange = (index: number, field: keyof ClientData, value: string) => {
@@ -144,123 +182,168 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                       transition={{ duration: 0.3, ease: "easeOut" }}
                       className="space-y-4 overflow-hidden"
                     >
-                      <div className="relative">
-                        <Label
-                          htmlFor={`fullName-${index}`}
-                          className="text-gray-300 text-sm font-medium px-1 rounded"
-                        >
-                          Nombre Completo
-                        </Label>
-                        <Input
-                          id={`fullName-${index}`}
-                          value={client.fullName}
-                          onChange={(e) => handleInputChange(index, 'fullName', e.target.value)}
-                          className="p-3 bg-transparent text-white rounded-lg transition-all duration-200"
-                          placeholder="Juan Pérez"
-                        />
-                      </div>
+                      <Form {...form}>
+                        <form onSubmit={handleSubmit(() => handleCompleteClick(index))} className="space-y-4">
+                          <FormField
+                            control={control}
+                            name="fullName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-gray-300 text-sm font-medium px-1 rounded">
+                                  Nombre Completo
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    id={`fullName-${index}`}
+                                    onChange={(e) => handleInputChange(index, 'fullName', e.target.value)}
+                                    className="p-3 bg-transparent text-white rounded-lg transition-all duration-200"
+                                    placeholder="Juan Pérez"
+                                  />
+                                </FormControl>
+                                <FormMessage className='text-xs' />
+                              </FormItem>
+                            )}
+                          />
 
-                      <AnimatePresence>
-                        {!!client.fullName && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.2, delay: 0.1 }}
-                            className="relative"
-                          >
-                            <Label
-                              htmlFor={`docNumber-${index}`}
-                              className="text-gray-300 text-sm font-medium px-1 rounded"
+                          <AnimatePresence>
+                            {form.watch('fullName') && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2, delay: 0.1 }}
+                              >
+                                <FormField
+                                  control={control}
+                                  name="docNumber"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-gray-300 text-sm font-medium px-1 rounded">
+                                        Número de Documento
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          {...field}
+                                          id={`docNumber-${index}`}
+                                          onChange={(e) => {
+                                            field.onChange(e);
+                                            onUpdateClient(index, 'docNumber', e.target.value);
+                                          }}
+                                          className="p-3 bg-transparent text-white rounded-lg transition-all duration-200"
+                                          placeholder="12345678"
+                                          inputMode="numeric"
+                                          pattern="[0-9]*"
+                                        />
+                                      </FormControl>
+                                      <FormMessage className='text-xs' />
+                                    </FormItem>
+                                  )}
+                                />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          <AnimatePresence>
+                            {form.watch('docNumber') && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2, delay: 0.2 }}
+                              >
+                                <FormField
+                                  control={control}
+                                  name="gender"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-gray-300 text-sm font-medium px-1 rounded">
+                                        Género
+                                      </FormLabel>
+                                      <Select
+                                        value={field.value}
+                                        onValueChange={(value) => {
+                                          field.onChange(value);
+                                          onUpdateClient(index, 'gender', value as GenderEnum);
+                                        }}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger className="p-3 bg-transparent text-white rounded-lg transition-all duration-200">
+                                            <SelectValue placeholder="Seleccionar" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent className="bg-popover border border-border rounded-lg shadow-lg bg-card-foreground text-white">
+                                          <SelectItem value={GenderEnum.HOMBRE}>{GenderEnum.HOMBRE}</SelectItem>
+                                          <SelectItem value={GenderEnum.MUJER}>{GenderEnum.MUJER}</SelectItem>
+                                          <SelectItem value={GenderEnum.OTRO}>{GenderEnum.OTRO}</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage className='text-xs' />
+                                    </FormItem>
+                                  )}
+                                />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          <AnimatePresence>
+                            {form.watch('gender') && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2, delay: 0.3 }}
+                              >
+                                <FormField
+                                  control={control}
+                                  name="phone"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-gray-300 text-sm font-medium px-1 rounded">
+                                        Teléfono
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          {...field}
+                                          id={`phone-${index}`}
+                                          onChange={(e) => {
+                                            field.onChange(e);
+                                            onUpdateClient(index, 'phone', e.target.value);
+                                          }}
+                                          className="p-3 bg-transparent text-white rounded-lg transition-all duration-200"
+                                          placeholder="+54 9 11 1234-5678"
+                                          inputMode="numeric"
+                                          pattern="[0-9]*"
+                                        />
+                                      </FormControl>
+                                      <FormMessage className='text-xs' />
+                                    </FormItem>
+                                  )}
+                                />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
+                          {Object.values(errors).length === 0 && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2, delay: 0.4 }}
+                              className="flex justify-end pt-4"
                             >
-                              Número de Documento
-                            </Label>
-                            <Input
-                              id={`docNumber-${index}`}
-                              value={client.docNumber}
-                              onChange={(e) => handleInputChange(index, 'docNumber', e.target.value)}
-                              className="p-3 bg-transparent text-white rounded-lg transition-all duration-200"
-                              placeholder="12345678"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                            />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <AnimatePresence>
-                        {!!client.docNumber && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.2, delay: 0.2 }}
-                            className="relative"
-                          >
-                            <Label
-                              htmlFor={`gender-${index}`}
-                              className="text-gray-300 text-sm font-medium px-1 rounded"
-                            >
-                              Género
-                            </Label>
-                            <Select value={client.gender} onValueChange={(value) => handleSelectChange(index, 'gender', value as GenderEnum)}>
-                              <SelectTrigger className="p-3 bg-transparent text-white rounded-lg transition-all duration-200">
-                                <SelectValue placeholder="Seleccionar" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-popover border border-border rounded-lg shadow-lg bg-card-foreground text-white">
-                                <SelectItem value={GenderEnum.HOMBRE}>{GenderEnum.HOMBRE}</SelectItem>
-                                <SelectItem value={GenderEnum.MUJER}>{GenderEnum.MUJER}</SelectItem>
-                                <SelectItem value={GenderEnum.OTRO}>{GenderEnum.OTRO}</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <AnimatePresence>
-                        {!!client.gender && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.2, delay: 0.3 }}
-                            className="relative"
-                          >
-                            <Label
-                              htmlFor={`phone-${index}`}
-                              className="text-gray-300 text-sm font-medium px-1 rounded"
-                            >
-                              Teléfono
-                            </Label>
-                            <Input
-                              id={`phone-${index}`}
-                              value={client.phone}
-                              onChange={(e) => handleInputChange(index, 'phone', e.target.value)}
-                              className="p-3 bg-transparent text-white rounded-lg transition-all duration-200"
-                              placeholder="+54 9 11 1234-5678"
-                              inputMode="numeric"
-                            />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      {isCurrentlyComplete && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2, delay: 0.4 }}
-                          className="flex justify-end pt-4"
-                        >
-                          <Button
-                            onClick={() => handleCompleteClick(index)}
-                            variant='default'
-                            className="text-white border bg-green-800 transition-colors duration-200 py-2 px-4 rounded-md"
-                          >
-                            <Check className='h-4 w-4' />
-                            Completado
-                          </Button>
-                        </motion.div>
-                      )}
+                              <Button
+                                type="submit"
+                                disabled={Object.keys(errors).length > 0 || isExplicitlyCompleted}
+                                variant='default'
+                                className="text-white border bg-green-800 transition-colors duration-200 py-2 px-4 rounded-md"
+                              >
+                                <Check className='h-4 w-4 mr-2' />
+                                Completado
+                              </Button>
+                            </motion.div>
+                          )}
+                        </form>
+                      </Form>
                     </motion.div>
                   )}
                 </AnimatePresence>

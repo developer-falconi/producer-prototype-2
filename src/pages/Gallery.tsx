@@ -366,10 +366,10 @@ const Gallery = () => {
           >
             <motion.div
               variants={itemVariants} // Reusing itemVariants for the CTA box
-              className="bg-gray-800/20 backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
+              className="bg-gray-800/80 backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
             >
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
-              <p className="text-gray-700 mb-6">
+              <h3 className="text-2xl font-bold text-gray-100 mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
+              <p className="text-gray-200 mb-6">
                 Únete a nuestra comunidad y no te pierdas ningún evento exclusivo de {producer.name}
               </p>
               <div className="flex flex-wrap justify-center gap-4">
@@ -386,7 +386,7 @@ const Gallery = () => {
                     asChild
                     className="bg-blue-800 hover:bg-blue-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
                   >
-                    <a href="https://instagram.com/somos_onda" target="_blank" rel="noopener noreferrer">
+                    <a href={`https://instagram.com/${producer.instagram}`} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="w-4 h-4 mr-2" />
                       Síguenos
                     </a>
