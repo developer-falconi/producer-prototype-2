@@ -82,7 +82,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               ...prev,
               selectedPrevent: initialSelectedPrevent,
               ticketQuantity: initialSelectedPrevent ? 1 : 0,
-              clients: Array.from({ length: initialSelectedPrevent ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '' }))
+              clients: Array.from({ length: initialSelectedPrevent ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
             }));
 
           } else {
@@ -110,14 +110,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     };
   }, [isOpen]);
 
-  // Handlers
   const onUpdatePurchase = (data: Partial<PurchaseData>) => {
     setPurchaseData(prevPurchaseData => {
       const newPurchaseData = { ...prevPurchaseData, ...data };
 
       if (data.ticketQuantity !== undefined && data.ticketQuantity !== prevPurchaseData.ticketQuantity) {
         const newClients = Array.from({ length: data.ticketQuantity }, (_, i) =>
-          prevPurchaseData.clients[i] || { fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '' }
+          prevPurchaseData.clients[i] || { fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }
         );
         newPurchaseData.clients = newClients;
       }
@@ -150,9 +149,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         return purchaseData.selectedPrevent !== null && purchaseData.ticketQuantity > 0;
       case 2:
         if (purchaseData.ticketQuantity === 0) return false;
-        return purchaseData.clients.every(client =>
-          client.fullName && client.docNumber && client.gender && client.phone
-        );
+        return purchaseData.clients.every(client => client.isCompleted);
       case 3:
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(purchaseData.email);

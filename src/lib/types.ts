@@ -132,6 +132,7 @@ export interface TicketInfo {
   docNumber: string;
   gender: GenderEnum;
   phone: string;
+  isCompleted: boolean;
 }
 
 export interface PurchaseData {

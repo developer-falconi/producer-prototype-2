@@ -82,7 +82,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSea
                   <div className="flex just items-center gap-2 text-white text-sm font-medium">
                     <CircleDollarSign className="w-4 h-4 text-white" />
                     <span className="text-base font-semibold text-white">
-                      {formatEventPrice(event.prevents?.[0]?.price)}
+                      {event.prevents?.[0]?.price ? formatEventPrice(event.prevents?.[0]?.price) : '-'}
                     </span>
                   </div>
                 </div>

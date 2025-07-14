@@ -157,7 +157,8 @@ const Index = () => {
 
       <section
         className={cn(
-          "relative flex-grow h-auto md:h-[calc(100vh-4rem)] overflow-hidden"
+          "relative flex-grow h-auto overflow-hidden",
+          activeEvent ? "md:h-[calc(100vh-1rem)]" : "md:h-[calc(100vh-4rem)]"
         )}
       >
         <div className="md:absolute md:inset-0 flex flex-col md:flex-row items-center justify-center md:pt-12">
@@ -197,7 +198,7 @@ const Index = () => {
 
             {activeEvent && (
               <motion.div
-                className="relative max-w-lg mx-auto lg:mx-0"
+                className="relative min-w-lg mx-auto lg:mx-0"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.6 }}
