@@ -51,7 +51,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
-  const [mpPublicKey, setMpPublicKey] = useState<string>("");
+  const [mpPublicKey, setMpPublicKey] = useState<string>('');
   const [mpGeneratingPreference, setMpGeneratingPreference] = useState<boolean>(false);
 
   //motion
@@ -90,6 +90,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               clients: Array.from({ length: initialSelectedPrevent ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
             }));
 
+            setMpPublicKey(resp.data.oAuthMercadoPago?.mpPublicKey);
           } else {
             setErrorDetails("Error al cargar detalles.");
           }
@@ -191,10 +192,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const handleUpdateProductsAndCombos = (products: PurchaseProductItem[], combos: PurchaseComboItem[]) => {
     setPurchaseData(prev => ({ ...prev, products, combos }));
   };
-
-  const handleUpdatePurchaseTotal = (total: number) => {
-    setPurchaseData(prev => ({ ...prev, total }))
-  }
 
   const generateMercadoPagoPreference = async () => {
     if (!fullEventDetails?.oAuthMercadoPago?.mpPublicKey || !purchaseData.selectedPrevent) {
@@ -517,6 +514,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 onPrevious={handlePrevious}
                 onNext={handleNext}
                 onComplete={handleComplete}
+                isLoading={loadingDetails}
                 isSubmitting={isSubmitting || (currentStep === 4 && purchaseData.paymentMethod === 'mercadopago' && mpGeneratingPreference)}
                 isMercadoPagoSelected={purchaseData.paymentMethod === 'mercadopago'}
                 isGeneratingPreference={mpGeneratingPreference}

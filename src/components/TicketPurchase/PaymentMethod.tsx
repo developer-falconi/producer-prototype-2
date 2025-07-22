@@ -106,7 +106,10 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium text-gray-300">Transferencia Bancaria</h3>
-              <p className="text-sm text-blue-700">Sin comisiones <br />(Acreditación manual)</p>
+              <p className="text-sm text-blue-700">
+                Sin comisiones <br />
+                <span className='text-xs'>(Acreditación manual)</span>
+              </p>
             </div>
             <div className="text-right">
               <p className="font-medium text-gray-300">0%</p>
@@ -128,11 +131,14 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium text-gray-300">MercadoPago</h3>
-                <p className="text-sm text-blue-700">Pago inmediato</p>
+                <p className="text-sm text-blue-700">
+                  Tu pago se acredita al instante <br />
+                  <span className='text-xs'>(Comision exclusiva de Mercado Pago)</span>
+                </p>
               </div>
               <div className="text-right">
                 <p className="font-medium text-gray-300">8.24%</p>
-                <p className="text-xs text-gray-400">+ {formatPrice(calculatedMercadoPagoFee)}</p>
+                <p className="text-xs text-gray-400 whitespace-nowrap">+ {formatPrice(calculatedMercadoPagoFee)}</p>
               </div>
             </div>
           </motion.div>
@@ -142,7 +148,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
           <div className="space-y-4 p-4 bg-green-700/20 border border-green-700 rounded-lg">
             <div className="text-lg text-gray-300">
               <h4 className="font-medium">Detalles de la Cuenta Bancaria:</h4>
-              <p className='font-bold'>Alias: {eventData.alias}</p>
+              <p className='font-bold text-white text-xl'>Alias: {eventData.alias}</p>
             </div>
 
             <div className="mt-4">
