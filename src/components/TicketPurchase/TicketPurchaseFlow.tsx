@@ -254,7 +254,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         }
         return !!purchaseData.paymentMethod;
       case 6:
-        return true;
+        if (purchaseData.paymentMethod !== 'mercadopago') return true;
       default: return true;
     }
   };

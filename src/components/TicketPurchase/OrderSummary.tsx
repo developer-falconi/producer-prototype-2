@@ -153,7 +153,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
       {/* Render MercadoPagoButton if preferenceId is available and MP is selected */}
       {purchaseData.paymentMethod === 'mercadopago' && mpPreferenceId && mpPublicKey && (
         <div className="mt-8 text-center">
-          <p className="text-gray-400 text-sm mb-4">Haz click en el botón para finalizar tu compra con Mercado Pago:</p>
+          <p className="text-gray-300 text-sm mb-4">Haz click en el botón para finalizar tu compra con Mercado Pago:</p>
           <MercadoPagoButton
             preferenceId={mpPreferenceId}
             publicKey={mpPublicKey}
