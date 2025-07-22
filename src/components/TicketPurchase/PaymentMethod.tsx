@@ -3,8 +3,6 @@ import { cn, formatPrice } from '@/lib/utils';
 import { motion, Easing } from "framer-motion";
 import { Event, PurchaseData } from '@/lib/types';
 import { Button } from '../ui/button';
-import MercadoPagoButton from '../MercadoPago';
-import { createPreference } from '@/lib/api';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -32,56 +30,54 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   onUpdatePurchaseFile
 }) => {
   const [error, setError] = useState<string>();
-  const [preferenceId, setPreferenceId] = useState<string | null>(null);
-  const [publicKey, setPublicKey] = useState<string>("");
   const [isMpConfiguredForEvent, setIsMpConfiguredForEvent] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const ticketPrice = purchaseData.selectedPrevent?.price || eventData?.featuredPrevent?.price || 0;
-  const subtotalWithoutFees = ticketPrice * purchaseData.ticketQuantity;
-  const mercadoPagoFee = subtotalWithoutFees * 0.0824;
+  const calculateSubtotal = () => {
+    const ticketPrice = purchaseData.selectedPrevent?.price || 0;
+    const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
 
-  const subtotal = purchaseData.paymentMethod === 'mercadopago'
-    ? subtotalWithoutFees + mercadoPagoFee
-    : subtotalWithoutFees;
+    const totalProductsPrice = purchaseData.products.reduce(
+      (sum, item) => {
+        const priceNum = parseFloat(item.product.price.toString());
+        const discountNum = parseFloat(item.product.discountPercentage.toString());
+        const effectivePrice = priceNum * (1 - discountNum / 100);
+        return sum + effectivePrice * item.quantity;
+      },
+      0
+    );
+
+    const totalCombosPrice = purchaseData.combos.reduce(
+      (sum, item) => {
+        const priceNum = parseFloat(item.combo.price.toString());
+        return sum + priceNum * item.quantity;
+      },
+      0
+    );
+
+    return subtotalTickets + totalProductsPrice + totalCombosPrice;
+  };
+
+  const mpFeeRate = 0.0824;
+  const subtotalBeforeFee = calculateSubtotal();
+  const calculatedMercadoPagoFee = subtotalBeforeFee * mpFeeRate;
 
   useEffect(() => {
     if (eventData.oAuthMercadoPago?.mpPublicKey) {
       setIsMpConfiguredForEvent(true);
+      setError(null);
     } else {
       setIsMpConfiguredForEvent(false);
       if (purchaseData.paymentMethod === 'mercadopago') {
         setError("Mercado Pago no está configurado para este evento. Se seleccionó Transferencia.");
+        onUpdatePaymentMethod('bank_transfer');
       }
     }
-  }, [eventData.oAuthMercadoPago, purchaseData.paymentMethod]);
+  }, [eventData.oAuthMercadoPago, purchaseData.paymentMethod, onUpdatePaymentMethod]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       onUpdatePurchaseFile(file);
-    }
-  };
-
-  const handleGoToPay = async () => {
-    setIsSubmitting(true);
-    const updatedParticipants = purchaseData.clients.map(participant => ({
-      ...participant,
-      email: purchaseData.email
-    }));
-    try {
-      const res = await createPreference(purchaseData.selectedPrevent.id, updatedParticipants);
-      if (res.success) {
-        setPreferenceId(res.data.preferenceId);
-        setPublicKey(res.data.publicKey);
-      }
-      if (!res.success) {
-        setError(res['message']);
-      }
-    } catch {
-      setError('Error al contactar a Mercado Pago');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -92,16 +88,6 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
       animate="visible"
       variants={itemVariants}
     >
-      <motion.h3
-        variants={itemVariants}
-        className="px-6 border-green-700 bg-green-700/10 py-2 text-lg font-bold text-gray-100 mb-4 rounded-lg border"
-      >
-        <div className="flex justify-between">
-          <span>Subtotal:</span>
-          <span>{formatPrice(subtotal)}</span>
-        </div>
-      </motion.h3>
-
       <motion.h2 variants={itemVariants} className="text-lg font-bold text-gray-100 mb-4">
         Selecciona método de pago
       </motion.h2>
@@ -146,7 +132,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
               </div>
               <div className="text-right">
                 <p className="font-medium text-gray-300">8.24%</p>
-                <p className="text-xs text-gray-400">+ {formatPrice(mercadoPagoFee)}</p>
+                <p className="text-xs text-gray-400">+ {formatPrice(calculatedMercadoPagoFee)}</p>
               </div>
             </div>
           </motion.div>
@@ -172,21 +158,6 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
 
         {error && (
           <p className='text-destructive'>{error}</p>
-        )}
-
-        {purchaseData.paymentMethod === 'mercadopago' && (
-          <div className="mt-4">
-            {!preferenceId || !publicKey ? (
-              <Button
-                onClick={handleGoToPay}
-                className="w-full bg-green-800 truncate hover:bg-green-700"
-              >
-                {isSubmitting ? 'Generando pago...' : 'Ir a pagar'}
-              </Button>
-            ) : (
-              <MercadoPagoButton preferenceId={preferenceId} publicKey={eventData.oAuthMercadoPago.mpPublicKey} />
-            )}
-          </div>
         )}
       </div>
     </motion.div>

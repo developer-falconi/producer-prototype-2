@@ -2,6 +2,7 @@ import React from 'react';
 import { XCircle, CheckCircle } from 'lucide-react';
 import { PurchaseData } from '@/lib/types';
 import { Button } from '../ui/button';
+import { formatPrice } from '@/lib/utils';
 
 interface PurchaseStatusProps {
   purchaseData: PurchaseData;
@@ -49,7 +50,16 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
           <div className="space-y-2 text-sm text-gray-400 animate-fade-in">
             <p>📧 Revisa tu bandeja de entrada</p>
             <p>🎫 {purchaseData.ticketQuantity} entrada{purchaseData.ticketQuantity > 1 ? 's' : ''}</p>
-            <p>💰 Total: ${total.toLocaleString('es-AR')}</p>
+
+            {purchaseData.products.length > 0 && (
+              <p>🛒 {purchaseData.products.length} producto{purchaseData.products.length > 1 ? 's' : ''}</p>
+            )}
+
+            {purchaseData.combos.length > 0 && (
+              <p>📦 {purchaseData.combos.length} combo{purchaseData.combos.length > 1 ? 's' : ''}</p>
+            )}
+
+            <p>💰 Total: {formatPrice(total)}</p>
           </div>
         )}
 

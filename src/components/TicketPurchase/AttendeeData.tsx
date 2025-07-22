@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ClientData, GenderEnum, PurchaseData } from '@/lib/types';
+import { ClientData, GenderEnum, PurchaseData, TicketInfo } from '@/lib/types';
 import { motion, AnimatePresence, Easing } from "framer-motion";
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,7 @@ const clientSchema = z.object({
 
 interface AttendeeDataProps {
   purchaseData: PurchaseData;
-  onUpdateClient: (index: number, field: keyof ClientData, value: string) => void;
+  onUpdateClient: (index: number, field: keyof TicketInfo, value: string | boolean) => void;
 }
 
 export const AttendeeData: React.FC<AttendeeDataProps> = ({
@@ -79,16 +79,17 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
     return !!clientFormData.fullName && !!clientFormData.docNumber && !!clientFormData.gender && !!clientFormData.phone;
   };
 
-  const handleInputChange = (index: number, field: keyof ClientData, value: string) => {
+  const handleInputChange = (index: number, field: keyof TicketInfo, value: string) => {
     onUpdateClient(index, field, value);
   };
 
-  const handleSelectChange = (index: number, field: keyof ClientData, value: GenderEnum) => {
+  const handleSelectChange = (index: number, field: keyof TicketInfo, value: GenderEnum) => {
     onUpdateClient(index, field, value);
   };
 
   const handleCompleteClick = (index: number) => {
     if (isClientFormComplete(purchaseData.clients[index])) {
+      onUpdateClient(activeIndex, 'isCompleted', true);
       const newCompletedClients = [...completedClients];
       newCompletedClients[index] = true;
       setCompletedClients(newCompletedClients);

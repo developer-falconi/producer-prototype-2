@@ -10,6 +10,7 @@ import { motion, AnimatePresence, Variants } from "framer-motion";
 import Spinner from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { fetchProducerGalleryData } from "@/lib/api";
 
 const Gallery = () => {
   const { producer } = useProducer();
@@ -18,105 +19,21 @@ const Gallery = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock media content for each event
-    const mockMediaContent = [
-      {
-        id: 1,
-        eventId: 6,
-        eventName: "ØNDA en Escena cap.5",
-        type: "image",
-        url: "http://res.cloudinary.com/djecjeokj/image/upload/v1749661298/Productoras/ONDA%20Producciones/Eventos/%C3%98NDA%20en%20Escena%20cap.5%20-%20M%C3%BAsica%2C%20teatro%20y%20vino/Flyers/gjjt0pe1w2xrjwbekzi1.jpg",
-        thumbnail: "http://res.cloudinary.com/djecjeokj/image/upload/v1749661298/Productoras/ONDA%20Producciones/Eventos/%C3%98NDA%20en%20Escena%20cap.5%20-%20M%C3%BAsica%2C%20teatro%20y%20vino/Flyers/gjjt0pe1w2xrjwbekzi1.jpg",
-        title: "Flyer Oficial - Teatro y Música",
-        category: "flyers"
-      },
-      {
-        id: 2,
-        eventId: 6,
-        eventName: "ØNDA en Escena cap.5",
-        type: "image",
-        url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=600&fit=crop",
-        thumbnail: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop",
-        title: "Presentación Teatro Manchas",
-        category: "photos"
-      },
-      {
-        id: 3,
-        eventId: 6,
-        eventName: "ØNDA en Escena cap.5",
-        type: "image",
-        url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=600&fit=crop",
-        thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop",
-        title: "Trío Vocal en Vivo",
-        category: "photos"
-      },
-      {
-        id: 4,
-        eventId: 5,
-        eventName: "ØNDA Session x Fermín B",
-        type: "image",
-        url: "http://res.cloudinary.com/djecjeokj/image/upload/v1748473281/Productoras/ONDA%20Producciones/Eventos/%C3%98NDA%20Session%20cap.%2010%20x%20Ferm%C3%ADn%20B/Flyers/d543uoapumsbw76ucu4j.jpg",
-        thumbnail: "http://res.cloudinary.com/djecjeokj/image/upload/v1748473281/Productoras/ONDA%20Producciones/Eventos/%C3%98NDA%20Session%20cap.%2010%20x%20Ferm%C3%ADn%20B/Flyers/d543uoapumsbw76ucu4j.jpg",
-        title: "ØNDA Session - Fermín Bereciartua",
-        category: "flyers"
-      },
-      {
-        id: 5,
-        eventId: 5,
-        eventName: "ØNDA Session x Fermín B",
-        type: "image",
-        url: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&h=600&fit=crop",
-        thumbnail: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=300&fit=crop",
-        title: "Fermín B en Vivo",
-        category: "photos"
-      },
-      {
-        id: 6,
-        eventId: 5,
-        eventName: "ØNDA Session x Fermín B",
-        type: "video",
-        url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-        thumbnail: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop",
-        title: "Resumen ØNDA Session",
-        category: "videos"
-      },
-      {
-        id: 7,
-        eventId: 6,
-        eventName: "ØNDA en Escena cap.5",
-        type: "image",
-        url: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=800&h=600&fit=crop",
-        thumbnail: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=400&h=300&fit=crop",
-        title: "Ambiente del Teatro",
-        category: "photos"
-      },
-      {
-        id: 8,
-        eventId: 5,
-        eventName: "ØNDA Session x Fermín B",
-        type: "image",
-        url: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=600&fit=crop",
-        thumbnail: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop",
-        title: "Público Disfrutando",
-        category: "photos"
-      },
-      {
-        id: 9,
-        eventId: 6,
-        eventName: "ØNDA en Escena cap.5",
-        type: "image",
-        url: "https://images.unsplash.com/photo-1574391884720-bbc725fc5806?w=800&h=600&fit=crop",
-        thumbnail: "https://images.unsplash.com/photo-1574391884720-bbc725fc5806?w=400&h=300&fit=crop",
-        title: "Copa de Vino Portillo",
-        category: "experiences"
-      }
-    ];
-
-    setTimeout(() => {
-      setMediaContent(mockMediaContent);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    if (producer) {
+      (async () => {
+        try {
+          const resp = await fetchProducerGalleryData();
+          if (resp.success && resp.data) {
+            setMediaContent(resp.data as any);
+          }
+        } catch (err) {
+          console.error("Error fetching event details:", err);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }
+  }, [producer]);
 
   const categories = [
     { key: "all", label: "Todo", icon: ImageIcon },
@@ -130,7 +47,7 @@ const Gallery = () => {
     ? mediaContent
     : mediaContent.filter(item => item.category === selectedCategory);
 
-  const containerVariants: Variants = { // Explicitly typed as Variants
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -140,7 +57,7 @@ const Gallery = () => {
     }
   };
 
-  const itemVariants: Variants = { // Explicitly typed as Variants
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0, scale: 0.95 },
     visible: {
       y: 0,
@@ -150,23 +67,22 @@ const Gallery = () => {
         type: "spring",
         stiffness: 100,
         damping: 10
-      } as const // Added 'as const' to help TypeScript infer the literal type
+      } as const
     },
     exit: { opacity: 0, scale: 0.8, transition: { duration: 0.2 } }
   };
 
-  const buttonVariants: Variants = { // Explicitly typed as Variants
+  const buttonVariants: Variants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } }
   };
 
-  const textVariants: Variants = { // Explicitly typed as Variants
+  const textVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
-  // Moved renderMediaCard inside the component to ensure it's in scope
-  const renderMediaCard = (item: any, index: number) => { // Added type for item and index for clarity
+  const renderMediaCard = (item: any, index: number) => {
     if (item.type === "video") {
       return (
         <Card
@@ -300,7 +216,7 @@ const Gallery = () => {
           </div>
 
           {/* Category Filters */}
-          <motion.div
+          {/* <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -326,7 +242,7 @@ const Gallery = () => {
                 </motion.div>
               );
             })}
-          </motion.div>
+          </motion.div> */}
 
           {/* Media Grid */}
           <AnimatePresence mode="wait"> {/* Use AnimatePresence for exit animations on filter change */}
@@ -352,8 +268,8 @@ const Gallery = () => {
                   exit={{ opacity: 0 }}
                   className="text-center py-12 col-span-full" // Ensure it spans all columns
                 >
-                  <div className="text-gray-400 text-lg mb-4">No hay contenido disponible</div>
-                  <p className="text-gray-500">Selecciona otra categoría para ver más contenido</p>
+                  <div className="text-gray-800 text-lg mb-4">No hay contenido disponible</div>
+                  <p className="text-gray-700">Selecciona otra categoría para ver más contenido</p>
                 </motion.div>
               )}
             </motion.div>

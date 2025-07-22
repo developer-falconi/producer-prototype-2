@@ -1,4 +1,4 @@
-import { ApiResponse, Client, ClientTypeEnum, Event, Participant, PreferenceData, Producer } from "./types";
+import { ApiResponse, Client, ClientTypeEnum, Event, Participant, PreferenceData, Producer, PurchaseComboItem, PurchaseProductItem } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
 
@@ -80,14 +80,23 @@ export async function submitTicketForm(formData: FormData, eventId: number, prev
 export async function createPreference(
   preventId: number,
   clients: Participant[],
+  products: { productId: number, quantity: number }[],
+  combos: { comboId: number, quantity: number }[],
+  total: number
 ): Promise<ApiResponse<PreferenceData>> {
   try {
+    const payload = {
+      clients,
+      products,
+      combos,
+      total
+    }
     const response = await fetch(`${API_URL}/mercadopago/create?prevent=${preventId}`, {
       method: "POST",
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(clients)
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
