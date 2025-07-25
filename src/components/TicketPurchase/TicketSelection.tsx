@@ -119,7 +119,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
         Seleccionar Tipo de Entrada
       </motion.h2>
 
-      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {noTicketsAvailableGlobally ? (
           <p className="text-gray-400 text-center col-span-full">No hay entradas activas disponibles para este evento.</p>
         ) : (
@@ -134,13 +134,17 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
                   : "bg-zinc-800 text-gray-200 border-2 border-zinc-700 hover:border-gray-500 hover:bg-zinc-700 hover:text-white"
               )}
             >
-              <div className="text-lg truncate w-full">{prevent.name}</div>
-              <div className="text-sm mt-1">
-                {formatPrice(prevent.price)}
-                {prevent.quantity !== undefined && prevent.quantity !== null && (
-                  <span className="ml-2">({prevent.quantity} disponibles)</span>
-                )}
+              <div className="flex justify-between text-lg w-full">
+                <span>{prevent.name}</span>
+                <span>{formatPrice(prevent.price)}</span>
               </div>
+              {
+                prevent.description && (
+                  <span className='text-xs w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap'>
+                    {prevent.description}
+                  </span>
+                )
+              }
             </Button>
           ))
         )}
@@ -161,7 +165,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
                 onClick={() => handleSelectQuantity(num)}
                 className={cn(
                   "flex items-center justify-center p-2 rounded-xl shadow-md transition-all duration-200 ease-in-out",
-                  purchaseData.ticketQuantity === num && (!showMoreQuantities || num <= 4) 
+                  purchaseData.ticketQuantity === num && (!showMoreQuantities || num <= 4)
                     ? "bg-black/20 border-2 border-blue-700 text-blue-700 scale-105 font-bold"
                     : "bg-zinc-800 text-gray-200 border-2 border-zinc-700 hover:border-gray-500 hover:bg-zinc-700 hover:text-white"
                 )}
@@ -203,7 +207,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
           </motion.div>
         </>
       )}
-      
+
       {/* Message if a prevent is selected but it has no tickets (maxTickets is 0)
           or if no prevent is selected, but there are active prevents to choose from */}
       {(!selectedPrevent && allAvailablePrevents.length > 0) ? (

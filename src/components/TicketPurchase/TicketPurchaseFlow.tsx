@@ -5,10 +5,10 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, ComboEventDto, Event, GenderEnum, Prevent, ProductEventDto, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
+import { ClientData, Event, GenderEnum, Prevent, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from './NavigationButtons';
-import { motion, AnimatePresence, PanInfo, useAnimation, useDragControls, useAnimate, useMotionValue } from "framer-motion";
+import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
 import { createPreference, fetchProducerEventDetailData, submitTicketForm } from '@/lib/api';
 import Spinner from '../Spinner';
 import { Button } from '../ui/button';
@@ -50,6 +50,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const [submissionStatus, setSubmissionStatus] = useState<{ status: 'success' | 'error', message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  const [dynamicSteps, setDynamicSteps] = useState(steps);
+
   const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
   const [mpPublicKey, setMpPublicKey] = useState<string>('');
   const [mpGeneratingPreference, setMpGeneratingPreference] = useState<boolean>(false);
@@ -57,13 +59,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   //motion
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
   const scrollableContentRef = useRef<HTMLDivElement>(null);
 
   const [scope, animate] = useAnimate();
   const [sheetRef, { height }] = useMeasure();
   const y = useMotionValue(0);
   const dragControls = useDragControls();
+  const [isAtTop, setIsAtTop] = useState(true);
 
   useEffect(() => {
     if (isOpen && !fullEventDetails) {
@@ -90,6 +92,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               clients: Array.from({ length: initialSelectedPrevent ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
             }));
 
+            if (resp.data.products?.length === 0 && resp.data.combos?.length === 0) {
+              setDynamicSteps(prevSteps => prevSteps.filter(step => step !== 'Productos'));
+            }
+
             setMpPublicKey(resp.data.oAuthMercadoPago?.mpPublicKey);
           } else {
             setErrorDetails("Error al cargar detalles.");
@@ -102,6 +108,24 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         }
       })();
     }
+
+    const handleScroll = () => {
+      if (scrollableContentRef.current) {
+        setIsAtTop(scrollableContentRef.current.scrollTop === 0);
+      }
+    };
+
+    const currentScrollRef = scrollableContentRef.current;
+    if (currentScrollRef) {
+      currentScrollRef.addEventListener('scroll', handleScroll);
+      handleScroll();
+    }
+
+    return () => {
+      if (currentScrollRef) {
+        currentScrollRef.removeEventListener('scroll', handleScroll);
+      }
+    };
   }, [isOpen, initialEvent.id, fullEventDetails]);
 
   useEffect(() => {
@@ -265,8 +289,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         }
       }
     }
-
-    if (!mpGeneratingPreference && currentStep < steps.length) {
+    if (!mpGeneratingPreference && currentStep < dynamicSteps.length) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -342,7 +365,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   };
 
   const handleCloseDrawer = async () => {
-    animate(scope.current, { opacity: [1, 0] });
+    await animate(scope.current, { opacity: [1, 0] }, { duration: 0.3 });
+
     const yStart = typeof y.get() === "number" ? y.get() : 0;
     await animate("#ticket-sheet", { y: [yStart, height] }, {
       ease: "easeInOut",
@@ -356,23 +380,26 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     onClose();
   };
 
-  const onDragEndSheet = (_: any, info: PanInfo) => {
+  const onDragEndSheet = async (_: any, info: PanInfo) => {
     if (y.get() >= 100) {
       handleCloseDrawer();
     } else {
-      animate(y, 0, { type: "spring", stiffness: 300, damping: 30 });
+      await animate(y, 0, { type: "spring", stiffness: 300, damping: 30 });
+    }
+  };
+
+  const handlePointerDown = (event) => {
+    if (isAtTop) {
+      dragControls.start(event);
     }
   };
 
   const renderCurrentStep = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <EventInfo
-            event={fullEventDetails}
-          />
-        );
-      case 1:
+    const stepIndex = currentStep - 1;
+    const currentStepName = dynamicSteps[stepIndex];
+
+    switch (currentStepName) {
+      case 'Seleccionar Entradas':
         return (
           <TicketSelection
             eventData={fullEventDetails}
@@ -380,29 +407,30 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             onUpdatePurchase={onUpdatePurchase}
           />
         );
-      case 2:
+      case 'Datos de Asistentes':
         return (
           <AttendeeData
             purchaseData={purchaseData}
             onUpdateClient={updateClient}
           />
         );
-      case 3:
+      case 'Información de Contacto':
         return (
           <ContactInfo
             purchaseData={purchaseData}
             onUpdateEmail={updateEmail}
           />
         );
-      case 4:
+      case 'Productos':
         return (
           <ProductSelection
             purchaseData={purchaseData}
             availableProducts={fullEventDetails.products || []}
             availableCombos={fullEventDetails.combos || []}
-            onUpdateProductsAndCombos={handleUpdateProductsAndCombos} />
+            onUpdateProductsAndCombos={handleUpdateProductsAndCombos}
+          />
         );
-      case 5:
+      case 'Método de Pago':
         return (
           <PaymentMethod
             eventData={fullEventDetails}
@@ -411,7 +439,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             onUpdatePurchaseFile={updatePaymentFile}
           />
         );
-      case 6:
+      case 'Confirmación':
+      case 'Resumen': // Both should render OrderSummary
         return (
           <OrderSummary
             eventData={fullEventDetails}
@@ -420,7 +449,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             mpPublicKey={mpPublicKey}
           />
         );
-      case steps.length - 1:
+      case 'Estado':
         return (<PurchaseStatus
           purchaseData={purchaseData}
           total={purchaseData.total}
@@ -428,7 +457,9 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           onResetAndClose={handleCloseDrawer}
         />);
       default:
-        return null;
+        return (
+          <EventInfo event={fullEventDetails} />
+        );
     }
   };
 
@@ -442,40 +473,36 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 flex items-end justify-center z-40"
+          className="fixed inset-0 flex items-end justify-center z-40 touch-none"
         >
           <motion.div
             key="backdrop"
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-40 touch-none"
             onClick={handleCloseDrawer}
           />
 
           <motion.div
             id="ticket-sheet"
             ref={sheetRef}
-            className="relative mx-auto w-full max-w-lg md:max-w-4xl h-[85vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden"
+            className="relative mx-auto w-full max-w-lg md:max-w-4xl h-[85vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden touch-none"
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            style={{ y }}
             drag="y"
             dragControls={dragControls}
             dragListener={false}
             dragConstraints={{ top: 0 }}
             dragElastic={{ top: 0, bottom: 0.5 }}
             onDragEnd={onDragEndSheet}
+            onPointerDown={handlePointerDown}
             onClick={(e) => e.stopPropagation()}
+            style={{ cursor: isAtTop ? 'grab' : 'auto', y }}
           >
             <div
               className="flex justify-center mt-1 cursor-grab"
             >
-              <button
-                onPointerDown={(e) => {
-                  dragControls.start(e);
-                }}
-                className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"
-              ></button>
+              <button className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"></button>
             </div>
 
             <div
@@ -495,8 +522,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               ) : (
                 <>
                   {/* Progress Bar */}
-                  {currentStep > 0 && currentStep < steps.length - 1 && (
-                    <ProgressBar currentStep={currentStep} steps={steps} />
+                  {currentStep > 0 && currentStep < dynamicSteps.length - 1 && (
+                    <ProgressBar currentStep={currentStep} steps={dynamicSteps} />
                   )}
 
                   {/* Content */}
@@ -506,16 +533,16 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 </>
               )}
             </div>
-            {currentStep !== steps.length - 1 && (
+            {currentStep <= dynamicSteps.length && (
               <NavigationButtons
                 currentStep={currentStep}
-                totalSteps={steps.length}
+                totalSteps={dynamicSteps.length}
                 canProceed={canProceed()}
                 onPrevious={handlePrevious}
                 onNext={handleNext}
                 onComplete={handleComplete}
                 isLoading={loadingDetails}
-                isSubmitting={isSubmitting || (currentStep === 4 && purchaseData.paymentMethod === 'mercadopago' && mpGeneratingPreference)}
+                isSubmitting={isSubmitting || (dynamicSteps[currentStep - 1] === 'Método de Pago' && purchaseData.paymentMethod === 'mercadopago' && mpGeneratingPreference)}
                 isMercadoPagoSelected={purchaseData.paymentMethod === 'mercadopago'}
                 isGeneratingPreference={mpGeneratingPreference}
                 hasPreferenceId={mpPreferenceId !== null}

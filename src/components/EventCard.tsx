@@ -1,7 +1,7 @@
 import { CircleDollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatEventDate, formatEventPrice } from "@/lib/utils";
-import { Event } from "@/lib/types";
+import { Event, Prevent, PreventStatusEnum } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { SetURLSearchParams } from "react-router-dom";
 import { TicketPurchaseFlow } from "./TicketPurchase/TicketPurchaseFlow";
@@ -46,6 +46,32 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSea
     });
   };
 
+  const getClosestActivePreventa = (preventasList: Prevent[]): Prevent | null => {
+    const now = new Date();
+    const activePreventas = preventasList.filter(
+      (preventa) => preventa.status === PreventStatusEnum.ACTIVE
+    );
+
+    if (activePreventas.length === 0) {
+      return null;
+    }
+
+    activePreventas.sort((a, b) => {
+      const endDateA = new Date(a.endDate);
+      const endDateB = new Date(b.endDate);
+
+      const diffA = Math.abs(endDateA.getTime() - now.getTime());
+      const diffB = Math.abs(endDateB.getTime() - now.getTime());
+
+      return diffA - diffB;
+    });
+    return activePreventas[0];
+  }
+
+  const displayPrice = event.prevents && event.prevents.length > 0
+    ? getClosestActivePreventa(event.prevents)?.price
+    : null;
+
   return (
     <>
       <Card
@@ -82,7 +108,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSea
                   <div className="flex just items-center gap-2 text-white text-sm font-medium">
                     <CircleDollarSign className="w-4 h-4 text-white" />
                     <span className="text-base font-semibold text-white">
-                      {event.prevents?.[0]?.price ? formatEventPrice(event.prevents?.[0]?.price) : '-'}
+                      {displayPrice ? formatEventPrice(displayPrice) : '-'}
                     </span>
                   </div>
                 </div>
