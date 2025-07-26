@@ -24,11 +24,7 @@ const itemVariants = {
 
 export const EventArtistsDisplay: React.FC<EventArtistsDisplayProps> = ({ artists }) => {
   if (!artists || artists.length === 0) {
-    return (
-      <div className="p-6 text-center text-gray-500">
-        <p>No hay artistas asignados a este evento.</p>
-      </div>
-    );
+    return null;
   }
 
   return (
