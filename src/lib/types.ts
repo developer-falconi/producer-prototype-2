@@ -60,11 +60,15 @@ export interface Event {
   prevents: Prevent[];
   oAuthMercadoPago?: MercadoPagoConfigDto;
   featuredPrevent?: Prevent;
+  products?: ProductEventDto[];
+  combos?: ComboEventDto[];
+  artists: EventArtistDto[];
 }
 
 export interface Prevent {
   id: number;
   name: string;
+  description: string;
   price: number;
   quantity: number;
   remaining?: number;
@@ -139,9 +143,12 @@ export interface PurchaseData {
   selectedPrevent: Prevent | null;
   ticketQuantity: number;
   clients: TicketInfo[];
+  products: PurchaseProductItem[];
+  combos: PurchaseComboItem[];
   email: string;
   comprobante: File;
   paymentMethod: 'mercadopago' | 'bank_transfer' | null;
+  total: number;
 }
 
 export interface ClientData {
@@ -190,6 +197,86 @@ export interface WebDetails {
   subtitle: string;
   mission: string;
   presentation: string;
+}
+
+export enum ProductStatusEnum {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  SOLD_OUT = 'SOLD_OUT',
+}
+
+export interface ProductEventDto {
+  id: number;
+  price: string;
+  discountPercentage: string;
+  eventStock: number;
+  initialEventStock: number;
+  status: ProductStatusEnum;
+  product: ProductDto;
+}
+
+export interface ProductDto {
+  id: number;
+  name: string;
+  description: string;
+  basePrice: string;
+  brand: string;
+  imageUrl?: string;
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PurchaseProductItem {
+  quantity: number;
+  product: ProductEventDto;
+}
+
+export interface PurchaseComboItem {
+  quantity: number;
+  combo: ComboEventDto;
+}
+
+export interface ComboEventDto {
+  id: number;
+  name: string;
+  price: number;
+  stock: number;
+  description: string;
+  comboItems: Array<ProductComboItemDto>;
+}
+
+export interface ProductComboItemDto {
+  id: number;
+  quantity: number;
+  productEvent: ProductEventDto;
+}
+
+export enum ProductTypeEnum {
+  PRODUCT = 'PRODUCT',
+  COMBO = 'COMBO'
+}
+
+export enum ArtistGenderEnum {
+  CACHENGUE = 'CACHENGUE',
+  TECHNO = 'TECHNO',
+  OTRO = 'OTRO'
+}
+
+export interface EventArtistDto {
+  id?: number;
+  name: string;
+  image: string;
+  description: string;
+  spotify: string;
+  gender: ArtistGenderEnum;
+}
+
+export class EventImageDto {
+  id?: number;
+  name: string;
+  url: string;
+  event: Event;
 }
 
 export type ApiResponse<T> =

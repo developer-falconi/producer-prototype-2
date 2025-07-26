@@ -52,7 +52,7 @@ const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, pub
   }
 
   return (
-    <div className="mercadopago-button-container w-full">
+    <div className="w-full bg-gray-400 rounded-lg p-1">
       <Wallet
         initialization={initialization}
         customization={{ theme: 'dark', valueProp: 'smart_option' }}
