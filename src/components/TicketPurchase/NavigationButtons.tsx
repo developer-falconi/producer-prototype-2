@@ -16,6 +16,8 @@ interface NavigationButtonsProps {
   isMercadoPagoSelected: boolean;
   isGeneratingPreference: boolean;
   hasPreferenceId: boolean;
+  isConfirmationStep: boolean;
+  isPaymentMethodStep: boolean;
 }
 
 export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
@@ -29,66 +31,77 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   isSubmitting,
   isMercadoPagoSelected,
   isGeneratingPreference,
-  hasPreferenceId
+  hasPreferenceId,
+  isConfirmationStep,
+  isPaymentMethodStep
 }) => {
-  const isFirstStep = currentStep === 0;
-  const isPaymentMethodStep = currentStep === 5;
-  const isOrderSummaryStep = currentStep === 6;
+  const isInitialStep = currentStep === 0;
+  const isFinalStatusStep = currentStep === totalSteps;
 
   let nextButtonText = 'Continuar';
   let nextButtonIcon = <ChevronRight className="w-4 h-4 ml-2" />;
   let nextButtonClass = 'bg-green-700 hover:bg-green-700/80';
   let nextButtonAction = onNext;
-
   let disableNextButton = !canProceed || isGeneratingPreference || isSubmitting || isLoading;
-  const shouldRenderNextButton = !(isMercadoPagoSelected && isOrderSummaryStep);
 
-  if (isFirstStep) {
+  const shouldRenderNextButton = !(isMercadoPagoSelected && isConfirmationStep && hasPreferenceId);
+  console.log(isPaymentMethodStep, isInitialStep, currentStep, totalSteps)
+  if (isInitialStep) {
     nextButtonText = 'Comprar Tickets';
     nextButtonIcon = <Ticket className="w-4 h-4 mr-2" />;
     nextButtonClass = 'w-full bg-red-700 hover:bg-red-700/80';
-  } else if (isPaymentMethodStep) {
-    if (isMercadoPagoSelected && !hasPreferenceId) {
+    nextButtonAction = onNext;
+    disableNextButton = isLoading;
+  } else if (isPaymentMethodStep && isMercadoPagoSelected) {
+    if (!hasPreferenceId) {
       nextButtonText = isGeneratingPreference ? 'Generando pago...' : 'Generar Link de Pago';
       nextButtonIcon = isGeneratingPreference ? <SmallSpinner /> : <ChevronRight className="w-4 h-4 ml-2" />;
       nextButtonClass = 'bg-blue-700 hover:bg-blue-700/80';
-    } else if (isMercadoPagoSelected && hasPreferenceId) {
-      nextButtonText = 'Continuar al Resumen';
-      nextButtonIcon = <ChevronRight className="w-4 h-4 ml-2" />;
-      nextButtonClass = 'bg-green-700 hover:bg-green-700/80';
+      disableNextButton = isGeneratingPreference || isLoading || !canProceed;
     } else {
       nextButtonText = 'Continuar';
       nextButtonIcon = <ChevronRight className="w-4 h-4 ml-2" />;
       nextButtonClass = 'bg-green-700 hover:bg-green-700/80';
+      disableNextButton = !canProceed || isLoading;
     }
-  } else if (isOrderSummaryStep) {
-    nextButtonText = 'Confirmar Compra';
-    nextButtonIcon = isSubmitting ? <SmallSpinner /> : <Check className="w-4 h-4 mr-2" />;
-    nextButtonClass = 'bg-blue-700 hover:bg-blue-700/80';
-    nextButtonAction = onComplete;
+  } else if (isConfirmationStep) {
+    if (isMercadoPagoSelected && hasPreferenceId) {
+      nextButtonText = '';
+      nextButtonIcon = null;
+      nextButtonClass = '';
+      nextButtonAction = () => { };
+      disableNextButton = true;
+    } else {
+      nextButtonText = 'Confirmar Compra';
+      nextButtonIcon = isSubmitting ? <SmallSpinner /> : <Check className="w-4 h-4 mr-2" />;
+      nextButtonClass = 'bg-blue-700 hover:bg-blue-700/80';
+      nextButtonAction = onComplete;
+      disableNextButton = isSubmitting || !canProceed || isLoading;
+    }
   }
 
   return (
     <div className="w-full bg-black/50 backdrop-blur-sm p-2">
       <div className="flex gap-3">
-        {currentStep > 0 && (
+        {currentStep > 0 && !isFinalStatusStep && (
           <Button
             onClick={onPrevious}
             className="flex-1 bg-red-700 hover:bg-red-700/80"
+            disabled={isLoading || isSubmitting || isGeneratingPreference}
           >
             <ChevronLeft className="w-4 h-4 mr-2" />
             Anterior
           </Button>
         )}
 
-        {shouldRenderNextButton && (
+        {shouldRenderNextButton && !isFinalStatusStep && (
           <Button
             onClick={nextButtonAction}
             disabled={disableNextButton}
             className={cn(
               "flex-1",
               nextButtonClass,
-              isFirstStep ? 'w-full bg-red-700 hover:bg-red-700/80' : '',
+              isInitialStep ? 'w-full bg-red-700 hover:bg-red-700/80' : '',
             )}
           >
             <div className='flex items-center justify-center gap-2'>

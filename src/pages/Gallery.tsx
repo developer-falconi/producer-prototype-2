@@ -11,10 +11,11 @@ import Spinner from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { fetchProducerGalleryData } from "@/lib/api";
+import { EventImageDto } from "@/lib/types";
 
 const Gallery = () => {
   const { producer } = useProducer();
-  const [mediaContent, setMediaContent] = useState([]);
+  const [mediaContent, setMediaContent] = useState<EventImageDto[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +25,7 @@ const Gallery = () => {
         try {
           const resp = await fetchProducerGalleryData();
           if (resp.success && resp.data) {
-            setMediaContent(resp.data as any);
+            setMediaContent(resp.data);
           }
         } catch (err) {
           console.error("Error fetching event details:", err);
@@ -43,9 +44,11 @@ const Gallery = () => {
     { key: "experiences", label: "Experiencias", icon: ImageIcon }
   ];
 
-  const filteredContent = selectedCategory === "all"
-    ? mediaContent
-    : mediaContent.filter(item => item.category === selectedCategory);
+  // const filteredContent = selectedCategory === "all"
+  //   ? mediaContent
+  //   : mediaContent.filter(item => item?.category === selectedCategory);
+
+  const filteredContent = mediaContent;
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -82,8 +85,8 @@ const Gallery = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
-  const renderMediaCard = (item: any, index: number) => {
-    if (item.type === "video") {
+  const renderMediaCard = (item: EventImageDto, index: number) => {
+    if (item.name === "video") {
       return (
         <Card
           key={item.id}
@@ -95,8 +98,8 @@ const Gallery = () => {
               <DialogTrigger asChild>
                 <div className="relative overflow-hidden cursor-pointer">
                   <img
-                    src={item.thumbnail}
-                    alt={item.title}
+                    src={item.url}
+                    alt={item.name}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -105,8 +108,8 @@ const Gallery = () => {
                     </div>
                   </div>
                   <div className="absolute bottom-4 left-4 right-4">
-                    <h3 className="text-white font-semibold text-sm">{item.title}</h3>
-                    <p className="text-gray-300 text-xs">{item.eventName}</p>
+                    <h3 className="text-white font-semibold text-sm">{item.name}</h3>
+                    <p className="text-gray-300 text-xs">{item.event.name}</p>
                   </div>
                 </div>
               </DialogTrigger>
@@ -137,22 +140,28 @@ const Gallery = () => {
             <DialogTrigger asChild>
               <div className="relative overflow-hidden cursor-pointer">
                 <img
-                  src={item.thumbnail}
-                  alt={item.title}
+                  src={item.url}
+                  alt={item.name}
                   className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="absolute bottom-4 left-4 right-4">
-                    <h3 className="text-white font-semibold text-sm">{item.title}</h3>
-                    <p className="text-gray-300 text-xs">{item.eventName}</p>
+                    <h3 className="text-white font-semibold text-sm">{item.name}</h3>
+                    <p className="text-gray-300 text-xs">{item.event.name}</p>
                   </div>
                 </div>
               </div>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl bg-black/90 border-white/20">
+            <DialogContent className="max-w-4xl bg-black/90 border-white/20 data-[state=open]:text-white">
+              <div className="group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute bottom-4 left-6">
+                  <h3 className="text-white font-semibold text-lg md:text-3xl">{item.name}</h3>
+                  <p className="text-gray-300 text-base md:text-xl">{item.event.name}</p>
+                </div>
+              </div>
               <img
                 src={item.url}
-                alt={item.title}
+                alt={item.name}
                 className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
               />
             </DialogContent>
@@ -244,14 +253,13 @@ const Gallery = () => {
             })}
           </motion.div> */}
 
-          {/* Media Grid */}
-          <AnimatePresence mode="wait"> {/* Use AnimatePresence for exit animations on filter change */}
+          <AnimatePresence mode="wait">
             <motion.div
-              key={selectedCategory} // Key change to re-render and animate on category change
+              key={selectedCategory}
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              exit="hidden" // Define exit for the grid container
+              exit="hidden"
               className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
             >
               {filteredContent.length > 0 ? (
@@ -266,7 +274,7 @@ const Gallery = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="text-center py-12 col-span-full" // Ensure it spans all columns
+                  className="text-center py-12 col-span-full"
                 >
                   <div className="text-gray-800 text-lg mb-4">No hay contenido disponible</div>
                   <p className="text-gray-700">Selecciona otra categoría para ver más contenido</p>

@@ -62,6 +62,7 @@ export interface Event {
   featuredPrevent?: Prevent;
   products?: ProductEventDto[];
   combos?: ComboEventDto[];
+  artists: EventArtistDto[];
 }
 
 export interface Prevent {
@@ -254,6 +255,28 @@ export interface ProductComboItemDto {
 export enum ProductTypeEnum {
   PRODUCT = 'PRODUCT',
   COMBO = 'COMBO'
+}
+
+export enum ArtistGenderEnum {
+  CACHENGUE = 'CACHENGUE',
+  TECHNO = 'TECHNO',
+  OTRO = 'OTRO'
+}
+
+export interface EventArtistDto {
+  id?: number;
+  name: string;
+  image: string;
+  description: string;
+  spotify: string;
+  gender: ArtistGenderEnum;
+}
+
+export class EventImageDto {
+  id?: number;
+  name: string;
+  url: string;
+  event: Event;
 }
 
 export type ApiResponse<T> =

@@ -1,4 +1,4 @@
-import { ApiResponse, Client, ClientTypeEnum, Event, Participant, PreferenceData, Producer, PurchaseComboItem, PurchaseProductItem } from "./types";
+import { ApiResponse, Client, ClientTypeEnum, Event, EventImageDto, Participant, PreferenceData, Producer, PurchaseComboItem, PurchaseProductItem } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
 
@@ -41,7 +41,7 @@ export async function fetchProducerEventDetailData(eventId: number): Promise<Api
   }
 }
 
-export async function fetchProducerGalleryData(): Promise<ApiResponse<Producer>> {
+export async function fetchProducerGalleryData(): Promise<ApiResponse<EventImageDto[]>> {
   try {
     const response = await fetch(`${API_URL}/producer/domain/gallery`);
     if (!response.ok) {
