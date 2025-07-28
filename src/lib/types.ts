@@ -53,6 +53,7 @@ export interface Event {
   location: string;
   status: EventStatus;
   folder: boolean;
+  featured: boolean;
   alias: string | null;
   logo: string;
   createdAt: string;
