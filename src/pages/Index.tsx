@@ -11,115 +11,7 @@ import PaymentResult from "@/components/PaymentResult";
 import { Link } from "react-router-dom";
 import { CountingNumber } from "@/components/animate-ui/text/counting-number";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-const EventCard = ({ event }: { event: Event }) => {
-  return (
-    <Link to={`/events?event=${event.id}`} className="block w-full h-full z-10">
-      <motion.div
-        className="relative w-[300px] h-[400px] sm:w-[350px] sm:h-[450px] md:w-[400px] md:h-[500px] lg:w-[450px] lg:h-[550px] mx-auto rounded-xl shadow-2xl overflow-hidden cursor-pointer group transition-all duration-300 transform hover:scale-[1.02]"
-        style={{
-          backgroundImage: `url(${event.logo || 'https://via.placeholder.com/600x900?text=Event+Image'})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-      </motion.div>
-    </Link>
-  );
-};
-
-const EventCarousel = ({ events }: { events: Event[] }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const carouselRef = useRef(null);
-
-  useEffect(() => {
-    if (events && events.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentIndex((prevIndex) => (prevIndex + 1) % events.length);
-      }, 4000);
-      return () => clearInterval(interval);
-    }
-  }, [events]);
-
-  useEffect(() => {
-    if (carouselRef.current && events.length > 0) {
-      const activeCard = carouselRef.current.querySelector(`.event-card-${currentIndex}`);
-      if (activeCard) {
-        const containerWidth = carouselRef.current.offsetWidth;
-        const cardWidth = activeCard.offsetWidth;
-        const scrollLeft = activeCard.offsetLeft - (containerWidth / 2) + (cardWidth / 2);
-        carouselRef.current.scrollTo({
-          left: scrollLeft,
-          behavior: 'smooth'
-        });
-      }
-    }
-  }, [currentIndex, events.length]);
-
-  if (!events || events.length === 0) {
-    return null
-  }
-
-  return (
-    <div className="relative w-full h-full flex flex-col items-center justify-center overflow-hidden md:w-1/2">
-      <AnimatePresence initial={false} mode="wait">
-        <motion.div
-          key={`bg-${currentIndex}`}
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${events[currentIndex]?.logo || 'https://via.placeholder.com/1920x1080?text=Event+Background'})` }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
-        />
-      </AnimatePresence>
-
-      <div
-        ref={carouselRef}
-        className="relative z-10 flex flex-row items-center h-full w-full overflow-hidden no-scrollbar px-16 sm:px-24 md:px-32 lg:px-48"
-        style={{ scrollSnapType: 'x mandatory' }}
-      >
-        {events.map((event, index) => (
-          <div
-            key={event.id}
-            className={cn(
-              `flex-shrink-0 mx-4`,
-              `event-card-${index}`
-            )}
-            style={{ scrollSnapAlign: 'center' }}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0.7 }}
-              animate={{
-                scale: currentIndex === index ? 1 : 0.9,
-                opacity: currentIndex === index ? 1 : 0.7,
-              }}
-              transition={{ duration: 0.5, type: "spring", stiffness: 20, damping: 100 }}
-            >
-              <EventCard event={event} />
-            </motion.div>
-          </div>
-        ))}
-      </div>
-
-      {events.length > 1 && (
-        <div className="absolute bottom-2 left-0 right-0 flex justify-center space-x-2 z-30">
-          {events.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={cn(
-                "w-3 h-3 rounded-full transition-all duration-300",
-                currentIndex === index ? "bg-blue-700 w-8" : "bg-gray-400"
-              )}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+import EventCarousel from "@/components/EventCarousel";
 
 const Index = () => {
   const { producer, loadingProducer } = useProducer();
@@ -134,6 +26,7 @@ const Index = () => {
   const [statsInView, setStatsInView] = useState(false);
   const statsSectionRef = useRef<HTMLDivElement>(null);
 
+  const [videoStarted, setVideoStarted] = useState(false);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -205,7 +98,7 @@ const Index = () => {
 
   if (loadingProducer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-400">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
         <Spinner />
       </div>
     );
@@ -213,8 +106,8 @@ const Index = () => {
 
   if (!producer) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-400">
-        <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
+        <p className="font-medium text-lg text-white mb-2">Error al cargar los datos del productor.</p>
         <Link to='https://www.produtik.com' target="_blank">
           <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
             Encontranos en Produtik <ExternalLink className="h-4 w-4" />
@@ -232,7 +125,7 @@ const Index = () => {
   const fallbackVideoUrl = "/fallbackvideo.mp4";
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-100 font-sans antialiased">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-black via-black to-gray-900 font-sans antialiased">
       <AnimatePresence>
         {isDialogVisible && (
           <motion.div
@@ -272,23 +165,29 @@ const Index = () => {
         <section
           className={cn(
             "relative p-6 w-full min-h-[calc(100vh-4rem)] flex flex-col md:flex-row",
-            "items-center justify-center bg-black overflow-hidden text-white text-center"
+            "items-center justify-center",
+            "overflow-hidden text-white text-center",
+            !videoStarted && "bg-gradient-to-br from-black via-black to-gray-900"
           )}>
           <EventCarousel events={eventsForHeroCarousel} />
           <video
-            className="absolute inset-0 w-full h-full object-cover z-0"
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700",
+              videoStarted ? "opacity-100" : "opacity-0"
+            )}
             src={fallbackVideoUrl}
             autoPlay
             loop
             muted
             playsInline
             preload="auto"
+            onPlaying={() => setVideoStarted(true)}
           >
             Your browser does not support the video tag.
           </video>
           <div
             className={cn(
-              "flex flex-col w-full pt-8 md:pt-0",
+              "flex flex-col w-full pt-4 md:pt-0",
               eventsForHeroCarousel.length > 0 && 'md:w-1/2'
             )}
           >
@@ -308,7 +207,7 @@ const Index = () => {
             </motion.h1>
 
             <motion.p
-              className="text-lg sm:text-xl md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto drop-shadow-md"
+              className="text-lg sm:text-xl md:text-xl text-gray-200 mb-8 max-w-2xl mx-auto drop-shadow-md"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.8 }}

@@ -173,8 +173,8 @@ const Gallery = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
-        <Spinner textColor="text-white" borderColor="border-t-black" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
+        <Spinner />
       </div>
     );
   }
