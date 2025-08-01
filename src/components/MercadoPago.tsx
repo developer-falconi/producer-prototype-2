@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
 
 interface MercadoPagoButtonProps {
@@ -7,21 +7,18 @@ interface MercadoPagoButtonProps {
 }
 
 const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, publicKey }) => {
-  useEffect(() => {
-    if (publicKey) {
-      initMercadoPago(publicKey, {
-        locale: 'es-AR',
-      });
-    } else {
-      console.error(
-        'Error: Mercado Pago Public Key (publicKey) is missing. ' +
-        'The Mercado Pago Button will not work correctly. ' +
-        'Please ensure it is set in your .env file and the project is rebuilt if necessary.'
-      );
-    }
-  }, []);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+ useEffect(() => {
+    if (!publicKey) return;
+    initMercadoPago(publicKey, { locale: 'es-AR' });
 
-  const initialization: any = { redirectMode: 'self', preferenceId }
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+    };
+  }, [publicKey]);
 
   const handleOnSubmit = async () => {
     console.log('Mercado Pago Wallet Brick: Payment process initiated by user.');
@@ -56,7 +53,7 @@ const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, pub
   return (
     <div className="w-full bg-gray-400 rounded-lg p-1">
       <Wallet
-        initialization={initialization}
+        initialization={{ redirectMode: 'self', preferenceId }}
         customization={{ theme: 'dark', valueProp: 'smart_option' }}
         onSubmit={handleOnSubmit}
         onReady={handleOnReady}
