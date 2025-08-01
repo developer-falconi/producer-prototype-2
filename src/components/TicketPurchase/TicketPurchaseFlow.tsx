@@ -260,7 +260,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       if (!res.success) {
         console.error("Error creating Mercado Pago preference:", res.message);
         setMpGeneratingPreference(false);
-        toast.error('Error al crear preferencia de pago');
+        toast.error(res.message || 'Error al crear preferencia de pago');
         return false;
       }
     } catch (err) {
