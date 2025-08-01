@@ -15,6 +15,7 @@ import { Button } from '../ui/button';
 import { EventInfo } from './EventInfo';
 import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
+import { toast } from 'sonner';
 
 const steps = [
   'Seleccionar Entradas',
@@ -255,11 +256,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       if (!res.success) {
         console.error("Error creating Mercado Pago preference:", res.message);
         setMpGeneratingPreference(false);
+        toast.error('Error al crear preferencia de pago');
         return false;
       }
     } catch (err) {
       console.error('Error al contactar a Mercado Pago para preferencia:', err);
       setMpGeneratingPreference(false);
+      toast.error('Error al crear preferencia de pago');
       return false;
     }
     setMpGeneratingPreference(false);
@@ -311,7 +314,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       if (!mpPreferenceId) {
         const success = await generateMercadoPagoPreference();
         if (!success) {
-          setCurrentStep(currentStep + 1);
+          handleCloseDrawer();
         }
         return;
       }

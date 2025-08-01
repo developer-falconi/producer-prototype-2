@@ -45,7 +45,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   let disableNextButton = !canProceed || isGeneratingPreference || isSubmitting || isLoading;
 
   const shouldRenderNextButton = !(isMercadoPagoSelected && isConfirmationStep && hasPreferenceId);
-  console.log(isPaymentMethodStep, isInitialStep, currentStep, totalSteps)
+
   if (isInitialStep) {
     nextButtonText = 'Comprar Tickets';
     nextButtonIcon = <Ticket className="w-4 h-4 mr-2" />;
