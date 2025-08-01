@@ -66,9 +66,18 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const dragControls = useDragControls();
   const [isAtTop, setIsAtTop] = useState(true);
 
+  const isSDKInitializedRef = useRef(false);
   const mpPublicKey = useMemo(() => {
     return fullEventDetails?.oAuthMercadoPago?.mpPublicKey || null;
   }, [fullEventDetails]);
+
+  useEffect(() => {
+    if (isOpen && mpPublicKey && !isSDKInitializedRef.current) {
+      initMercadoPago(mpPublicKey, { locale: 'es-AR' });
+      isSDKInitializedRef.current = true;
+      console.log('Mercado Pago SDK initialized successfully.');
+    }
+  }, [isOpen, mpPublicKey]);
 
   const dynamicSteps = useMemo(() => {
     if (!fullEventDetails) return steps;
