@@ -16,6 +16,7 @@ import { EventInfo } from './EventInfo';
 import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
 import { toast } from 'sonner';
+import { initMercadoPago } from '@mercadopago/sdk-react';
 
 const steps = [
   'Seleccionar Entradas',
@@ -65,6 +66,15 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const y = useMotionValue(0);
   const dragControls = useDragControls();
   const [isAtTop, setIsAtTop] = useState(true);
+
+  const isSDKInitializedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (isOpen && mpPublicKey && !isSDKInitializedRef.current) {
+      initMercadoPago(mpPublicKey, { locale: 'es-AR' });
+      isSDKInitializedRef.current = true;
+    }
+  }, [isOpen, mpPublicKey]);
 
   const dynamicSteps = useMemo(() => {
     if (!fullEventDetails) return steps;

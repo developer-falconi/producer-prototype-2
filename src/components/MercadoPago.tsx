@@ -7,18 +7,7 @@ interface MercadoPagoButtonProps {
 }
 
 const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, publicKey }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  
- useEffect(() => {
-    if (!publicKey) return;
-    initMercadoPago(publicKey, { locale: 'es-AR' });
-
-    return () => {
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
-      }
-    };
-  }, [publicKey]);
+  const initialization: any = { redirectMode: 'self', preferenceId };
 
   const handleOnSubmit = async () => {
     console.log('Mercado Pago Wallet Brick: Payment process initiated by user.');
@@ -53,7 +42,7 @@ const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, pub
   return (
     <div className="w-full bg-gray-400 rounded-lg p-1">
       <Wallet
-        initialization={{ redirectMode: 'self', preferenceId }}
+        initialization={initialization}
         customization={{ theme: 'dark', valueProp: 'smart_option' }}
         onSubmit={handleOnSubmit}
         onReady={handleOnReady}
