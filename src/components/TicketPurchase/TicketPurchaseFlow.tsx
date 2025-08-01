@@ -53,7 +53,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
-  const [mpPublicKey, setMpPublicKey] = useState<string>('');
+  const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
   const [mpGeneratingPreference, setMpGeneratingPreference] = useState<boolean>(false);
 
   //motion
@@ -70,12 +70,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const isSDKInitializedRef = useRef<boolean>(false);
 
   useEffect(() => {
-    if (isOpen && mpPublicKey && !isSDKInitializedRef.current) {
-      initMercadoPago(mpPublicKey, { locale: 'es-AR' });
+    const mpKey = fullEventDetails?.oAuthMercadoPago?.mpPublicKey;
+    if (isOpen && mpKey && !isSDKInitializedRef.current) {
+      setMpPublicKey(mpKey);
+      initMercadoPago(mpKey, { locale: 'es-AR' });
       isSDKInitializedRef.current = true;
     }
-  }, [isOpen, mpPublicKey]);
-
+  }, [isOpen, fullEventDetails?.oAuthMercadoPago]);
   const dynamicSteps = useMemo(() => {
     if (!fullEventDetails) return steps;
 
@@ -112,8 +113,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               ticketQuantity: initialSelectedPrevent ? 1 : 0,
               clients: Array.from({ length: initialSelectedPrevent ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
             }));
-
-            setMpPublicKey(resp.data.oAuthMercadoPago?.mpPublicKey);
           } else {
             setErrorDetails("Error al cargar detalles.");
           }
@@ -221,9 +220,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     setPurchaseData({ ...purchaseData, paymentMethod });
     if (paymentMethod !== 'mercadopago') {
       setMpPreferenceId(null);
-      setMpPublicKey("");
-    } else {
-      setMpPublicKey(fullEventDetails?.oAuthMercadoPago?.mpPublicKey || '');
     }
   };
 
@@ -236,7 +232,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   };
 
   const generateMercadoPagoPreference = async () => {
-    if (!fullEventDetails?.oAuthMercadoPago?.mpPublicKey || !purchaseData.selectedPrevent) {
+    if (!mpPublicKey || !purchaseData.selectedPrevent) {
       console.error("Mercado Pago not configured or prevent not selected.");
       return false;
     }
@@ -259,7 +255,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       const res = await createPreference(purchaseData.selectedPrevent.id, updatedParticipants, updatedProducts, updatedCombos, purchaseData.total);
       if (res.success) {
         setMpPreferenceId(res.data.preferenceId);
-        setMpPublicKey(res.data.publicKey);
         setMpGeneratingPreference(false);
         return true;
       }
@@ -345,7 +340,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
       if (currentStep - 1 === confirmationStepIndex && purchaseData.paymentMethod === 'mercadopago') {
         setMpPreferenceId(null);
-        setMpPublicKey("");
       }
 
       setCurrentStep(currentStep - 1);
@@ -365,7 +359,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       total: 0
     });
     setMpPreferenceId(null);
-    setMpPublicKey("");
     setMpGeneratingPreference(false);
   }
 
@@ -492,14 +485,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           />
         );
       case 'Confirmación':
-        return (
-          <OrderSummary
-            eventData={fullEventDetails!}
-            purchaseData={purchaseData}
-            mpPreferenceId={mpPreferenceId}
-            mpPublicKey={mpPublicKey}
-          />
-        );
       case 'Resumen':
         return (
           <OrderSummary
