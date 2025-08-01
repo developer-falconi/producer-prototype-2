@@ -53,7 +53,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
-  const [mpPublicKey, setMpPublicKey] = useState<string | null>(null);
   const [mpGeneratingPreference, setMpGeneratingPreference] = useState<boolean>(false);
 
   //motion
@@ -67,16 +66,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const dragControls = useDragControls();
   const [isAtTop, setIsAtTop] = useState(true);
 
-  const isSDKInitializedRef = useRef<boolean>(false);
+  const mpPublicKey = useMemo(() => {
+    return fullEventDetails?.oAuthMercadoPago?.mpPublicKey || null;
+  }, [fullEventDetails]);
 
-  useEffect(() => {
-    const mpKey = fullEventDetails?.oAuthMercadoPago?.mpPublicKey;
-    if (isOpen && mpKey && !isSDKInitializedRef.current) {
-      setMpPublicKey(mpKey);
-      initMercadoPago(mpKey, { locale: 'es-AR' });
-      isSDKInitializedRef.current = true;
-    }
-  }, [isOpen, fullEventDetails?.oAuthMercadoPago]);
   const dynamicSteps = useMemo(() => {
     if (!fullEventDetails) return steps;
 
@@ -218,9 +211,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
   const updatePaymentMethod = (paymentMethod: 'mercadopago' | 'bank_transfer') => {
     setPurchaseData({ ...purchaseData, paymentMethod });
-    if (paymentMethod !== 'mercadopago') {
-      setMpPreferenceId(null);
-    }
   };
 
   const updatePaymentFile = (file: File) => {
@@ -336,12 +326,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
   const handlePrevious = () => {
     if (currentStep > 0) {
-      const confirmationStepIndex = dynamicSteps.findIndex(step => step === 'Confirmación');
-
-      if (currentStep - 1 === confirmationStepIndex && purchaseData.paymentMethod === 'mercadopago') {
-        setMpPreferenceId(null);
-      }
-
       setCurrentStep(currentStep - 1);
     }
   };
@@ -485,7 +469,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           />
         );
       case 'Confirmación':
-      case 'Resumen':
+        // case 'Resumen':
         return (
           <OrderSummary
             eventData={fullEventDetails!}

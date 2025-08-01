@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
+import React, { useState } from 'react';
+import { Wallet } from '@mercadopago/sdk-react';
+import { cn } from '@/lib/utils';
 
 interface MercadoPagoButtonProps {
   preferenceId: string | null;
@@ -7,6 +8,8 @@ interface MercadoPagoButtonProps {
 }
 
 const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, publicKey }) => {
+  const [loadingButton, setLoadingButton] = useState(true);
+
   const initialization: any = { redirectMode: 'self', preferenceId };
 
   const handleOnSubmit = async () => {
@@ -15,6 +18,7 @@ const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, pub
 
   const handleOnReady = async () => {
     console.log('Mercado Pago Wallet Brick: Ready.');
+    setLoadingButton(false);
   };
 
   const handleOnError = async (error: any) => {
@@ -40,7 +44,12 @@ const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, pub
   }
 
   return (
-    <div className="w-full bg-gray-400 rounded-lg p-1">
+    <div
+      className={cn(
+        "w-full bg-gray-400 rounded-lg p-1",
+        loadingButton && "hidden"
+      )}
+    >
       <Wallet
         initialization={initialization}
         customization={{ theme: 'dark', valueProp: 'smart_option' }}
