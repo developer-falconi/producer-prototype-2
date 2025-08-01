@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
 
 interface MercadoPagoButtonProps {
@@ -7,17 +7,19 @@ interface MercadoPagoButtonProps {
 }
 
 const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, publicKey }) => {
-  if (publicKey) {
-    initMercadoPago(publicKey, {
-      locale: 'es-AR',
-    });
-  } else {
-    console.error(
-      'Error: Mercado Pago Public Key (publicKey) is missing. ' +
-      'The Mercado Pago Button will not work correctly. ' +
-      'Please ensure it is set in your .env file and the project is rebuilt if necessary.'
-    );
-  }
+  useEffect(() => {
+    if (publicKey) {
+      initMercadoPago(publicKey, {
+        locale: 'es-AR',
+      });
+    } else {
+      console.error(
+        'Error: Mercado Pago Public Key (publicKey) is missing. ' +
+        'The Mercado Pago Button will not work correctly. ' +
+        'Please ensure it is set in your .env file and the project is rebuilt if necessary.'
+      );
+    }
+  }, [publicKey]);
 
   const initialization: any = { redirectMode: 'self', preferenceId }
 
