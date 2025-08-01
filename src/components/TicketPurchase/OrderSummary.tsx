@@ -155,7 +155,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
         <div className="mt-8 text-center">
           <p className="text-gray-400 text-sm mb-4">Haz click en el botón para finalizar tu compra con Mercado Pago:</p>
           <MercadoPagoButton
-            preferenceId={mpPreferenceId || '125712'}
+            preferenceId={mpPreferenceId}
             publicKey={mpPublicKey}
           />
         </div>
