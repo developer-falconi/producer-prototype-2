@@ -315,7 +315,9 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         const success = await generateMercadoPagoPreference();
         if (!success) {
           handleCloseDrawer();
+          return;
         }
+        setCurrentStep(currentStep + 1);
         return;
       }
       setCurrentStep(currentStep + 1);
