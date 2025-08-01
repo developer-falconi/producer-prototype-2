@@ -19,7 +19,7 @@ const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, pub
         'Please ensure it is set in your .env file and the project is rebuilt if necessary.'
       );
     }
-  }, [publicKey]);
+  }, []);
 
   const initialization: any = { redirectMode: 'self', preferenceId }
 
