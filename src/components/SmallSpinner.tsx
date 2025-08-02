@@ -12,8 +12,8 @@ const SmallSpinner: React.FC<SpinnerProps> = ({
 }) => {
   const sizeClasses = {
     [SpinnerSize.SMALL]: 'w-4 h-4',
-    [SpinnerSize.MEDIUM]: 'w-8 h-8',
-    [SpinnerSize.LARGE]: 'w-12 h-12',
+    [SpinnerSize.MEDIUM]: 'w-6 h-6',
+    [SpinnerSize.LARGE]: 'w-8 h-8',
   };
 
   return (
@@ -33,7 +33,7 @@ const SmallSpinner: React.FC<SpinnerProps> = ({
           strokeWidth="4"
         ></circle>
         <path 
-          className="opacity-75" 
+          className="opacity-50" 
           fill="currentColor" 
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         ></path>

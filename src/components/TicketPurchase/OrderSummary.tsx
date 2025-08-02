@@ -1,20 +1,15 @@
 import { Event, PurchaseData } from '@/lib/types';
 import { formatPrice } from '@/lib/utils';
 import React from 'react';
-import MercadoPagoButton from '../MercadoPago';
 
 interface OrderSummaryProps {
   eventData: Event;
   purchaseData: PurchaseData;
-  mpPreferenceId: string | null;
-  mpPublicKey: string;
 }
 
 export const OrderSummary: React.FC<OrderSummaryProps> = ({
   eventData,
   purchaseData,
-  mpPreferenceId,
-  mpPublicKey
 }) => {
   const ticketPrice = purchaseData.selectedPrevent?.price || 0;
   const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
@@ -67,7 +62,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
             <span className="font-medium text-white">{eventData.name}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-gray-400">Cantidad de Entradas:</span>
+            <span className="text-gray-400">Entradas:</span>
             <span className="font-medium text-white">{purchaseData.ticketQuantity} {purchaseData.ticketQuantity > 1 ? 'entradas' : 'entrada'}</span>
           </div>
           <div className="flex justify-between items-center">
@@ -149,17 +144,6 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Render MercadoPagoButton if preferenceId is available and MP is selected */}
-      {purchaseData.paymentMethod === 'mercadopago' && mpPreferenceId && mpPublicKey && (
-        <div className="mt-8 text-center">
-          <p className="text-gray-400 text-sm mb-4">Haz click en el botón para finalizar tu compra con Mercado Pago:</p>
-          <MercadoPagoButton
-            preferenceId={mpPreferenceId}
-            publicKey={mpPublicKey}
-          />
-        </div>
-      )}
 
       {/* For Bank Transfer, the "Confirmar Compra" button is handled by NavigationButtons */}
       {purchaseData.paymentMethod === 'bank_transfer' && (

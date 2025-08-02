@@ -15,8 +15,8 @@ import { Button } from '../ui/button';
 import { EventInfo } from './EventInfo';
 import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
-import { toast } from 'sonner';
 import { initMercadoPago } from '@mercadopago/sdk-react';
+import { toast } from 'sonner';
 
 const steps = [
   'Seleccionar Entradas',
@@ -255,6 +255,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       if (res.success) {
         setMpPreferenceId(res.data.preferenceId);
         setMpGeneratingPreference(false);
+        setCurrentStep(currentStep + 1);
         return true;
       }
       if (!res.success) {
@@ -278,8 +279,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       return true;
     }
 
-    const stepIndexInDynamicSteps = currentStep - 1;
-    const currentStepName = dynamicSteps[stepIndexInDynamicSteps];
+    const currentStepName = dynamicSteps[currentStep - 1];
 
     switch (currentStepName) {
       case 'Seleccionar Entradas':
@@ -311,23 +311,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       setCurrentStep(1);
       return;
     }
-
-    const currentStepName = dynamicSteps[currentStep - 1];
-
-    if (currentStepName === 'Método de Pago' && purchaseData.paymentMethod === 'mercadopago') {
-      if (!mpPreferenceId) {
-        const success = await generateMercadoPagoPreference();
-        if (!success) {
-          handleCloseDrawer();
-          return;
-        }
-        setCurrentStep(currentStep + 1);
-        return;
-      }
-      setCurrentStep(currentStep + 1);
-      return;
-    }
-
     if (!mpGeneratingPreference && currentStep < dynamicSteps.length) {
       setCurrentStep(currentStep + 1);
     }
@@ -433,8 +416,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       return <EventInfo event={fullEventDetails} />;
     }
 
-    const stepIndexInDynamicSteps = currentStep - 1;
-    const currentStepName = dynamicSteps[stepIndexInDynamicSteps];
+    const currentStepName = dynamicSteps[currentStep - 1];
 
     switch (currentStepName) {
       case 'Seleccionar Entradas':
@@ -478,22 +460,22 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           />
         );
       case 'Confirmación':
-        // case 'Resumen':
+      case 'Resumen':
         return (
           <OrderSummary
             eventData={fullEventDetails!}
             purchaseData={purchaseData}
-            mpPreferenceId={mpPreferenceId}
-            mpPublicKey={mpPublicKey}
           />
         );
       case 'Estado':
-        return (<PurchaseStatus
-          purchaseData={purchaseData}
-          total={purchaseData.total}
-          status={submissionStatus}
-          onResetAndClose={handleCloseDrawer}
-        />);
+        return (
+          <PurchaseStatus
+            purchaseData={purchaseData}
+            total={purchaseData.total}
+            status={submissionStatus}
+            onResetAndClose={handleCloseDrawer}
+          />
+        );
       default:
         return null;
     }
@@ -561,8 +543,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               ) : (
                 <>
                   {/* Progress Bar */}
-                  {currentStep > 0 && currentStep < dynamicSteps.length - 1 && (
-                    <ProgressBar currentStep={currentStep} steps={dynamicSteps} />
+                  {currentStep > 0 && currentStep <= dynamicSteps.length && (
+                    <ProgressBar currentStep={currentStep - 1} steps={dynamicSteps} />
                   )}
 
                   {/* Content */}
@@ -572,7 +554,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 </>
               )}
             </div>
-            {currentStep <= dynamicSteps.length && (
+            {currentStep <= dynamicSteps.length - 1 && (
               <NavigationButtons
                 currentStep={currentStep}
                 totalSteps={dynamicSteps.length}
@@ -580,16 +562,17 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 onPrevious={handlePrevious}
                 onNext={handleNext}
                 onComplete={handleComplete}
+                onGeneratePreference={generateMercadoPagoPreference}
                 isLoading={loadingDetails}
                 isSubmitting={isSubmitting || (purchaseData.paymentMethod === 'mercadopago' && mpGeneratingPreference)}
                 isMercadoPagoSelected={purchaseData.paymentMethod === 'mercadopago'}
                 isGeneratingPreference={mpGeneratingPreference}
-                hasPreferenceId={mpPreferenceId !== null}
                 isConfirmationStep={isConfirmationStep}
                 isPaymentMethodStep={isPaymentMethodStep}
+                mpPreferenceId={mpPreferenceId}
+                mpPublicKey={mpPublicKey}
               />
             )}
-            {/* Navigation */}
           </motion.div>
         </motion.div>
       )}

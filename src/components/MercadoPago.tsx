@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
 import { Wallet } from '@mercadopago/sdk-react';
 import { cn } from '@/lib/utils';
+import Spinner from './Spinner';
+import SmallSpinner from './SmallSpinner';
+import { SpinnerSize } from '@/lib/types';
 
 interface MercadoPagoButtonProps {
   preferenceId: string | null;
   publicKey: string;
+  loadingButton: boolean;
+  setLoadingButton: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, publicKey }) => {
-  const [loadingButton, setLoadingButton] = useState(true);
-
+const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({
+  preferenceId,
+  publicKey,
+  loadingButton,
+  setLoadingButton
+}) => {
   const initialization: any = { redirectMode: 'self', preferenceId };
 
   const handleOnSubmit = async () => {
@@ -44,21 +52,32 @@ const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, pub
   }
 
   return (
-    <div
-      className={cn(
-        "w-full bg-gray-400 rounded-lg p-1",
-        loadingButton && "hidden"
-      )}
+    <div className={cn(
+      loadingButton && 'w-full flex justify-center p-4'
+    )}
     >
-      <Wallet
-        initialization={initialization}
-        customization={{ theme: 'dark', valueProp: 'smart_option' }}
-        onSubmit={handleOnSubmit}
-        onReady={handleOnReady}
-        onError={handleOnError}
+      <SmallSpinner
+        className={cn(
+          !loadingButton && "hidden"
+        )}
+        size={SpinnerSize.MEDIUM}
       />
+      <div
+        className={cn(
+          'p-0 m-0',
+          loadingButton && "hidden"
+        )}
+      >
+        <Wallet
+          initialization={initialization}
+          customization={{ theme: 'dark', valueProp: 'smart_option', customStyle: { hideValueProp: true } }}
+          onSubmit={handleOnSubmit}
+          onReady={handleOnReady}
+          onError={handleOnError}
+        />
+      </div>
     </div>
   );
 };
 
-export default MercadoPagoButton;
+export default React.memo(MercadoPagoButton);
