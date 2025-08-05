@@ -75,15 +75,15 @@ const Events = () => {
 
   if (loading || loadingProducer) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-200 via-gray-200 to-gray-400">
-        <Spinner textColor="text-gray-900" borderColor="border-t-black" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
+        <Spinner />
       </div>
     );
   }
 
   if (!producer) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-400">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
         <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
         <Link to='https://www.produtik.com' target="_blank">
           <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
@@ -95,16 +95,18 @@ const Events = () => {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-gray-200 via-gray-200 to-gray-400">
+    <div className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
       <div className="container max-w-7xl mx-auto">
         {/* header and filters unchanged */}
         <div className="text-center mb-12 animate-fade-in">
-          <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
-            Nuestros Eventos
+          <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+            {producer.webDetails.eventTitle || 'Nuestros Eventos'}
           </h1>
-          <p className="text-xl text-gray-800 max-w-2xl mx-auto">
-            Descubre todas las experiencias únicas que hemos creado y las que
-            están por venir
+          <p className="text-xl text-gray-200 max-w-2xl mx-auto">
+            {
+              producer.webDetails.eventSubtitle
+              || 'Descubre todas las experiencias únicas que hemos creado y las que están por venir'
+            }
           </p>
         </div>
 
@@ -118,31 +120,31 @@ const Events = () => {
               placeholder="Buscar eventos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white/10 border-gray-900/20 text-gray-900 placeholder:text-gray-900"
+              className="pl-10 bg-white/10 border-gray-900/20 text-white placeholder:text-white"
             />
           </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full md:w-48 bg-white/10 border-gray-900/20 text-gray-900">
+            <SelectTrigger className="w-full md:w-48 bg-white/10 border-gray-900/20 text-white">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-700">
               <SelectItem
                 value="all"
-                className="text-white hover:bg-slate-700"
+                className="text-white hover:bg-slate-700 cursor-pointer"
               >
                 Todos
               </SelectItem>
               <SelectItem
                 value="active"
-                className="text-white hover:bg-slate-700"
+                className="text-white hover:bg-slate-700 cursor-pointer"
               >
                 Activos
               </SelectItem>
               <SelectItem
                 value="completed"
-                className="text-white hover:bg-slate-700"
+                className="text-white hover:bg-slate-700 cursor-pointer"
               >
                 Finalizados
               </SelectItem>
@@ -163,7 +165,7 @@ const Events = () => {
 
         {filteredEvents.length === 0 && (
           <div className="text-center py-12 animate-fade-in">
-            <div className="text-gray-900 text-lg mb-4">
+            <div className="text-white text-lg mb-4">
               No se encontraron eventos
             </div>
             <p className="text-gray-800">

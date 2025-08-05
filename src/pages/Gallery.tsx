@@ -144,7 +144,7 @@ const Gallery = () => {
                   alt={item.name}
                   className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent transition-opacity duration-300">
                   <div className="absolute bottom-4 left-4 right-4">
                     <h3 className="text-white font-semibold text-sm">{item.name}</h3>
                     <p className="text-gray-300 text-xs">{item.event.name}</p>
@@ -153,7 +153,7 @@ const Gallery = () => {
               </div>
             </DialogTrigger>
             <DialogContent className="max-w-4xl bg-black/90 border-white/20 data-[state=open]:text-white">
-              <div className="group-hover:opacity-100 transition-opacity duration-300">
+              <div className="transition-opacity duration-300">
                 <div className="absolute bottom-4 left-6">
                   <h3 className="text-white font-semibold text-lg md:text-3xl">{item.name}</h3>
                   <p className="text-gray-300 text-base md:text-xl">{item.event.name}</p>
@@ -173,22 +173,15 @@ const Gallery = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-200 via-gray-200 to-gray-400">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="flex items-center justify-center"
-        >
-          <Spinner />
-        </motion.div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
+        <Spinner />
       </div>
     );
   }
 
   if (!producer) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-400">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
         <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
         <Link to='https://www.produtik.com' target="_blank">
           <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
@@ -204,7 +197,7 @@ const Gallery = () => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="relative min-h-screen bg-gradient-to-br from-gray-200 via-gray-200 to-gray-400"
+      className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900"
     >
       <div className="container">
         <div className="max-w-7xl mx-auto">
@@ -212,15 +205,18 @@ const Gallery = () => {
           <div className="text-center mb-12">
             <motion.h1
               variants={textVariants}
-              className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4"
+              className="text-4xl lg:text-5xl font-bold text-white mb-4"
             >
-              Galería {producer.name}
+              {producer.webDetails.galleryTitle || `Galería ${producer.name}`}
             </motion.h1>
             <motion.p
               variants={textVariants}
-              className="text-xl text-gray-700 max-w-2xl mx-auto"
+              className="text-xl text-gray-200 max-w-2xl mx-auto"
             >
-              Revive los mejores momentos de nuestros eventos a través de imágenes, videos y experiencias únicas
+              {
+                producer.webDetails.gallerySubtitle
+                || 'Revive los mejores momentos de nuestros eventos a través de imágenes, videos y experiencias únicas'
+              }
             </motion.p>
           </div>
 

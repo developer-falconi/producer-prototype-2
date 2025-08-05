@@ -15,6 +15,8 @@ import { Button } from '../ui/button';
 import { EventInfo } from './EventInfo';
 import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
+import { initMercadoPago } from '@mercadopago/sdk-react';
+import { toast } from 'sonner';
 
 const steps = [
   'Seleccionar Entradas',
@@ -51,7 +53,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
-  const [mpPublicKey, setMpPublicKey] = useState<string>('');
   const [mpGeneratingPreference, setMpGeneratingPreference] = useState<boolean>(false);
 
   //motion
@@ -64,6 +65,19 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const y = useMotionValue(0);
   const dragControls = useDragControls();
   const [isAtTop, setIsAtTop] = useState(true);
+
+  const isSDKInitializedRef = useRef(false);
+  const mpPublicKey = useMemo(() => {
+    return fullEventDetails?.oAuthMercadoPago?.mpPublicKey || null;
+  }, [fullEventDetails]);
+
+  useEffect(() => {
+    if (isOpen && mpPublicKey && !isSDKInitializedRef.current) {
+      initMercadoPago(mpPublicKey, { locale: 'es-AR' });
+      isSDKInitializedRef.current = true;
+      console.log('Mercado Pago SDK initialized successfully.');
+    }
+  }, [isOpen, mpPublicKey]);
 
   const dynamicSteps = useMemo(() => {
     if (!fullEventDetails) return steps;
@@ -101,8 +115,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               ticketQuantity: initialSelectedPrevent ? 1 : 0,
               clients: Array.from({ length: initialSelectedPrevent ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
             }));
-
-            setMpPublicKey(resp.data.oAuthMercadoPago?.mpPublicKey);
           } else {
             setErrorDetails("Error al cargar detalles.");
           }
@@ -208,12 +220,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
   const updatePaymentMethod = (paymentMethod: 'mercadopago' | 'bank_transfer') => {
     setPurchaseData({ ...purchaseData, paymentMethod });
-    if (paymentMethod !== 'mercadopago') {
-      setMpPreferenceId(null);
-      setMpPublicKey("");
-    } else {
-      setMpPublicKey(fullEventDetails?.oAuthMercadoPago?.mpPublicKey || '');
-    }
   };
 
   const updatePaymentFile = (file: File) => {
@@ -225,7 +231,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   };
 
   const generateMercadoPagoPreference = async () => {
-    if (!fullEventDetails?.oAuthMercadoPago?.mpPublicKey || !purchaseData.selectedPrevent) {
+    if (!mpPublicKey || !purchaseData.selectedPrevent) {
       console.error("Mercado Pago not configured or prevent not selected.");
       return false;
     }
@@ -248,18 +254,20 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       const res = await createPreference(purchaseData.selectedPrevent.id, updatedParticipants, updatedProducts, updatedCombos, purchaseData.total);
       if (res.success) {
         setMpPreferenceId(res.data.preferenceId);
-        setMpPublicKey(res.data.publicKey);
         setMpGeneratingPreference(false);
+        setCurrentStep(currentStep + 1);
         return true;
       }
       if (!res.success) {
         console.error("Error creating Mercado Pago preference:", res.message);
         setMpGeneratingPreference(false);
+        toast.error(res.message || 'Error al crear preferencia de pago');
         return false;
       }
     } catch (err) {
       console.error('Error al contactar a Mercado Pago para preferencia:', err);
       setMpGeneratingPreference(false);
+      toast.error('Error al crear preferencia de pago');
       return false;
     }
     setMpGeneratingPreference(false);
@@ -271,8 +279,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       return true;
     }
 
-    const stepIndexInDynamicSteps = currentStep - 1;
-    const currentStepName = dynamicSteps[stepIndexInDynamicSteps];
+    const currentStepName = dynamicSteps[currentStep - 1];
 
     switch (currentStepName) {
       case 'Seleccionar Entradas':
@@ -286,7 +293,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       case 'Productos':
         return true;
       case 'Método de Pago':
-        if (purchaseData.paymentMethod === 'bank_transfer') {
+        if (purchaseData.paymentMethod === 'bank_transfer' && purchaseData.total > 0) {
           return !!purchaseData.comprobante;
         }
         return !!purchaseData.paymentMethod;
@@ -304,21 +311,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       setCurrentStep(1);
       return;
     }
-
-    const currentStepName = dynamicSteps[currentStep - 1];
-
-    if (currentStepName === 'Método de Pago' && purchaseData.paymentMethod === 'mercadopago') {
-      if (!mpPreferenceId) {
-        const success = await generateMercadoPagoPreference();
-        if (!success) {
-          setCurrentStep(currentStep + 1);
-        }
-        return;
-      }
-      setCurrentStep(currentStep + 1);
-      return;
-    }
-
     if (!mpGeneratingPreference && currentStep < dynamicSteps.length) {
       setCurrentStep(currentStep + 1);
     }
@@ -326,13 +318,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
   const handlePrevious = () => {
     if (currentStep > 0) {
-      const confirmationStepIndex = dynamicSteps.findIndex(step => step === 'Confirmación');
-
-      if (currentStep - 1 === confirmationStepIndex && purchaseData.paymentMethod === 'mercadopago') {
-        setMpPreferenceId(null);
-        setMpPublicKey("");
-      }
-
       setCurrentStep(currentStep - 1);
     }
   };
@@ -350,7 +335,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       total: 0
     });
     setMpPreferenceId(null);
-    setMpPublicKey("");
     setMpGeneratingPreference(false);
   }
 
@@ -382,7 +366,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         submitData.append('comprobante', purchaseData.comprobante);
       }
 
-      const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.selectedPrevent.id);
+      const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.selectedPrevent.id, purchaseData.total);
       if (result.success) {
         setSubmissionStatus({ status: 'success', message: result['message'] || "¡Compra Exitosa! 🎉" });
       } else {
@@ -432,8 +416,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       return <EventInfo event={fullEventDetails} />;
     }
 
-    const stepIndexInDynamicSteps = currentStep - 1;
-    const currentStepName = dynamicSteps[stepIndexInDynamicSteps];
+    const currentStepName = dynamicSteps[currentStep - 1];
 
     switch (currentStepName) {
       case 'Seleccionar Entradas':
@@ -477,30 +460,22 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           />
         );
       case 'Confirmación':
-        return (
-          <OrderSummary
-            eventData={fullEventDetails!}
-            purchaseData={purchaseData}
-            mpPreferenceId={mpPreferenceId}
-            mpPublicKey={mpPublicKey}
-          />
-        );
       case 'Resumen':
         return (
           <OrderSummary
             eventData={fullEventDetails!}
             purchaseData={purchaseData}
-            mpPreferenceId={mpPreferenceId}
-            mpPublicKey={mpPublicKey}
           />
         );
       case 'Estado':
-        return (<PurchaseStatus
-          purchaseData={purchaseData}
-          total={purchaseData.total}
-          status={submissionStatus}
-          onResetAndClose={handleCloseDrawer}
-        />);
+        return (
+          <PurchaseStatus
+            purchaseData={purchaseData}
+            total={purchaseData.total}
+            status={submissionStatus}
+            onResetAndClose={handleCloseDrawer}
+          />
+        );
       default:
         return null;
     }
@@ -568,7 +543,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               ) : (
                 <>
                   {/* Progress Bar */}
-                  {currentStep > 0 && currentStep < dynamicSteps.length - 1 && (
+                  {currentStep > 0 && currentStep <= dynamicSteps.length && (
                     <ProgressBar currentStep={currentStep} steps={dynamicSteps} />
                   )}
 
@@ -579,7 +554,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 </>
               )}
             </div>
-            {currentStep <= dynamicSteps.length && (
+            {currentStep <= dynamicSteps.length - 1 && (
               <NavigationButtons
                 currentStep={currentStep}
                 totalSteps={dynamicSteps.length}
@@ -587,16 +562,17 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 onPrevious={handlePrevious}
                 onNext={handleNext}
                 onComplete={handleComplete}
+                onGeneratePreference={generateMercadoPagoPreference}
                 isLoading={loadingDetails}
                 isSubmitting={isSubmitting || (purchaseData.paymentMethod === 'mercadopago' && mpGeneratingPreference)}
                 isMercadoPagoSelected={purchaseData.paymentMethod === 'mercadopago'}
                 isGeneratingPreference={mpGeneratingPreference}
-                hasPreferenceId={mpPreferenceId !== null}
                 isConfirmationStep={isConfirmationStep}
                 isPaymentMethodStep={isPaymentMethodStep}
+                mpPreferenceId={mpPreferenceId}
+                mpPublicKey={mpPublicKey}
               />
             )}
-            {/* Navigation */}
           </motion.div>
         </motion.div>
       )}

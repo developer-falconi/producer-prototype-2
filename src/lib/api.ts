@@ -54,9 +54,14 @@ export async function fetchProducerGalleryData(): Promise<ApiResponse<EventImage
   }
 }
 
-export async function submitTicketForm(formData: FormData, eventId: number, preventId: number | null): Promise<ApiResponse<Client[]>> {
+export async function submitTicketForm(formData: FormData, eventId: number, preventId: number | null, total: number): Promise<ApiResponse<Client[]>> {
   try {
-    let url = `${API_URL}/client/create/${eventId}?type=${ClientTypeEnum.REGULAR}`;
+    const clientType = total === 0
+      ? ClientTypeEnum.FREE
+      : ClientTypeEnum.REGULAR;
+
+    let url = `${API_URL}/client/create/${eventId}?type=${clientType}`;
+
     if (preventId) {
       url += `&prevent=${preventId}`;
     }

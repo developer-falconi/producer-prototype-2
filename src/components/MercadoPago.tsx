@@ -1,25 +1,24 @@
-import React from 'react';
-import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
+import React, { useState } from 'react';
+import { Wallet } from '@mercadopago/sdk-react';
+import { cn } from '@/lib/utils';
+import Spinner from './Spinner';
+import SmallSpinner from './SmallSpinner';
+import { SpinnerSize } from '@/lib/types';
 
 interface MercadoPagoButtonProps {
   preferenceId: string | null;
   publicKey: string;
+  loadingButton: boolean;
+  setLoadingButton: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, publicKey }) => {
-  if (publicKey) {
-    initMercadoPago(publicKey, {
-      locale: 'es-AR',
-    });
-  } else {
-    console.error(
-      'Error: Mercado Pago Public Key (publicKey) is missing. ' +
-      'The Mercado Pago Button will not work correctly. ' +
-      'Please ensure it is set in your .env file and the project is rebuilt if necessary.'
-    );
-  }
-
-  const initialization: any = { redirectMode: 'self', preferenceId }
+const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({
+  preferenceId,
+  publicKey,
+  loadingButton,
+  setLoadingButton
+}) => {
+  const initialization: any = { redirectMode: 'self', preferenceId };
 
   const handleOnSubmit = async () => {
     console.log('Mercado Pago Wallet Brick: Payment process initiated by user.');
@@ -27,6 +26,7 @@ const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, pub
 
   const handleOnReady = async () => {
     console.log('Mercado Pago Wallet Brick: Ready.');
+    setLoadingButton(false);
   };
 
   const handleOnError = async (error: any) => {
@@ -52,16 +52,32 @@ const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({ preferenceId, pub
   }
 
   return (
-    <div className="w-full bg-gray-400 rounded-lg p-1">
-      <Wallet
-        initialization={initialization}
-        customization={{ theme: 'dark', valueProp: 'smart_option' }}
-        onSubmit={handleOnSubmit}
-        onReady={handleOnReady}
-        onError={handleOnError}
+    <div className={cn(
+      loadingButton && 'w-full flex justify-center p-4'
+    )}
+    >
+      <SmallSpinner
+        className={cn(
+          !loadingButton && "hidden"
+        )}
+        size={SpinnerSize.MEDIUM}
       />
+      <div
+        className={cn(
+          'p-0 m-0',
+          loadingButton && "hidden"
+        )}
+      >
+        <Wallet
+          initialization={initialization}
+          customization={{ theme: 'dark', valueProp: 'smart_option', customStyle: { hideValueProp: true } }}
+          onSubmit={handleOnSubmit}
+          onReady={handleOnReady}
+          onError={handleOnError}
+        />
+      </div>
     </div>
   );
 };
 
-export default MercadoPagoButton;
+export default React.memo(MercadoPagoButton);

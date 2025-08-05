@@ -72,7 +72,7 @@ const Navbar = () => {
                   <AvatarImage src={producer?.logo} alt={producer?.name || 'logo'} />
                   <AvatarFallback>{producer?.name}</AvatarFallback>
                 </Avatar>
-                {producer?.name} Universe
+                {producer?.name}
               </Link>
             </>
 

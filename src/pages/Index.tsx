@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Users, Award, TrendingUp, ExternalLink } from "lucide-react";
+import { Users, Award, TrendingUp, ExternalLink, ArrowRight } from "lucide-react";
 import Footer from "@/components/Footer";
 import Spinner from "@/components/Spinner";
-import FeaturedEvent from "@/components/FeaturedEvent";
-import ImageSection from "@/components/ImageSection";
 import { useProducer } from "@/context/ProducerContext";
 import { cn } from "@/lib/utils";
 import { Event, PaymentStatus } from "@/lib/types";
@@ -12,10 +10,12 @@ import { fetchProducerEventDetailData } from "@/lib/api";
 import PaymentResult from "@/components/PaymentResult";
 import { Link } from "react-router-dom";
 import { CountingNumber } from "@/components/animate-ui/text/counting-number";
+import { useIsMobile } from "@/hooks/use-mobile";
+import EventCarousel from "@/components/EventCarousel";
 
 const Index = () => {
   const { producer, loadingProducer } = useProducer();
-  const [activeEvent, setActiveEvent] = useState<any>(null);
+  const isMobile = useIsMobile();
 
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [paymentEventId, setPaymentEventId] = useState<string | null>(null);
@@ -25,6 +25,8 @@ const Index = () => {
 
   const [statsInView, setStatsInView] = useState(false);
   const statsSectionRef = useRef<HTMLDivElement>(null);
+
+  const [videoStarted, setVideoStarted] = useState(false);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -57,13 +59,6 @@ const Index = () => {
       })();
     }
   }, [paymentEventId, producer]);
-
-  useEffect(() => {
-    if (producer) {
-      const feturedEvent = producer.events[0];
-      if (feturedEvent) setActiveEvent(feturedEvent);
-    }
-  }, [producer])
 
   useEffect(() => {
     if (paymentStatus) {
@@ -100,9 +95,10 @@ const Index = () => {
     };
   }, [producer]);
 
+
   if (loadingProducer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-400">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
         <Spinner />
       </div>
     );
@@ -110,8 +106,8 @@ const Index = () => {
 
   if (!producer) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-200 to-gray-400">
-        <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
+        <p className="font-medium text-lg text-white mb-2">Error al cargar los datos del productor.</p>
         <Link to='https://www.produtik.com' target="_blank">
           <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
             Encontranos en Produtik <ExternalLink className="h-4 w-4" />
@@ -121,8 +117,15 @@ const Index = () => {
     );
   }
 
+  const featuredEvents = producer.events
+    .filter(event => event.featured)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
+  const eventsForHeroCarousel = featuredEvents.length > 0 ? featuredEvents : producer.events.slice(0, 3);
+  const fallbackVideoUrl = "/fallbackvideo.mp4";
+
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-200 to-gray-400">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-black via-black to-gray-900 font-sans antialiased">
       <AnimatePresence>
         {isDialogVisible && (
           <motion.div
@@ -155,129 +158,146 @@ const Index = () => {
         )}
       </AnimatePresence>
 
-      <section
-        className={cn(
-          "relative flex-grow h-auto overflow-hidden",
-          activeEvent ? "md:h-[calc(100vh-1rem)]" : "md:h-[calc(100vh-4rem)]"
-        )}
-      >
-        <div className="md:absolute md:inset-0 flex flex-col md:flex-row items-center justify-center md:pt-12">
-          {/* IMAGE + ICONS */}
-          <motion.div
-            className="w-full lg:w-1/2 p-4"
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <ImageSection producer={producer} />
-          </motion.div>
-
-          {/* TEXT + FEATURED */}
-          <motion.div
-            className="w-full lg:w-1/2 p-6 flex flex-col justify-center"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 relative">
-              {producer.name}, <br /> Universe
-
-              <Link to='https://www.produtik.com' target="_blank">
-                <div className="absolute top-2/3 right-5 md:right-1/3 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
-                  By Produtik
-                </div>
-              </Link>
-            </h1>
-            <p className="text-base sm:text-lg text-gray-700 mb-8">
-              {
-                producer.webDetails && producer.webDetails.subtitle
-                  ? producer.webDetails.subtitle
-                  : 'Más que eventos, nuestra pasión hecha realidad: un ecosistema completo donde cada detalle te sorprenderá.'
-              }
-            </p>
-
-            {activeEvent && (
-              <motion.div
-                className="relative min-w-lg mx-auto lg:mx-0"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.6 }}
-              >
-                <span className="absolute top-2 left-2 bg-blue-800 text-white px-4 py-1 rounded-lg uppercase text-sm font-semibold z-40">
-                  Destacado
-                </span>
-                <FeaturedEvent activeEvent={activeEvent} />
-              </motion.div>
+      <main className={cn(
+        "flex-grow",
+        isMobile ? "pt-0" : "pt-16"
+      )}>
+        <section
+          className={cn(
+            "relative p-6 w-full min-h-[calc(100vh-4rem)] flex flex-col md:flex-row",
+            "items-center justify-center",
+            "overflow-hidden text-white text-center",
+            !videoStarted && "bg-gradient-to-br from-black via-black to-gray-900"
+          )}>
+          <EventCarousel events={eventsForHeroCarousel} />
+          <video
+            className={cn(
+              "absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700",
+              videoStarted ? "opacity-100" : "opacity-0"
             )}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* STATS */}
-      <section
-        className="py-12 sm:py-20 bg-black/20 backdrop-blur-sm"
-        ref={statsSectionRef}
-      >
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            { icon: Users, num: producer.totalClients, label: "Tickets Vendidos" },
-            { icon: Award, num: producer.totalEvents, label: "Eventos Exitosos" },
-            { icon: TrendingUp, num: 100, label: "Satisfacción" },
-          ].map(({ icon: Icon, num, label }, i) => (
-            <motion.div
-              key={i}
-              className="text-center space-y-2"
+            src={fallbackVideoUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            onPlaying={() => setVideoStarted(true)}
+          >
+            Your browser does not support the video tag.
+          </video>
+          <div
+            className={cn(
+              "flex flex-col w-full pt-4 md:pt-0",
+              eventsForHeroCarousel.length > 0 && 'md:w-1/2'
+            )}
+          >
+            <motion.h1
+              className={cn(
+                "font-extrabold mb-4 leading-tight drop-shadow-lg",
+                eventsForHeroCarousel.length > 0 ? 'text-4xl' : 'text-6xl'
+              )}
               initial={{ opacity: 0, y: 20 }}
-              animate={statsInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ delay: 0.2 + i * 0.2 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
             >
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-zinc-700 to-slate-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-              </div>
-              <div className="text-2xl sm:text-3xl font-bold text-white">
-                {statsInView ? (
-                  <CountingNumber number={Number(num)} />
-                ) : (0)}
-                {label === 'Satisfacción' && '%'}
-              </div>
-              <div className="text-gray-900 font-medium text-sm sm:text-base">
-                {label}
-              </div>
+              {producer.logo && (
+                <img src={producer.logo} alt={`${producer.name} Logo`} className="block h-24 w-auto mx-auto mb-4" />
+              )}
+              {producer.name}
+            </motion.h1>
+
+            <motion.p
+              className="text-lg sm:text-xl md:text-xl text-gray-200 mb-8 max-w-2xl mx-auto drop-shadow-md"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.8 }}
+            >
+              {
+                producer.webDetails?.subtitle
+                  ? producer.webDetails.subtitle
+                  : 'Explorando nuevas fronteras en la creación de eventos únicos.'
+              }
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1 }}
+            >
+              <Link to="/events">
+                <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-full shadow-lg text-lg sm:text-xl transition-all duration-300 transform hover:scale-105 inline-flex items-center justify-center">
+                  Ver Todos los Eventos <ArrowRight className="ml-3 h-5 w-5" />
+                </button>
+              </Link>
             </motion.div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* MISSION */}
-      <section className="py-12 sm:py-20 px-4">
-        <motion.div
-          className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0, y: 20 },
-            visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.2 } },
-          }}
+        {/* ESTADÍSTICAS */}
+        <section
+          className="py-12 sm:py-20 bg-gradient-to-r from-blue-700 to-indigo-800 text-white"
+          ref={statsSectionRef}
         >
-          <motion.h2
-            className="text-3xl sm:text-4xl font-bold text-gray-900"
-            variants={{ hidden: {}, visible: {} }}
-          >
-            Nuestra Misión
-          </motion.h2>
-          <motion.p
-            className="text-lg sm:text-xl text-gray-800 leading-relaxed"
-            variants={{ hidden: {}, visible: {} }}
-          >
-            {
-              producer.webDetails && producer.webDetails.mission
-                ? producer.webDetails.mission
-                : `En ${producer.name} cada evento es una conexión auténtica entre música, arte y gastronomía, diseñada para emocionar.`
-            }
-          </motion.p>
-        </motion.div>
-      </section>
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
+            {[
+              { icon: Users, num: producer.totalClients, label: "Entradas Vendidas" },
+              { icon: Award, num: producer.totalEvents, label: "Eventos Exitosos" },
+              { icon: TrendingUp, num: 100, label: "Satisfacción del Cliente" },
+            ].map(({ icon: Icon, num, label }, i) => (
+              <motion.div
+                key={i}
+                className="text-center space-y-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={statsInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                transition={{ delay: 0.2 + i * 0.2 }}
+              >
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-bold text-white">
+                  {statsInView ? (
+                    <CountingNumber number={Number(num)} />
+                  ) : (0)}
+                  {label === 'Satisfacción del Cliente' && '%'}
+                </div>
+                <div className="text-blue-100 font-medium text-sm sm:text-base">
+                  {label}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
 
+        {/* MISIÓN */}
+        <section className="py-12 sm:py-20 px-4 bg-black">
+          <motion.div
+            className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.2 } },
+            }}
+          >
+            <motion.h2
+              className="text-3xl sm:text-4xl font-bold text-white"
+              variants={{ hidden: {}, visible: {} }}
+            >
+              Nuestra Misión
+            </motion.h2>
+            <motion.p
+              className="text-lg sm:text-xl text-gray-200 leading-relaxed"
+              variants={{ hidden: {}, visible: {} }}
+            >
+              {
+                producer.webDetails && producer.webDetails.mission
+                  ? producer.webDetails.mission
+                  : `En ${producer.name}, cada evento es una conexión auténtica entre música, arte y gastronomía, diseñada para emocionar e inspirar.`
+              }
+            </motion.p>
+          </motion.div>
+        </section>
+      </main>
       <Footer producer={producer} />
     </div>
   );
