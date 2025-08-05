@@ -73,7 +73,12 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
             )}
 
             <p className="text-xl font-semibold text-green-400 flex items-center justify-center gap-2 pt-2 border-t border-gray-700">
-              <span role="img" aria-label="money">💰</span> Total: {formatPrice(total)}
+              <span role="img" aria-label="money">💰</span>
+              Total: {
+                total === 0
+                  ? 'Liberado'
+                  : formatPrice(total)
+              }
             </p>
           </div>
         )}

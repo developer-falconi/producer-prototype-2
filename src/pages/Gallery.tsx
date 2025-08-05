@@ -207,13 +207,16 @@ const Gallery = () => {
               variants={textVariants}
               className="text-4xl lg:text-5xl font-bold text-white mb-4"
             >
-              Galería {producer.name}
+              {producer.webDetails.galleryTitle || `Galería ${producer.name}`}
             </motion.h1>
             <motion.p
               variants={textVariants}
               className="text-xl text-gray-200 max-w-2xl mx-auto"
             >
-              Revive los mejores momentos de nuestros eventos a través de imágenes, videos y experiencias únicas
+              {
+                producer.webDetails.gallerySubtitle
+                || 'Revive los mejores momentos de nuestros eventos a través de imágenes, videos y experiencias únicas'
+              }
             </motion.p>
           </div>
 

@@ -19,7 +19,7 @@ const itemVariants = {
 interface PaymentMethodProps {
   eventData: Event;
   purchaseData: PurchaseData;
-  onUpdatePaymentMethod: (method: 'mercadopago' | 'bank_transfer') => void;
+  onUpdatePaymentMethod: (method: 'mercadopago' | 'bank_transfer' | 'free') => void;
   onUpdatePurchaseFile: (file: File) => void;
 }
 
@@ -93,58 +93,84 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
       </motion.h2>
 
       <div className="space-y-4">
-        {/* <motion.div
-          onClick={() => onUpdatePaymentMethod('bank_transfer')}
-          className={cn(
-            "p-4 rounded-lg border cursor-pointer transition-all duration-200",
-            purchaseData.paymentMethod === 'bank_transfer'
-              ? "border-blue-700 bg-blue-700/10"
-              : "border-border hover:border-blue-700/50"
-          )}
-          variants={itemVariants}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-gray-300">Transferencia Bancaria</h3>
-              <p className="text-sm text-blue-700">
-                Sin comisiones <br />
-                <span className='text-xs'>(Acreditación manual)</span>
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="font-medium text-gray-300">0%</p>
-            </div>
-          </div>
-        </motion.div> */}
-
-        {isMpConfiguredForEvent && (
-          <motion.div
-            onClick={() => onUpdatePaymentMethod('mercadopago')}
-            className={cn(
-              "p-4 rounded-lg border cursor-pointer transition-all duration-200",
-              purchaseData.paymentMethod === 'mercadopago'
-                ? "border-blue-700 bg-blue-700/10"
-                : "border-border hover:border-blue-700/50"
-            )}
-            variants={itemVariants}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-gray-300">MercadoPago</h3>
-                <p className="text-sm text-blue-700">
-                  Tu pago se acredita al instante <br />
-                  <span className='text-xs'>(Comision exclusiva de Mercado Pago)</span>
-                </p>
+        {
+          purchaseData.total === 0 ? (
+            <motion.div
+              onClick={() => onUpdatePaymentMethod('free')}
+              className={cn(
+                "p-4 rounded-lg border cursor-pointer transition-all duration-200",
+                purchaseData.paymentMethod
+                  ? "border-blue-700 bg-blue-700/10"
+                  : "border-border hover:border-blue-700/50"
+              )}
+              variants={itemVariants}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-300">Entrada Liberada</h3>
+                  <p className="text-sm text-blue-700">
+                    Sin comisiones
+                  </p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="font-medium text-gray-300">8.24%</p>
-                <p className="text-xs text-gray-400 whitespace-nowrap">+ {formatPrice(calculatedMercadoPagoFee)}</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          ) : (
+            <>
+              <motion.div
+                onClick={() => onUpdatePaymentMethod('bank_transfer')}
+                className={cn(
+                  "p-4 rounded-lg border cursor-pointer transition-all duration-200",
+                  purchaseData.paymentMethod === 'bank_transfer'
+                    ? "border-blue-700 bg-blue-700/10"
+                    : "border-border hover:border-blue-700/50"
+                )}
+                variants={itemVariants}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-300">Transferencia Bancaria</h3>
+                    <p className="text-sm text-blue-700">
+                      Sin comisiones <br />
+                      <span className='text-xs'>(Acreditación manual)</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-gray-300">0%</p>
+                  </div>
+                </div>
+              </motion.div>
 
-        {purchaseData.paymentMethod === 'bank_transfer' && (
+              {isMpConfiguredForEvent && (
+                <motion.div
+                  onClick={() => onUpdatePaymentMethod('mercadopago')}
+                  className={cn(
+                    "p-4 rounded-lg border cursor-pointer transition-all duration-200",
+                    purchaseData.paymentMethod === 'mercadopago'
+                      ? "border-blue-700 bg-blue-700/10"
+                      : "border-border hover:border-blue-700/50"
+                  )}
+                  variants={itemVariants}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-300">MercadoPago</h3>
+                      <p className="text-sm text-blue-700">
+                        Tu pago se acredita al instante <br />
+                        <span className='text-xs'>(Comision exclusiva de Mercado Pago)</span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-gray-300">8.24%</p>
+                      <p className="text-xs text-gray-400 whitespace-nowrap">+ {formatPrice(calculatedMercadoPagoFee)}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </>
+          )
+        }
+
+        {purchaseData.paymentMethod === 'bank_transfer' && purchaseData.total > 0 && (
           <div className="space-y-4 p-4 bg-green-700/20 border border-green-700 rounded-lg">
             <div className="text-lg text-gray-300">
               <h4 className="font-medium">Detalles de la Cuenta Bancaria:</h4>

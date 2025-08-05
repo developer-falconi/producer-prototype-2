@@ -1,5 +1,5 @@
 import { Event, PurchaseData } from '@/lib/types';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, paymentMethodLabels } from '@/lib/utils';
 import React from 'react';
 
 interface OrderSummaryProps {
@@ -72,7 +72,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Método de Pago:</span>
             <span className="font-medium text-white">
-              {purchaseData.paymentMethod === 'mercadopago' ? 'Mercado Pago' : 'Transferencia Bancaria'}
+              {paymentMethodLabels[purchaseData.paymentMethod]}
             </span>
           </div>
         </div>
@@ -114,7 +114,15 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
         <div className="space-y-3 text-sm text-gray-300">
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Entradas:</span>
-            <span className="font-medium text-white">{formatPrice(subtotalTickets)}</span>
+            {subtotalTickets === 0 ? (
+              <span className="font-medium text-green-400">
+                Entrada liberada
+              </span>
+            ) : (
+              <span className="font-medium text-white">
+                {formatPrice(subtotalTickets)}
+              </span>
+            )}
           </div>
           {totalProductsPrice > 0 && (
             <div className="flex justify-between items-center">
@@ -128,31 +136,44 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
               <span className="font-medium text-white">{formatPrice(totalCombosPrice)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center text-base font-semibold pt-2 border-t border-gray-700">
-            <span className="text-gray-300">Subtotal:</span>
-            <span className="text-green-400">{formatPrice(subtotalAllItems)}</span>
-          </div>
-          {mercadoPagoFee > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Comisión Mercado Pago:</span>
-              <span className="text-red-400">{formatPrice(mercadoPagoFee)}</span>
-            </div>
-          )}
-          <div className="flex justify-between items-center text-xl font-bold pt-3 border-t border-gray-600 mt-4">
-            <span className="text-white">Total Final:</span>
-            <span className="text-green-500">{formatPrice(total)}</span>
-          </div>
-        </div>
-      </div>
+          {
+            total === 0 ? (
+              <div className="flex justify-between items-center text-base font-semibold pt-2 border-t border-gray-700">
+                <span className="text-gray-300">Total:</span>
+                <span className="text-green-400">¡Total Gratis!</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center text-base font-semibold pt-2 border-t border-gray-700">
+                  <span className="text-gray-300">Subtotal:</span>
+                  <span className="text-green-400">{formatPrice(subtotalAllItems)}</span>
+                </div>
+                {mercadoPagoFee > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Comisión Mercado Pago:</span>
+                    <span className="text-red-400">{formatPrice(mercadoPagoFee)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-xl font-bold pt-3 border-t border-gray-600 mt-4">
+                  <span className="text-white">Total Final:</span>
+                  <span className="text-green-500">{formatPrice(total)}</span>
+                </div>
+              </>
+            )
+          }
+        </div >
+      </div >
 
       {/* For Bank Transfer, the "Confirmar Compra" button is handled by NavigationButtons */}
-      {purchaseData.paymentMethod === 'bank_transfer' && (
-        <div className="mt-8 text-center">
-          <p className="text-gray-400 text-sm">
-            Al hacer click en "Confirmar Compra", tu pedido será enviado para validación manual de la transferencia.
-          </p>
-        </div>
-      )}
-    </div>
+      {
+        purchaseData.paymentMethod === 'bank_transfer' && (
+          <div className="mt-8 text-center">
+            <p className="text-gray-400 text-sm">
+              Al hacer click en "Confirmar Compra", tu pedido será enviado para validación manual de la transferencia.
+            </p>
+          </div>
+        )
+      }
+    </div >
   );
 };

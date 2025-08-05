@@ -148,7 +148,7 @@ export interface PurchaseData {
   combos: PurchaseComboItem[];
   email: string;
   comprobante: File;
-  paymentMethod: 'mercadopago' | 'bank_transfer' | null;
+  paymentMethod: 'mercadopago' | 'bank_transfer' | 'free' | null;
   total: number;
 }
 
@@ -198,6 +198,10 @@ export interface WebDetails {
   subtitle: string;
   mission: string;
   presentation: string;
+  eventTitle: string;
+  eventSubtitle: string;
+  galleryTitle: string;
+  gallerySubtitle: string;
 }
 
 export enum ProductStatusEnum {

@@ -100,11 +100,13 @@ const Events = () => {
         {/* header and filters unchanged */}
         <div className="text-center mb-12 animate-fade-in">
           <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">
-            Nuestros Eventos
+            {producer.webDetails.eventTitle || 'Nuestros Eventos'}
           </h1>
           <p className="text-xl text-gray-200 max-w-2xl mx-auto">
-            Descubre todas las experiencias únicas que hemos creado y las que
-            están por venir
+            {
+              producer.webDetails.eventSubtitle
+              || 'Descubre todas las experiencias únicas que hemos creado y las que están por venir'
+            }
           </p>
         </div>
 

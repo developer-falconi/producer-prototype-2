@@ -293,7 +293,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       case 'Productos':
         return true;
       case 'Método de Pago':
-        if (purchaseData.paymentMethod === 'bank_transfer') {
+        if (purchaseData.paymentMethod === 'bank_transfer' && purchaseData.total > 0) {
           return !!purchaseData.comprobante;
         }
         return !!purchaseData.paymentMethod;
@@ -366,7 +366,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         submitData.append('comprobante', purchaseData.comprobante);
       }
 
-      const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.selectedPrevent.id);
+      const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.selectedPrevent.id, purchaseData.total);
       if (result.success) {
         setSubmissionStatus({ status: 'success', message: result['message'] || "¡Compra Exitosa! 🎉" });
       } else {

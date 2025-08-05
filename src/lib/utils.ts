@@ -58,3 +58,9 @@ export function formatEventDate(dateString: string): string {
 
   return `${day} ${month}`;
 }
+
+export const paymentMethodLabels: Record<'mercadopago' | 'bank_transfer' | 'free', string> = {
+  mercadopago: 'Mercado Pago',
+  bank_transfer: 'Transferencia Bancaria',
+  free: 'Liberado',
+};

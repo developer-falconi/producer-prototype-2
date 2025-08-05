@@ -49,7 +49,13 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
   }, [initialSelectedPrevent, localSelectedPrevent, onUpdatePurchase]);
 
   const selectedPrevent = allAvailablePrevents.find(p => p.id === localSelectedPrevent?.id);
-  const maxTickets = selectedPrevent?.quantity ? Math.min(10, selectedPrevent.quantity) : 0;
+  const maxTickets = selectedPrevent?.quantity
+    ? Math.min(
+      Number(selectedPrevent.price) === 0 ? 2 : 10,
+      selectedPrevent.quantity
+    )
+    : 0;
+
   const ticketPrice = selectedPrevent?.price || 0;
   const subtotal = ticketPrice * purchaseData.ticketQuantity;
 
@@ -134,11 +140,19 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
                   : "bg-zinc-800 text-gray-200 border-2 border-zinc-700 hover:border-gray-500 hover:bg-zinc-700 hover:text-white"
               )}
             >
-              <div className="flex justify-between text-lg w-full">
+              <div
+                className={cn(
+                  "flex text-lg w-full",
+                  prevent.price > 0 ? 'justify-between' : 'justify-center'
+                )}
+              >
                 <span className='line-clamp-3 whitespace-pre-wrap font-medium'>
                   {prevent.name}
                 </span>
-                <span className='h-full flex items-center font-bold'>{formatPrice(prevent.price)}</span>
+                {
+                  prevent.price > 0 &&
+                  <span className='h-full flex items-center font-bold'>{formatPrice(prevent.price)}</span>
+                }
               </div>
               {
                 prevent.description && (
@@ -224,11 +238,23 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
         <motion.div variants={itemVariants} className="bg-zinc-800 rounded-xl p-5 shadow-lg border border-zinc-700">
           <div className="flex justify-between items-center text-gray-300">
             <span className="text-base">Precio por entrada:</span>
-            <span className="font-semibold text-party-primary text-base">{formatPrice(ticketPrice)}</span>
+            <span className="font-semibold text-party-primary text-base">
+              {
+                Number(ticketPrice) === 0
+                  ? 'Entrada Liberada'
+                  : formatPrice(ticketPrice)
+              }
+            </span>
           </div>
           <div className="flex justify-between items-center mt-3 pt-3 border-t border-zinc-700 text-xl font-bold">
             <span className="text-gray-100">Subtotal:</span>
-            <span className="text-blue-700">{formatPrice(subtotal)}</span>
+            <span className="text-blue-700">
+              {
+                subtotal === 0
+                  ? 'Liberado'
+                  : formatPrice(subtotal)
+              }
+            </span>
           </div>
         </motion.div>
       )}

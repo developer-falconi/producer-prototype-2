@@ -203,7 +203,7 @@ const Index = () => {
               {producer.logo && (
                 <img src={producer.logo} alt={`${producer.name} Logo`} className="block h-24 w-auto mx-auto mb-4" />
               )}
-              {producer.name}, <br />Universe
+              {producer.name}
             </motion.h1>
 
             <motion.p
