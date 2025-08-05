@@ -544,7 +544,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 <>
                   {/* Progress Bar */}
                   {currentStep > 0 && currentStep <= dynamicSteps.length && (
-                    <ProgressBar currentStep={currentStep - 1} steps={dynamicSteps} />
+                    <ProgressBar currentStep={currentStep} steps={dynamicSteps} />
                   )}
 
                   {/* Content */}

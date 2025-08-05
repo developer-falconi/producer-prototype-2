@@ -19,9 +19,9 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
 }) => {
   const isSuccess = status?.status === 'success';
   const icon = isSuccess ? (
-    <CheckCircle className="w-12 h-12 text-green-500" />
+    <CheckCircle className="w-10 h-10 text-green-500" />
   ) : (
-    <XCircle className="w-12 h-12 text-red-500" />
+    <XCircle className="w-10 h-10 text-red-500" />
   );
 
   const title = isSuccess ? '¡Compra Exitosa! 🎉' : 'Error en la Compra 😔';
@@ -34,7 +34,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
       <div className="max-w-lg w-full space-y-6">
         <div className="flex w-full items-center justify-center gap-4 mb-6">
           <div className={cn(
-            "w-28 h-28 rounded-full flex items-center justify-center shadow-2xl flex-shrink-0",
+            "w-20 h-20 rounded-full flex items-center justify-center shadow-2xl flex-shrink-0",
             isSuccess ? 'bg-gradient-to-br from-green-500 to-green-700 animate-pulse-grow' : 'bg-gradient-to-br from-red-600 to-red-800'
           )}>
             {icon}
@@ -47,7 +47,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
           </h1>
         </div>
 
-        <p className="text-gray-300 text-lg mb-6 animate-fade-in whitespace-pre-line">
+        <p className="text-gray-300 text-lg mb-6 animate-fade-in whitespace-pre-line text-left">
           {message}
         </p>
 

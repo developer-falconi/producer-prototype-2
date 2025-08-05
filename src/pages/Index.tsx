@@ -200,8 +200,8 @@ const Index = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.6 }}
             >
-              {producer.logo && eventsForHeroCarousel.length === 0 && (
-                <img src={producer.logo} alt={`${producer.name} Logo`} className="block h-28 w-auto mx-auto mb-4" />
+              {producer.logo && (
+                <img src={producer.logo} alt={`${producer.name} Logo`} className="block h-24 w-auto mx-auto mb-4" />
               )}
               {producer.name}, <br />Universe
             </motion.h1>

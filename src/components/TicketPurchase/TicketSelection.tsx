@@ -128,15 +128,17 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
               key={prevent.id}
               onClick={() => handleSelectPreventType(prevent)}
               className={cn(
-                "flex flex-col items-start p-4 rounded-xl shadow-md transition-all duration-200 ease-in-out text-left h-auto",
+                "flex flex-col items-start p-4 rounded-xl shadow-md transition-all duration-200 ease-in-out text-left h-full",
                 localSelectedPrevent?.id === prevent.id
-                  ? "bg-black/20 border-2 border-blue-700 text-blue-700 font-bold"
+                  ? "bg-black/20 border-2 border-blue-700 text-blue-700"
                   : "bg-zinc-800 text-gray-200 border-2 border-zinc-700 hover:border-gray-500 hover:bg-zinc-700 hover:text-white"
               )}
             >
               <div className="flex justify-between text-lg w-full">
-                <span>{prevent.name}</span>
-                <span>{formatPrice(prevent.price)}</span>
+                <span className='line-clamp-3 whitespace-pre-wrap font-medium'>
+                  {prevent.name}
+                </span>
+                <span className='h-full flex items-center font-bold'>{formatPrice(prevent.price)}</span>
               </div>
               {
                 prevent.description && (
