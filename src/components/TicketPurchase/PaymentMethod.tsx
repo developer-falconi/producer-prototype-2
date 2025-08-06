@@ -116,7 +116,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
             </motion.div>
           ) : (
             <>
-              <motion.div
+              {/* <motion.div
                 onClick={() => onUpdatePaymentMethod('bank_transfer')}
                 className={cn(
                   "p-4 rounded-lg border cursor-pointer transition-all duration-200",
@@ -138,7 +138,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
                     <p className="font-medium text-gray-300">0%</p>
                   </div>
                 </div>
-              </motion.div>
+              </motion.div> */}
 
               {isMpConfiguredForEvent && (
                 <motion.div
