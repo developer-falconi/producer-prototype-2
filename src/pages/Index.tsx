@@ -193,7 +193,7 @@ const Index = () => {
           >
             <motion.h1
               className={cn(
-                "font-extrabold mb-4 leading-tight drop-shadow-lg",
+                "font-extrabold mb-4 leading-tight drop-shadow-lg mx-auto",
                 eventsForHeroCarousel.length > 0 ? 'text-4xl' : 'text-6xl'
               )}
               initial={{ opacity: 0, y: 20 }}
@@ -201,7 +201,14 @@ const Index = () => {
               transition={{ duration: 0.5, delay: 0.6 }}
             >
               {producer.logo && (
-                <img src={producer.logo} alt={`${producer.name} Logo`} className="block h-24 w-auto mx-auto mb-4" />
+                <img 
+                src={producer.logo} 
+                alt={`${producer.name} Logo`} 
+                className={cn(
+                  "block rounded-full mx-auto mb-4 object-cover",
+                  eventsForHeroCarousel.length > 0 ? 'h-24 w-24' : 'h-32 w-32'
+                )} 
+                />
               )}
               {producer.name}
             </motion.h1>
