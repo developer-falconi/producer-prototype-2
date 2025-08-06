@@ -194,20 +194,22 @@ const Index = () => {
             <motion.h1
               className={cn(
                 "font-extrabold mb-4 leading-tight drop-shadow-lg mx-auto",
-                eventsForHeroCarousel.length > 0 ? 'text-4xl' : 'text-6xl'
+                eventsForHeroCarousel.length > 0
+                  ? 'text-3xl md:text-4xl lg:text-5xl xl:text-6xl'
+                  : 'text-4xl md:text-6xl lg:text-7xl xl:text-8xl'
               )}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.6 }}
             >
               {producer.logo && (
-                <img 
-                src={producer.logo} 
-                alt={`${producer.name} Logo`} 
-                className={cn(
-                  "block rounded-full mx-auto mb-4 object-cover",
-                  eventsForHeroCarousel.length > 0 ? 'h-24 w-24' : 'h-32 w-32'
-                )} 
+                <img
+                  src={producer.logo}
+                  alt={`${producer.name} Logo`}
+                  className={cn(
+                    "block rounded-full mx-auto mb-4 object-cover",
+                    eventsForHeroCarousel.length > 0 ? 'h-24 w-24 xl:h-36 xl:w-36' : 'h-32 w-32 xl:h-36 xl:w-36'
+                  )}
                 />
               )}
               {producer.name}
