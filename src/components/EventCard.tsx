@@ -72,6 +72,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSea
     ? getClosestActivePreventa(event.prevents)?.price
     : null;
 
+  const formattedPrice = displayPrice === 0
+    ? 'Liberada'
+    : (displayPrice ? formatEventPrice(displayPrice) : '-');
+
   return (
     <>
       <Card
@@ -108,7 +112,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSea
                   <div className="flex just items-center gap-2 text-white text-sm font-medium">
                     <CircleDollarSign className="w-4 h-4 text-white" />
                     <span className="text-base font-semibold text-white">
-                      {displayPrice ? formatEventPrice(displayPrice) : '-'}
+                      {formattedPrice}
                     </span>
                   </div>
                 </div>
