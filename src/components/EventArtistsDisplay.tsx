@@ -35,7 +35,7 @@ export const EventArtistsDisplay: React.FC<EventArtistsDisplayProps> = ({ artist
       animate="visible"
     >
       <h3 className="text-lg font-semibold text-white mb-2">Artistas</h3>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {artists.map((artist, index) => (
           <motion.div
             key={artist.id || index}
