@@ -59,19 +59,19 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
         <div className="space-y-3 text-sm text-gray-300">
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Evento:</span>
-            <span className="font-medium text-white">{eventData.name}</span>
+            <span className="font-medium text-white text-right">{eventData.name}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Entradas:</span>
-            <span className="font-medium text-white">{purchaseData.ticketQuantity} {purchaseData.ticketQuantity > 1 ? 'entradas' : 'entrada'}</span>
+            <span className="font-medium text-white text-right">{purchaseData.ticketQuantity} {purchaseData.ticketQuantity > 1 ? 'entradas' : 'entrada'}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Email:</span>
-            <span className="font-medium text-white">{purchaseData.email}</span>
+            <span className="font-medium text-white text-right">{purchaseData.email}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Método de Pago:</span>
-            <span className="font-medium text-white">
+            <span className="font-medium text-white text-right">
               {paymentMethodLabels[purchaseData.paymentMethod]}
             </span>
           </div>
@@ -85,8 +85,8 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
           <div className="space-y-3 text-sm text-gray-300">
             {productsSummary.map((item, index) => (
               <div key={`product-${index}`} className="flex justify-between items-center">
-                <span>{item.quantity}x {item.name}</span>
-                <span>{formatPrice(item.price * item.quantity)}</span>
+                <span className='w-3/5 line-clamp-2'>{item.quantity}x {item.name}</span>
+                <span className='text-right'>{formatPrice(item.price * item.quantity)}</span>
               </div>
             ))}
           </div>
@@ -100,8 +100,8 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
           <div className="space-y-3 text-sm text-gray-300">
             {combosSummary.map((item, index) => (
               <div key={`combo-${index}`} className="flex justify-between items-center">
-                <span>{item.quantity}x {item.name}</span>
-                <span>{formatPrice(item.price * item.quantity)}</span>
+                <span className='w-4/5'>{item.quantity}x {item.name}</span>
+                <span className='text-right'>{formatPrice(item.price * item.quantity)}</span>
               </div>
             ))}
           </div>
@@ -115,11 +115,11 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-gray-400">Entradas:</span>
             {subtotalTickets === 0 ? (
-              <span className="font-medium text-green-400">
+              <span className="font-medium text-green-400 text-right">
                 Entrada liberada
               </span>
             ) : (
-              <span className="font-medium text-white">
+              <span className="font-medium text-white text-right">
                 {formatPrice(subtotalTickets)}
               </span>
             )}
@@ -127,36 +127,36 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
           {totalProductsPrice > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-gray-400">Productos:</span>
-              <span className="font-medium text-white">{formatPrice(totalProductsPrice)}</span>
+              <span className="font-medium text-white text-right">{formatPrice(totalProductsPrice)}</span>
             </div>
           )}
           {totalCombosPrice > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-gray-400">Combos:</span>
-              <span className="font-medium text-white">{formatPrice(totalCombosPrice)}</span>
+              <span className="font-medium text-white text-right">{formatPrice(totalCombosPrice)}</span>
             </div>
           )}
           {
             total === 0 ? (
               <div className="flex justify-between items-center text-base font-semibold pt-2 border-t border-gray-700">
                 <span className="text-gray-300">Total:</span>
-                <span className="text-green-400">¡Total Gratis!</span>
+                <span className="text-green-400 text-right">¡Total Gratis!</span>
               </div>
             ) : (
               <>
                 <div className="flex justify-between items-center text-base font-semibold pt-2 border-t border-gray-700">
                   <span className="text-gray-300">Subtotal:</span>
-                  <span className="text-green-400">{formatPrice(subtotalAllItems)}</span>
+                  <span className="text-green-400 text-right">{formatPrice(subtotalAllItems)}</span>
                 </div>
                 {mercadoPagoFee > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400">Comisión Mercado Pago:</span>
-                    <span className="text-red-400">{formatPrice(mercadoPagoFee)}</span>
+                    <span className="text-red-400 text-right">{formatPrice(mercadoPagoFee)}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center text-xl font-bold pt-3 border-t border-gray-600 mt-4">
                   <span className="text-white">Total Final:</span>
-                  <span className="text-green-500">{formatPrice(total)}</span>
+                  <span className="text-green-500 text-right">{formatPrice(total)}</span>
                 </div>
               </>
             )

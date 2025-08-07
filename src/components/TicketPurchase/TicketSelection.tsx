@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { cn, formatPrice } from '@/lib/utils';
+import { cn, formatDate, formatPrice } from '@/lib/utils';
 import { Event, PurchaseData, Prevent, PreventStatusEnum } from '@/lib/types';
 import { Button } from '../ui/button';
 import { motion, Easing } from 'framer-motion';
@@ -134,7 +134,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
               key={prevent.id}
               onClick={() => handleSelectPreventType(prevent)}
               className={cn(
-                "flex flex-col items-start p-4 rounded-xl shadow-md transition-all duration-200 ease-in-out text-left h-full",
+                "flex flex-col items-start p-4 rounded-xl shadow-md transition-all duration-200 ease-in-out text-left h-full gap-2",
                 localSelectedPrevent?.id === prevent.id
                   ? "bg-black/20 border-2 border-blue-700 text-blue-700"
                   : "bg-zinc-800 text-gray-200 border-2 border-zinc-700 hover:border-gray-500 hover:bg-zinc-700 hover:text-white"
@@ -142,7 +142,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
             >
               <div
                 className={cn(
-                  "flex text-lg w-full",
+                  "flex text-lg w-full md:h-20 items-center",
                   prevent.price > 0 ? 'justify-between' : 'justify-center'
                 )}
               >
@@ -156,8 +156,15 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
               </div>
               {
                 prevent.description && (
-                  <span className='text-xs w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap'>
+                  <span className='text-xs md:h-12 w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap truncate'>
                     {prevent.description}
+                  </span>
+                )
+              }
+              {
+                prevent.endDate && (
+                  <span className='text-xs w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap'>
+                    Hasta: {formatDate(prevent.endDate, 'short')}
                   </span>
                 )
               }
@@ -238,7 +245,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
         <motion.div variants={itemVariants} className="bg-zinc-800 rounded-xl p-5 shadow-lg border border-zinc-700">
           <div className="flex justify-between items-center text-gray-300">
             <span className="text-base">Precio por entrada:</span>
-            <span className="font-semibold text-party-primary text-base">
+            <span className="font-semibold text-party-primary text-base text-right">
               {
                 Number(ticketPrice) === 0
                   ? 'Entrada Liberada'
@@ -248,7 +255,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
           </div>
           <div className="flex justify-between items-center mt-3 pt-3 border-t border-zinc-700 text-xl font-bold">
             <span className="text-gray-100">Subtotal:</span>
-            <span className="text-blue-700">
+            <span className="text-blue-700 text-right">
               {
                 subtotal === 0
                   ? 'Liberado'

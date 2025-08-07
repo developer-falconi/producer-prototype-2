@@ -187,7 +187,7 @@ const Index = () => {
           </video>
           <div
             className={cn(
-              "flex flex-col w-full pt-4 md:pt-0",
+              "flex flex-col w-full pt-0",
               eventsForHeroCarousel.length > 0 && 'md:w-1/2'
             )}
           >
@@ -208,7 +208,7 @@ const Index = () => {
                   alt={`${producer.name} Logo`}
                   className={cn(
                     "block rounded-full mx-auto mb-4 object-cover",
-                    eventsForHeroCarousel.length > 0 ? 'h-24 w-24 xl:h-36 xl:w-36' : 'h-32 w-32 xl:h-36 xl:w-36'
+                    eventsForHeroCarousel.length > 0 ? 'h-24 w-24 md:h-36 md:w-36' : 'h-32 w-32 md:h-36 md:w-36'
                   )}
                 />
               )}
