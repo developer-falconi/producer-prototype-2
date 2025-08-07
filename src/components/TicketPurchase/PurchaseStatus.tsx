@@ -32,7 +32,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
   return (
     <div className="h-full w-full flex flex-col items-center justify-center p-6 text-center">
       <div className="max-w-lg w-full space-y-6">
-        <div className="flex w-full items-center justify-center gap-4 mb-6">
+        <div className="flex flex-col w-full items-center justify-center gap-4 mb-6">
           <div className={cn(
             "w-20 h-20 rounded-full flex items-center justify-center shadow-2xl flex-shrink-0",
             isSuccess ? 'bg-gradient-to-br from-green-500 to-green-700 animate-pulse-grow' : 'bg-gradient-to-br from-red-600 to-red-800'
@@ -40,14 +40,14 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
             {icon}
           </div>
           <h1 className={cn(
-            "text-4xl font-extrabold animate-fade-in truncate",
+            "text-3xl md:text-4xl font-extrabold animate-fade-in line-clamp-2",
             isSuccess ? 'text-green-300' : 'text-red-400'
           )}>
             {title}
           </h1>
         </div>
 
-        <p className="text-gray-300 text-lg mb-6 animate-fade-in whitespace-pre-line text-left">
+        <p className="text-gray-300 text-sm md:text-lg mb-6 animate-fade-in whitespace-pre-line text-left">
           {message}
         </p>
 

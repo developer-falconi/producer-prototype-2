@@ -1,13 +1,12 @@
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { Event } from "@/lib/types";
 import { Link } from "react-router-dom";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import { Autoplay, EffectCoverflow, Navigation, Pagination } from 'swiper/modules';
+import { cn } from "@/lib/utils";
+import CountdownTimer from "./CountdownTimer";
 
 const EventCarousel = ({ events }: { events: Event[] }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
   if (!events || events.length === 0) return null;
 
   const loopEnabled = events.length > 3;
@@ -26,7 +25,6 @@ const EventCarousel = ({ events }: { events: Event[] }) => {
         }}
         pagination={{ clickable: true }}
         navigation
-        onSlideChange={(swiper) => setCurrentIndex(swiper.realIndex)}
         modules={[Autoplay, Pagination, Navigation, EffectCoverflow]}
         className="relative z-20 w-full py-4"
       >
@@ -37,12 +35,12 @@ const EventCarousel = ({ events }: { events: Event[] }) => {
           >
             <Link to={`/events?event=${event.id}`} className="block z-10">
               <div
-                className="
-                      relative aspect-[9/12]
-                      max-h-[60vh] md:max-h-[70vh]
-                      w-full max-w-full mx-auto
-                      rounded-xl shadow-2xl overflow-hidden cursor-pointer
-                    "
+                className={cn(
+                  'relative aspect-[9/12]',
+                  'max-h-[60vh] md:max-h-[70vh]',
+                  'w-full max-w-full mx-auto',
+                  'rounded-xl shadow-2xl overflow-hidden cursor-pointer'
+                )}
               >
                 <img
                   src={event.logo || 'https://via.placeholder.com/600x900?text=Event+Image'}
@@ -52,6 +50,9 @@ const EventCarousel = ({ events }: { events: Event[] }) => {
                   width={150}
                   height={300}
                 />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 p-4 z-20">
+                  <CountdownTimer targetDate={event.startDate} />
+                </div>
               </div>
             </Link>
           </SwiperSlide>
