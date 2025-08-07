@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { PreventStatusEnum } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -63,6 +64,14 @@ export const paymentMethodLabels: Record<'mercadopago' | 'bank_transfer' | 'free
   mercadopago: 'Mercado Pago',
   bank_transfer: 'Transferencia Bancaria',
   free: 'Liberado',
+};
+
+export const preventStatusLabels: Record<PreventStatusEnum, string> = {
+  [PreventStatusEnum.ACTIVE]: 'ACTIVO',
+  [PreventStatusEnum.INACTIVE]: 'INACTIVO',
+  [PreventStatusEnum.COMPLETED]: 'COMPLETADO',
+  [PreventStatusEnum.CANCELLED]: 'CANCELADO',
+  [PreventStatusEnum.SOLD_OUT]: 'AGOTADO',
 };
 
 export function calculateTimeRemaining(targetDate: string): {
