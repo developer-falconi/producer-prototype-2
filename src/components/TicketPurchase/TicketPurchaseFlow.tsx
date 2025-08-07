@@ -5,7 +5,7 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, Event, GenderEnum, Prevent, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
+import { ClientData, Event, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from './NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -100,12 +100,12 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
           if (resp.success && resp.data) {
             setFullEventDetails(resp.data);
-            const activePrevents = (resp.data.prevents || []).filter((p: Prevent) => p.status === 'ACTIVE' && p.quantity > 0);
             let initialSelectedPrevent: Prevent | null = null;
 
-            if (resp.data.featuredPrevent && activePrevents.some(p => p.id === resp.data.featuredPrevent!.id)) {
+            if (resp.data.featuredPrevent && resp.data.prevents.some(p => p.id === resp.data.featuredPrevent!.id)) {
               initialSelectedPrevent = resp.data.featuredPrevent;
-            } else if (activePrevents.length > 0) {
+            } else if (resp.data.prevents.length > 0) {
+              const activePrevents = (resp.data.prevents || []).filter((p: Prevent) => p.status === PreventStatusEnum.ACTIVE && p.quantity > 0);
               initialSelectedPrevent = activePrevents[0];
             }
 

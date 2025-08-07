@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Music } from 'lucide-react';
+import { Disc3, Music } from 'lucide-react';
 import { EventArtistDto, ArtistGenderEnum } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface EventArtistsDisplayProps {
   artists: EventArtistDto[];
@@ -35,7 +36,7 @@ export const EventArtistsDisplay: React.FC<EventArtistsDisplayProps> = ({ artist
       animate="visible"
     >
       <h3 className="text-lg font-semibold text-white mb-2">Artistas</h3>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {artists.map((artist, index) => (
           <motion.div
             key={artist.id || index}
@@ -43,12 +44,24 @@ export const EventArtistsDisplay: React.FC<EventArtistsDisplayProps> = ({ artist
             variants={itemVariants}
           >
             <div className="flex items-center flex-grow min-w-0 w-full">
-              <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 mr-3 border-2 border-primary-foreground/20">
-                <img
-                  src={artist.image || 'https://via.placeholder.com/150/2C2C2C/B0B0B0?text=No+Image'}
-                  alt={artist.name}
-                  className="w-full h-full object-cover"
-                />
+              <div
+                className={cn(
+                  "w-12 h-12 rounded-full overflow-hidden flex-shrink-0",
+                  "mr-3 border-2 border-primary-foreground/20",
+                  artist.image || artist.image.length === 0 && 'flex items-center justify-center'
+                )}
+              >
+                {
+                  artist.image && artist.image.length > 0 ? (
+                    <img
+                      src={artist.image}
+                      alt={artist.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Disc3 className='h-8 w-8' />
+                  )
+                }
               </div>
               <div className="flex flex-col text-left w-full">
                 <p className="text-white text-md font-bold truncate">{artist.name}</p>
@@ -64,7 +77,7 @@ export const EventArtistsDisplay: React.FC<EventArtistsDisplayProps> = ({ artist
                   href={artist.spotify}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/70 hover:text-white transition-colors duration-200 mr-3"
+                  className="text-white/70 hover:text-white transition-colors duration-200"
                   aria-label={`Abrir Spotify de ${artist.name}`}
                 >
                   <Music className="h-5 w-5" />

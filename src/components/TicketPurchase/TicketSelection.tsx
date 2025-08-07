@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { cn, formatDate, formatPrice } from '@/lib/utils';
+import { cn, formatDate, formatPrice, preventStatusLabels } from '@/lib/utils';
 import { Event, PurchaseData, Prevent, PreventStatusEnum } from '@/lib/types';
 import { Button } from '../ui/button';
 import { motion, Easing } from 'framer-motion';
-
 
 interface TicketSelectionProps {
   eventData: Event;
@@ -16,44 +15,52 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
   purchaseData,
   onUpdatePurchase
 }) => {
-  const allAvailablePrevents = useMemo(() => {
-    return (eventData.prevents || []).filter(
-      (p: Prevent) => p.status === PreventStatusEnum.ACTIVE && p.quantity > 0
+  const allAvailablePrevents = useMemo(() => eventData.prevents || [], [eventData.prevents]);
+  const sortedPrevents = useMemo(() => {
+    return [...allAvailablePrevents].sort((a, b) => {
+      const aActive = a.status === PreventStatusEnum.ACTIVE;
+      const bActive = b.status === PreventStatusEnum.ACTIVE;
+
+      if (aActive && !bActive) return -1;
+      if (!aActive && bActive) return 1;
+      
+      const aTime = a.endDate ? new Date(a.endDate).getTime() : Infinity;
+      const bTime = b.endDate ? new Date(b.endDate).getTime() : Infinity;
+      return aTime - bTime;
+    });
+  }, [allAvailablePrevents]);
+
+  const initialSelected = useMemo<Prevent | undefined>(() => {
+    if (
+      purchaseData.selectedPrevent &&
+      sortedPrevents.some(p => p.id === purchaseData.selectedPrevent!.id)
+    ) {
+      return purchaseData.selectedPrevent!;
+    }
+    return (
+      sortedPrevents.find(p => p.id === eventData.featuredPrevent?.id) ||
+      sortedPrevents[0]
     );
-  }, [eventData.prevents]);
+  }, [purchaseData.selectedPrevent, sortedPrevents, eventData.featuredPrevent]);
 
-  const initialSelectedPrevent = useMemo(() => {
-    if (purchaseData.selectedPrevent && allAvailablePrevents.some(p => p.id === purchaseData.selectedPrevent!.id)) {
-      return purchaseData.selectedPrevent;
-    }
-    if (eventData.featuredPrevent && allAvailablePrevents.some(p => p.id === eventData.featuredPrevent!.id)) {
-      return eventData.featuredPrevent;
-    }
-    if (allAvailablePrevents.length > 0) {
-      return allAvailablePrevents[0];
-    }
-    return undefined;
-  }, [purchaseData.selectedPrevent, allAvailablePrevents, eventData.featuredPrevent]);
-
-  const [localSelectedPrevent, setLocalSelectedPrevent] = useState<Prevent | undefined>(initialSelectedPrevent);
+  const [localSelectedPrevent, setLocalSelectedPrevent] = useState<Prevent | undefined>(
+    initialSelected
+  );
 
   useEffect(() => {
-    if (initialSelectedPrevent?.id !== localSelectedPrevent?.id) {
-      setLocalSelectedPrevent(initialSelectedPrevent);
-      if (initialSelectedPrevent) {
-        onUpdatePurchase({ selectedPrevent: initialSelectedPrevent, ticketQuantity: 1 });
+    if (initialSelected?.id !== localSelectedPrevent?.id) {
+      setLocalSelectedPrevent(initialSelected);
+      if (initialSelected) {
+        onUpdatePurchase({ selectedPrevent: initialSelected, ticketQuantity: 1 });
       } else {
         onUpdatePurchase({ selectedPrevent: null, ticketQuantity: 0 });
       }
     }
-  }, [initialSelectedPrevent, localSelectedPrevent, onUpdatePurchase]);
+  }, [initialSelected, localSelectedPrevent, onUpdatePurchase]);
 
   const selectedPrevent = allAvailablePrevents.find(p => p.id === localSelectedPrevent?.id);
-  const maxTickets = selectedPrevent?.quantity
-    ? Math.min(
-      Number(selectedPrevent.price) === 0 ? 2 : 10,
-      selectedPrevent.quantity
-    )
+  const maxTickets = selectedPrevent
+    ? Math.min(Number(selectedPrevent.price) === 0 ? 2 : 10, selectedPrevent.quantity)
     : 0;
 
   const ticketPrice = selectedPrevent?.price || 0;
@@ -91,13 +98,11 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
   };
 
   const handleSelectPreventType = (prevent: Prevent) => {
-    setLocalSelectedPrevent(prevent);
-    onUpdatePurchase({ selectedPrevent: prevent });
+    if (prevent.status !== PreventStatusEnum.ACTIVE) return;
+    if (localSelectedPrevent?.id === prevent.id) return;
 
-    const newMaxTicketsForPrevent = Math.min(10, prevent.quantity);
-    if (purchaseData.ticketQuantity === 0 || purchaseData.ticketQuantity > newMaxTicketsForPrevent) {
-      onUpdatePurchase({ ticketQuantity: newMaxTicketsForPrevent > 0 ? 1 : 0 });
-    }
+    setLocalSelectedPrevent(prevent);
+    onUpdatePurchase({ selectedPrevent: prevent, ticketQuantity: 1 });
     setShowMoreQuantities(false);
   };
 
@@ -129,47 +134,58 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
         {noTicketsAvailableGlobally ? (
           <p className="text-gray-400 text-center col-span-full">No hay entradas activas disponibles para este evento.</p>
         ) : (
-          allAvailablePrevents.map((prevent) => (
-            <Button
-              key={prevent.id}
-              onClick={() => handleSelectPreventType(prevent)}
-              className={cn(
-                "flex flex-col items-start p-4 rounded-xl shadow-md transition-all duration-200 ease-in-out text-left h-full gap-2",
-                localSelectedPrevent?.id === prevent.id
-                  ? "bg-black/20 border-2 border-blue-700 text-blue-700"
-                  : "bg-zinc-800 text-gray-200 border-2 border-zinc-700 hover:border-gray-500 hover:bg-zinc-700 hover:text-white"
-              )}
-            >
-              <div
+          sortedPrevents.map((prevent) => {
+            const isActive = prevent.status === PreventStatusEnum.ACTIVE;
+            return (
+              <Button
+                key={prevent.id}
+                disabled={!isActive}
+                onClick={() => handleSelectPreventType(prevent)}
                 className={cn(
-                  "flex text-lg w-full md:h-20 items-center",
-                  prevent.price > 0 ? 'justify-between' : 'justify-center'
+                  "relative flex flex-col items-start p-4 rounded-xl shadow-md transition-all duration-200 ease-in-out text-left h-full gap-2",
+                  isActive
+                    ? "bg-zinc-800 text-gray-200 border-2 border-zinc-700 hover:border-gray-500 hover:bg-zinc-700 hover:text-white"
+                    : "bg-zinc-900 text-gray-400 border-2 border-zinc-800 cursor-not-allowed",
+                  localSelectedPrevent?.id === prevent.id && isActive && "bg-black/20 border-2 border-blue-700 text-blue-700",
                 )}
               >
-                <span className='line-clamp-3 whitespace-pre-wrap font-medium'>
-                  {prevent.name}
-                </span>
+                {!isActive && (
+                  <span className="absolute bottom-2 right-2 bg-red-600 text-white text-sm font-bold px-2 py-1 rounded-lg shadow-md">
+                    {preventStatusLabels[prevent.status]}
+                  </span>
+                )}
+
+                <div
+                  className={cn(
+                    "flex text-lg w-full md:h-20 items-center",
+                    prevent.price > 0 ? 'justify-between' : 'justify-center'
+                  )}
+                >
+                  <span className='line-clamp-3 whitespace-pre-wrap font-medium'>
+                    {prevent.name}
+                  </span>
+                  {
+                    prevent.price > 0 &&
+                    <span className='h-full flex items-center font-bold'>{formatPrice(prevent.price)}</span>
+                  }
+                </div>
                 {
-                  prevent.price > 0 &&
-                  <span className='h-full flex items-center font-bold'>{formatPrice(prevent.price)}</span>
+                  prevent.description && (
+                    <span className='text-xs md:h-12 w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap truncate'>
+                      {prevent.description}
+                    </span>
+                  )
                 }
-              </div>
-              {
-                prevent.description && (
-                  <span className='text-xs md:h-12 w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap truncate'>
-                    {prevent.description}
-                  </span>
-                )
-              }
-              {
-                prevent.endDate && (
-                  <span className='text-xs w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap'>
-                    Hasta: {formatDate(prevent.endDate, 'short')}
-                  </span>
-                )
-              }
-            </Button>
-          ))
+                {
+                  prevent.endDate && (
+                    <span className='text-xs w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap'>
+                      Hasta: {formatDate(prevent.endDate, 'short')}
+                    </span>
+                  )
+                }
+              </Button>
+            )
+          })
         )}
       </motion.div>
 
@@ -232,7 +248,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
       )}
 
       {/* Message if a prevent is selected but it has no tickets (maxTickets is 0)
-          or if no prevent is selected, but there are active prevents to choose from */}
+            or if no prevent is selected, but there are active prevents to choose from */}
       {(!selectedPrevent && allAvailablePrevents.length > 0) ? (
         <p className="text-gray-400 text-center col-span-full mb-8">Por favor, selecciona un tipo de entrada.</p>
       ) : (selectedPrevent && maxTickets === 0) ? (
