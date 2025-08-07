@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ClientData, GenderEnum, PurchaseData, TicketInfo } from '@/lib/types';
+import { GenderEnum, PurchaseData, TicketInfo } from '@/lib/types';
 import { motion, AnimatePresence, Easing } from "framer-motion";
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -34,13 +33,13 @@ const itemVariants = {
 };
 
 const clientSchema = z.object({
-  fullName: z.string().min(1, "El nombre completo es obligatorio."),
+  fullName: z.string().min(6, "El nombre completo es obligatorio."),
   docNumber: z.string()
     .regex(/^[0-9]+$/, "El número de documento debe contener solo números.")
-    .min(1, "El número de documento es obligatorio."),
+    .min(6, "El número de documento es obligatorio."),
   phone: z.string()
     .regex(/^[0-9]+$/, "El teléfono debe contener solo números.")
-    .min(1, "El teléfono es obligatorio."),
+    .min(6, "El teléfono es obligatorio."),
   gender: z.enum([GenderEnum.HOMBRE, GenderEnum.MUJER, GenderEnum.OTRO], {
     errorMap: () => ({ message: "El género es obligatorio." })
   })
@@ -67,7 +66,11 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
     mode: "onChange"
   });
 
-  const { reset, control, handleSubmit, formState: { errors } } = form;
+  const { reset, control, watch, handleSubmit, formState: { isValid, errors } } = form;
+
+  const watchFullName = watch("fullName");
+  const watchDocNumber = watch("docNumber");
+  const watchGender = watch("gender");
 
   useEffect(() => {
     if (purchaseData.clients[activeIndex]) {
@@ -75,34 +78,24 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
     }
   }, [activeIndex, purchaseData.clients, reset]);
 
-  const isClientFormComplete = (clientFormData: z.infer<typeof clientSchema>) => {
-    return !!clientFormData.fullName && !!clientFormData.docNumber && !!clientFormData.gender && !!clientFormData.phone;
-  };
-
   const handleInputChange = (index: number, field: keyof TicketInfo, value: string) => {
     onUpdateClient(index, field, value);
   };
 
-  const handleSelectChange = (index: number, field: keyof TicketInfo, value: GenderEnum) => {
-    onUpdateClient(index, field, value);
-  };
-
   const handleCompleteClick = (index: number) => {
-    if (isClientFormComplete(purchaseData.clients[index])) {
-      onUpdateClient(activeIndex, 'isCompleted', true);
-      const newCompletedClients = [...completedClients];
-      newCompletedClients[index] = true;
-      setCompletedClients(newCompletedClients);
+    onUpdateClient(activeIndex, 'isCompleted', true);
+    const newCompletedClients = [...completedClients];
+    newCompletedClients[index] = true;
+    setCompletedClients(newCompletedClients);
 
-      const nextUncompletedIndex = purchaseData.clients.findIndex((_, i) => i > index && !newCompletedClients[i]);
-      if (nextUncompletedIndex !== -1) {
-        setActiveIndex(nextUncompletedIndex);
-      } else if (index < purchaseData.clients.length - 1) {
-        setActiveIndex(index + 1);
-      } else {
-        setShowCompletionMessage(true);
-        setActiveIndex(-1);
-      }
+    const nextUncompletedIndex = purchaseData.clients.findIndex((_, i) => i > index && !newCompletedClients[i]);
+    if (nextUncompletedIndex !== -1) {
+      setActiveIndex(nextUncompletedIndex);
+    } else if (index < purchaseData.clients.length - 1) {
+      setActiveIndex(index + 1);
+    } else {
+      setShowCompletionMessage(true);
+      setActiveIndex(-1);
     }
   };
 
@@ -139,7 +132,6 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {purchaseData.clients.map((client, index) => {
           const isActive = index === activeIndex;
-          const isCurrentlyComplete = isClientFormComplete(client);
           const isExplicitlyCompleted = completedClients[index];
 
           return (
@@ -197,7 +189,10 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                                   <Input
                                     {...field}
                                     id={`fullName-${index}`}
-                                    onChange={(e) => handleInputChange(index, 'fullName', e.target.value)}
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      handleInputChange(index, 'fullName', e.target.value)
+                                    }}
                                     className="p-3 bg-transparent text-white rounded-lg transition-all duration-200"
                                     placeholder="Juan Pérez"
                                   />
@@ -208,7 +203,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                           />
 
                           <AnimatePresence>
-                            {form.watch('fullName') && (
+                            {watchFullName && !errors.fullName && (
                               <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -246,7 +241,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                           </AnimatePresence>
 
                           <AnimatePresence>
-                            {form.watch('docNumber') && (
+                            {watchDocNumber && !errors.docNumber && (
                               <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -288,7 +283,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                           </AnimatePresence>
 
                           <AnimatePresence>
-                            {form.watch('gender') && (
+                            {watchGender && !errors.gender && (
                               <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -325,7 +320,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                             )}
                           </AnimatePresence>
 
-                          {Object.values(errors).length === 0 && (
+                          {isValid && (
                             <motion.div
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -334,7 +329,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                             >
                               <Button
                                 type="submit"
-                                disabled={Object.keys(errors).length > 0 || isExplicitlyCompleted}
+                                disabled={!isValid || isExplicitlyCompleted}
                                 variant='default'
                                 className="text-white border bg-green-800 transition-colors duration-200 py-2 px-4 rounded-md"
                               >
