@@ -64,6 +64,7 @@ export interface Event {
   products?: ProductEventDto[];
   combos?: ComboEventDto[];
   artists: EventArtistDto[];
+  paymentEvent: EventPaymentDto[];
 }
 
 export interface Prevent {
@@ -282,6 +283,24 @@ export class EventImageDto {
   name: string;
   url: string;
   event: Event;
+}
+
+export interface PaymentMethodDto {
+  id: number;
+  name: string;
+  description: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EventPaymentDto {
+  id: number;
+  active: boolean;
+  accountFullName: string | null;
+  accountBank: string | null;
+  accountAlias: string | null;
+  paymentMethod: PaymentMethodDto;
 }
 
 export type ApiResponse<T> =
