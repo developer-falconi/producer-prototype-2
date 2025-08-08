@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { cn, formatPrice } from '@/lib/utils';
 import { motion, Easing } from "framer-motion";
 import { Event, PurchaseData } from '@/lib/types';
-import { Button } from '../ui/button';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -62,7 +61,10 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   const calculatedMercadoPagoFee = subtotalBeforeFee * mpFeeRate;
 
   useEffect(() => {
-    if (eventData.oAuthMercadoPago?.mpPublicKey) {
+    const mpPaymentEvent = eventData.paymentEvent?.find(
+      (pe) => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === "mercadopago"
+    );
+    if (mpPaymentEvent && eventData.oAuthMercadoPago?.mpPublicKey) {
       setIsMpConfiguredForEvent(true);
       setError(null);
     } else {
@@ -72,7 +74,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
         onUpdatePaymentMethod('bank_transfer');
       }
     }
-  }, [eventData.oAuthMercadoPago, purchaseData.paymentMethod, onUpdatePaymentMethod]);
+  }, [eventData.paymentEvent, eventData.oAuthMercadoPago, purchaseData.paymentMethod, onUpdatePaymentMethod]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -80,6 +82,10 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
       onUpdatePurchaseFile(file);
     }
   };
+
+  const transferMethod = eventData.paymentEvent?.find(
+    (pe) => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === "transferenciabancaria"
+  );
 
   return (
     <motion.div
@@ -116,29 +122,31 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
             </motion.div>
           ) : (
             <>
-              {/* <motion.div
-                onClick={() => onUpdatePaymentMethod('bank_transfer')}
-                className={cn(
-                  "p-4 rounded-lg border cursor-pointer transition-all duration-200",
-                  purchaseData.paymentMethod === 'bank_transfer'
-                    ? "border-blue-700 bg-blue-700/10"
-                    : "border-border hover:border-blue-700/50"
-                )}
-                variants={itemVariants}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-300">Transferencia Bancaria</h3>
-                    <p className="text-sm text-blue-700">
-                      Sin comisiones <br />
-                      <span className='text-xs'>(Acreditación manual)</span>
-                    </p>
+              {transferMethod && (
+                <motion.div
+                  onClick={() => onUpdatePaymentMethod('bank_transfer')}
+                  className={cn(
+                    "p-4 rounded-lg border cursor-pointer transition-all duration-200",
+                    purchaseData.paymentMethod === 'bank_transfer'
+                      ? "border-blue-700 bg-blue-700/10"
+                      : "border-border hover:border-blue-700/50"
+                  )}
+                  variants={itemVariants}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-300">Transferencia Bancaria</h3>
+                      <p className="text-sm text-blue-700">
+                        Sin comisiones <br />
+                        <span className='text-xs'>(Acreditación manual)</span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-gray-300">0%</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-300">0%</p>
-                  </div>
-                </div>
-              </motion.div> */}
+                </motion.div>
+              )}
 
               {isMpConfiguredForEvent && (
                 <motion.div
@@ -172,9 +180,11 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
 
         {purchaseData.paymentMethod === 'bank_transfer' && purchaseData.total > 0 && (
           <div className="space-y-4 p-4 bg-green-700/20 border border-green-700 rounded-lg">
-            <div className="text-lg text-gray-300">
-              <h4 className="font-medium">Detalles de la Cuenta Bancaria:</h4>
-              <p className='font-bold text-white text-xl'>Alias: {eventData.alias}</p>
+            <div className="text-lg text-white">
+              <h4 className="font-bold">Detalles de la Cuenta Bancaria:</h4>
+              <p>Alias: {transferMethod?.accountAlias}</p>
+              <p>Titular: {transferMethod?.accountFullName}</p>
+              <p>Banco: {transferMethod?.accountBank}</p>
             </div>
 
             <div className="mt-4">
