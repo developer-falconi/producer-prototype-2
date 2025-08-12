@@ -23,7 +23,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
 
       if (aActive && !bActive) return -1;
       if (!aActive && bActive) return 1;
-      
+
       const aTime = a.endDate ? new Date(a.endDate).getTime() : Infinity;
       const bTime = b.endDate ? new Date(b.endDate).getTime() : Infinity;
       return aTime - bTime;
@@ -31,16 +31,22 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
   }, [allAvailablePrevents]);
 
   const initialSelected = useMemo<Prevent | undefined>(() => {
+    const firstActivePrevent = sortedPrevents.find(p => p.status === PreventStatusEnum.ACTIVE);
+
     if (
       purchaseData.selectedPrevent &&
+      purchaseData.selectedPrevent.status === PreventStatusEnum.ACTIVE &&
       sortedPrevents.some(p => p.id === purchaseData.selectedPrevent!.id)
     ) {
-      return purchaseData.selectedPrevent!;
+      return purchaseData.selectedPrevent;
     }
-    return (
-      sortedPrevents.find(p => p.id === eventData.featuredPrevent?.id) ||
-      sortedPrevents[0]
-    );
+
+    if (eventData.featuredPrevent?.status === PreventStatusEnum.ACTIVE) {
+      const featured = sortedPrevents.find(p => p.id === eventData.featuredPrevent?.id);
+      if (featured) return featured;
+    }
+
+    return firstActivePrevent;
   }, [purchaseData.selectedPrevent, sortedPrevents, eventData.featuredPrevent]);
 
   const [localSelectedPrevent, setLocalSelectedPrevent] = useState<Prevent | undefined>(
@@ -115,6 +121,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
 
   const shouldRender5PlusButton = maxTickets >= 5 && !showMoreQuantities;
   const noTicketsAvailableGlobally = allAvailablePrevents.length === 0;
+  const activePreventsExist = sortedPrevents.some(p => p.status === PreventStatusEnum.ACTIVE);
 
   return (
     <motion.div
@@ -249,12 +256,19 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
 
       {/* Message if a prevent is selected but it has no tickets (maxTickets is 0)
             or if no prevent is selected, but there are active prevents to choose from */}
-      {(!selectedPrevent && allAvailablePrevents.length > 0) ? (
-        <p className="text-gray-400 text-center col-span-full mb-8">Por favor, selecciona un tipo de entrada.</p>
-      ) : (selectedPrevent && maxTickets === 0) ? (
-        <p className="text-gray-400 text-center col-span-full mb-8">No hay tickets disponibles para la entrada seleccionada.</p>
+        {!activePreventsExist ? (
+        <p className="text-gray-200 text-center col-span-full !my-8 text-lg">
+          No hay entradas activas disponibles para este evento.
+        </p>
+      ) : (!selectedPrevent) ? (
+        <p className="text-gray-400 text-center col-span-full mb-8">
+          Por favor, selecciona un tipo de entrada.
+        </p>
+      ) : (selectedPrevent && selectedPrevent.status === PreventStatusEnum.ACTIVE && maxTickets === 0) ? (
+        <p className="text-gray-400 text-center col-span-full mb-8">
+          No hay tickets disponibles para la entrada seleccionada.
+        </p>
       ) : null}
-
 
       {/* 3. Price Summary Section (Only shown if a ticket type is selected AND tickets are available) */}
       {selectedPrevent && maxTickets > 0 && (
