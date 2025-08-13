@@ -3,6 +3,7 @@ import { cn, formatDate, formatPrice, preventStatusLabels } from '@/lib/utils';
 import { Event, PurchaseData, Prevent, PreventStatusEnum } from '@/lib/types';
 import { Button } from '../ui/button';
 import { motion, Easing } from 'framer-motion';
+import { CountdownPrevent } from '../CountdownPrevent';
 
 interface TicketSelectionProps {
   eventData: Event;
@@ -156,12 +157,6 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
                   localSelectedPrevent?.id === prevent.id && isActive && "bg-black/20 border-2 border-blue-700 text-blue-700",
                 )}
               >
-                {!isActive && (
-                  <span className="absolute bottom-2 right-2 bg-red-600 text-white text-sm font-bold px-2 py-1 rounded-lg shadow-md">
-                    {preventStatusLabels[prevent.status]}
-                  </span>
-                )}
-
                 <div
                   className={cn(
                     "flex text-lg w-full md:h-20 items-center",
@@ -183,13 +178,30 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
                     </span>
                   )
                 }
-                {
-                  prevent.endDate && (
-                    <span className='text-xs w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap'>
-                      Hasta: {formatDate(prevent.endDate, 'short')}
-                    </span>
-                  )
-                }
+                <div className="flex justify-between items-center w-full">
+                  {
+                    prevent.endDate && (
+                      <span className='text-xs w-full text-white font-light italic line-clamp-3 whitespace-pre-wrap'>
+                        Hasta: {formatDate(prevent.endDate, 'short')}
+                      </span>
+                    )
+                  }
+                  {
+                    isActive ? (
+                      <>
+                        {
+                          prevent.endDate && (
+                            <CountdownPrevent to={prevent.endDate} />
+                          )
+                        }
+                      </>
+                    ) : (
+                      <span className="bg-red-600 text-white text-sm font-bold px-2 py-1 rounded-lg shadow-md">
+                        {preventStatusLabels[prevent.status]}
+                      </span>
+                    )
+                  }
+                </div>
               </Button>
             )
           })
@@ -256,7 +268,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
 
       {/* Message if a prevent is selected but it has no tickets (maxTickets is 0)
             or if no prevent is selected, but there are active prevents to choose from */}
-        {!activePreventsExist ? (
+      {!activePreventsExist ? (
         <p className="text-gray-200 text-center col-span-full !my-8 text-lg">
           No hay entradas activas disponibles para este evento.
         </p>
