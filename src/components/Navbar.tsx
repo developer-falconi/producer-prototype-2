@@ -17,12 +17,13 @@ const Navbar = () => {
   const { producer } = useProducer();
   const isMobile = useIsMobile();
   const location = useLocation();
+  const { search } = location;
   const isActive = (path: string) => location.pathname === path;
 
   const renderLink = (item: typeof navItems[number]) => (
     <Link
       key={item.path}
-      to={item.path}
+      to={`${item.path}${search}`}
       className={cn(
         "flex items-center space-x-2 px-3 py-2 rounded-lg transition",
         isActive(item.path) ? "bg-blue-800 rounded-lg text-white" : "text-white hover:text-blue-800"
@@ -65,7 +66,7 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-16">
             <>
               <Link
-                to="/"
+                to={`/${search}`}
                 className="flex items-center gap-2 font-medium text-white hover:scale-105 transition"
               >
                 <Avatar>

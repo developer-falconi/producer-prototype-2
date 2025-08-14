@@ -1,5 +1,5 @@
 import { Event } from "@/lib/types";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import { Autoplay, EffectCoverflow, Navigation, Pagination } from 'swiper/modules';
@@ -9,6 +9,7 @@ import CountdownTimer from "./CountdownTimer";
 const EventCarousel = ({ events }: { events: Event[] }) => {
   if (!events || events.length === 0) return null;
 
+  const [searchParams] = useSearchParams();
   const loopEnabled = events.length > 3;
 
   return (
@@ -33,7 +34,10 @@ const EventCarousel = ({ events }: { events: Event[] }) => {
             key={event.id}
             className="flex justify-center w-4/5"
           >
-            <Link to={`/events?event=${event.id}`} className="block z-10">
+            <Link
+              to={searchParams.toString() ? `/events?${searchParams.toString()}&event=${event.id}` : `/events?event=${event.id}`}
+              className="block z-10"
+            >
               <div
                 className={cn(
                   'relative aspect-[9/12]',

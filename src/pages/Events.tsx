@@ -26,6 +26,7 @@ const Events = () => {
   const [loading, setLoading] = useState(true);
 
   const [initialOpenEventId, setInitialOpenEventId] = useState<number | null>(null);
+  const [promoterKey, setPromoterKey] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -50,6 +51,9 @@ const Events = () => {
   useEffect(() => {
     const eventIdParam = searchParams.get("event");
     setInitialOpenEventId(eventIdParam ? Number(eventIdParam) : null);
+
+    const promoterKeyParam = searchParams.get("promoter");
+    setPromoterKey(promoterKeyParam || null);
   }, [searchParams]);
 
   useEffect(() => {
@@ -158,6 +162,7 @@ const Events = () => {
               key={event.id}
               event={event}
               initialOpenEventId={initialOpenEventId}
+              promoterKey={promoterKey}
               setSearchParams={setSearchParams}
             />
           ))}

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Event, PaymentStatus } from "@/lib/types";
 import { fetchProducerEventDetailData } from "@/lib/api";
 import PaymentResult from "@/components/PaymentResult";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { CountingNumber } from "@/components/animate-ui/text/counting-number";
 import { useIsMobile } from "@/hooks/use-mobile";
 import EventCarousel from "@/components/EventCarousel";
@@ -16,6 +16,8 @@ import EventCarousel from "@/components/EventCarousel";
 const Index = () => {
   const { producer, loadingProducer } = useProducer();
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const { search } = location;
 
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [paymentEventId, setPaymentEventId] = useState<string | null>(null);
@@ -233,7 +235,7 @@ const Index = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 1 }}
             >
-              <Link to="/events">
+              <Link to={`/events${search}`}>
                 <button className="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-full shadow-lg text-lg sm:text-xl transition-all duration-300 transform hover:scale-105 inline-flex items-center justify-center">
                   Ver Todos los Eventos <ArrowRight className="ml-3 h-5 w-5" />
                 </button>

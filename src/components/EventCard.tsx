@@ -9,10 +9,11 @@ import { TicketPurchaseFlow } from "./TicketPurchase/TicketPurchaseFlow";
 interface EventCardProps {
   event: Event;
   initialOpenEventId: number | null;
+  promoterKey: string | null;
   setSearchParams: SetURLSearchParams;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSearchParams }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promoterKey, setSearchParams }) => {
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
 
   useEffect(() => {
@@ -125,6 +126,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, setSea
         <TicketPurchaseFlow
           initialEvent={event}
           isOpen={isEventDetailsOpen}
+          promoterKey={promoterKey}
           onClose={handleCloseDetails}
         />
       )}
