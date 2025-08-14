@@ -31,11 +31,12 @@ const steps = [
 
 interface TicketPurchaseFlowProps {
   initialEvent: Event;
+  promoterKey: string | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialEvent, isOpen, onClose }) => {
+export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialEvent, promoterKey, isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [purchaseData, setPurchaseData] = useState<PurchaseData>({
     selectedPrevent: null,
@@ -46,6 +47,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     email: '',
     comprobante: undefined,
     paymentMethod: null,
+    promoter: promoterKey,
     total: 0
   });
   const [fullEventDetails, setFullEventDetails] = useState<Event | null>(null);
@@ -251,7 +253,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     }));
 
     try {
-      const res = await createPreference(purchaseData.selectedPrevent.id, updatedParticipants, updatedProducts, updatedCombos, purchaseData.total);
+      const res = await createPreference(purchaseData.selectedPrevent.id, updatedParticipants, updatedProducts, updatedCombos, purchaseData.total, purchaseData.promoter);
       if (res.success) {
         setMpPreferenceId(res.data.preferenceId);
         setMpGeneratingPreference(false);
@@ -330,6 +332,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       products: [],
       combos: [],
       email: '',
+      promoter: '',
       comprobante: undefined,
       paymentMethod: null,
       total: 0
@@ -361,6 +364,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       submitData.append('products', JSON.stringify(updatedProducts));
       submitData.append('combos', JSON.stringify(updatedCombos));
       submitData.append('total', JSON.stringify(purchaseData.total));
+      submitData.append('promoter', promoterKey);
 
       if (purchaseData.comprobante) {
         submitData.append('comprobante', purchaseData.comprobante);

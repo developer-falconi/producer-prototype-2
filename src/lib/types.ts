@@ -148,6 +148,7 @@ export interface PurchaseData {
   products: PurchaseProductItem[];
   combos: PurchaseComboItem[];
   email: string;
+  promoter: string;
   comprobante: File;
   paymentMethod: 'mercadopago' | 'bank_transfer' | 'free' | null;
   total: number;

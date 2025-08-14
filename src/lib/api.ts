@@ -87,14 +87,16 @@ export async function createPreference(
   clients: Participant[],
   products: { productId: number, quantity: number }[],
   combos: { comboId: number, quantity: number }[],
-  total: number
+  total: number,
+  promoter?: string
 ): Promise<ApiResponse<PreferenceData>> {
   try {
     const payload = {
       clients,
       products,
       combos,
-      total
+      total,
+      promoter
     }
     const response = await fetch(`${API_URL}/mercadopago/create?prevent=${preventId}`, {
       method: "POST",
