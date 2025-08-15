@@ -66,9 +66,19 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
   }, [initialSelected, localSelectedPrevent, onUpdatePurchase]);
 
   const selectedPrevent = allAvailablePrevents.find(p => p.id === localSelectedPrevent?.id);
-  const maxTickets = selectedPrevent
-    ? Math.min(Number(selectedPrevent.price) === 0 ? 2 : 10, selectedPrevent.quantity)
-    : 0;
+  const maxTickets = useMemo(() => {
+    if (!selectedPrevent) return 0;
+    const defaultMax = Number(selectedPrevent.price) === 0 ? 2 : 10;
+
+    const totalAvailable = selectedPrevent.quantity;
+    const remaining = selectedPrevent.remaining;
+
+    if (remaining !== undefined && remaining < 10) {
+      return Math.min(totalAvailable, remaining);
+    } else {
+      return Math.min(defaultMax, totalAvailable);
+    }
+  }, [selectedPrevent]);
 
   const ticketPrice = selectedPrevent?.price || 0;
   const subtotal = ticketPrice * purchaseData.ticketQuantity;
