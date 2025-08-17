@@ -1,4 +1,4 @@
-import { CircleDollarSign } from "lucide-react";
+import { CircleDollarSign, Radio } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatEventDate, formatEventPrice } from "@/lib/utils";
 import { Event, Prevent, PreventStatusEnum } from "@/lib/types";
@@ -77,16 +77,23 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
     ? 'Liberada'
     : (displayPrice ? formatEventPrice(displayPrice) : '-');
 
+  const isLive = new Date() >= new Date(event.startDate);
+
   return (
     <>
       <Card
         onClick={handleCardClick}
         className={cn(
           "bg-white/10 backdrop-blur-lg border-white/20 overflow-hidden cursor-pointer",
-          "group hover:bg-white/15 transition-all duration-500 hover:scale-105 animate-fade-in z-10"
+          "group hover:bg-white/15 transition-all duration-500 hover:scale-105 animate-fade-in z-10",
+          isLive && 'border-4 border-red-700'
         )}
       >
         <CardContent className="p-0 relative min-h-[500px]">
+          {isLive && (
+            <Radio className="absolute top-2 right-2 bg-red-700 text-white h-7 w-7 text-xs font-bold p-1 rounded-full z-30 animate-pulse" />
+          )}
+
           <img
             src={event.logo}
             alt={event.name}
