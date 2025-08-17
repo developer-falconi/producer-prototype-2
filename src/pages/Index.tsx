@@ -280,7 +280,7 @@ const Index = () => {
         </section>
 
         {/* MISIÓN */}
-        <section className="py-12 sm:py-20 px-4 bg-black">
+        <section className="py-12 sm:py-20 px-4 bg-gradient-to-br from-stone-950 via-black to-gray-900">
           <motion.div
             className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8"
             initial="hidden"

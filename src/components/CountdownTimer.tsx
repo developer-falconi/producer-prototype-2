@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { calculateTimeRemaining } from '@/lib/utils';
-import { motion } from 'framer-motion';
 
 interface CountdownTimerProps {
   targetDate: string;
@@ -19,42 +18,7 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
   }, [targetDate]);
 
   if (timeRemaining.total <= 0) {
-    return (
-      <motion.div
-        className="relative p-2 rounded-lg flex items-center justify-center overflow-hidden"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-black via-gray-800 to-blue-900 rounded-lg"
-          animate={{
-            backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-          }}
-          transition={{
-            duration: 5,
-            ease: "linear",
-            repeat: Infinity,
-          }}
-        />
-        <motion.span
-          className="relative z-10 text-white text-xl md:text-2xl font-bold uppercase tracking-wide px-4 py-1"
-          animate={{
-            scale: [1, 1.05, 1],
-            rotate: [0, 2, -2, 0],
-            textShadow: '0 0 8px rgba(0, 64, 175, 0.8), 0 0 16px rgba(135, 135, 135, 0.6)',
-          }}
-          transition={{
-            duration: 2.5,
-            ease: "easeInOut",
-            repeat: Infinity,
-            repeatType: 'reverse',
-          }}
-        >
-          ¡Evento en Vivo! 🎉
-        </motion.span>
-      </motion.div>
-    );
+    return null;
   }
 
   const TimeBox = ({ value, label }: { value: number | string; label: string }) => (

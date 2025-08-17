@@ -5,6 +5,7 @@ import 'swiper/css';
 import { Autoplay, EffectCoverflow, Navigation, Pagination } from 'swiper/modules';
 import { cn } from "@/lib/utils";
 import CountdownTimer from "./CountdownTimer";
+import { Radio } from "lucide-react";
 
 const EventCarousel = ({ events }: { events: Event[] }) => {
   if (!events || events.length === 0) return null;
@@ -29,38 +30,47 @@ const EventCarousel = ({ events }: { events: Event[] }) => {
         modules={[Autoplay, Pagination, Navigation, EffectCoverflow]}
         className="relative z-20 w-full py-4"
       >
-        {events.map((event) => (
-          <SwiperSlide
-            key={event.id}
-            className="flex justify-center w-4/5"
-          >
-            <Link
-              to={searchParams.toString() ? `/events?${searchParams.toString()}&event=${event.id}` : `/events?event=${event.id}`}
-              className="block z-10"
+        {events.map((event) => {
+          const isLive = new Date() >= new Date(event.startDate);
+
+          return (
+            <SwiperSlide
+              key={event.id}
+              className="flex justify-center w-4/5"
             >
-              <div
-                className={cn(
-                  'relative aspect-[9/12]',
-                  'max-h-[60vh] md:max-h-[70vh]',
-                  'w-full max-w-full mx-auto',
-                  'rounded-xl shadow-2xl overflow-hidden cursor-pointer'
-                )}
+              <Link
+                to={searchParams.toString() ? `/events?${searchParams.toString()}&event=${event.id}` : `/events?event=${event.id}`}
+                className="block z-10"
               >
-                <img
-                  src={event.logo || 'https://via.placeholder.com/600x900?text=Event+Image'}
-                  alt={event.name}
-                  className="w-full h-full object-cover object-center"
-                  loading="lazy"
-                  width={150}
-                  height={300}
-                />
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 p-4 z-20">
-                  <CountdownTimer targetDate={event.startDate} />
+                <div
+                  className={cn(
+                    'relative aspect-[9/12]',
+                    'max-h-[60vh] md:max-h-[70vh]',
+                    'w-full max-w-full mx-auto',
+                    'rounded-xl shadow-2xl overflow-hidden cursor-pointer',
+                    isLive && 'border-4 border-red-700'
+                  )}
+                >
+                  {isLive && (
+                    <Radio className="absolute top-2 right-2 bg-red-700 text-white h-7 w-7 text-xs font-bold p-1 rounded-full z-30 animate-pulse" />
+                  )}
+
+                  <img
+                    src={event.logo || 'https://via.placeholder.com/600x900?text=Event+Image'}
+                    alt={event.name}
+                    className="w-full h-full object-cover object-center"
+                    loading="lazy"
+                    width={150}
+                    height={300}
+                  />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 p-4 z-20">
+                    <CountdownTimer targetDate={event.startDate} />
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </SwiperSlide>
-        ))}
+              </Link>
+            </SwiperSlide>
+          )
+        })}
       </Swiper>
     </div>
   );
