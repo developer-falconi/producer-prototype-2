@@ -77,7 +77,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
     ? 'Liberada'
     : (displayPrice ? formatEventPrice(displayPrice) : '-');
 
-  const isLive = new Date() >= new Date(event.startDate);
+  const isLive = new Date() >= new Date(event.startDate) && new Date() < new Date(event.endDate);
 
   return (
     <>
