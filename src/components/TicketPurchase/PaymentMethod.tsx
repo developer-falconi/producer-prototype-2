@@ -61,7 +61,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   const calculatedMercadoPagoFee = subtotalBeforeFee * mpFeeRate;
 
   useEffect(() => {
-    const mpPaymentEvent = eventData.paymentEvent?.find(
+    const mpPaymentEvent = eventData.payments?.find(
       (pe) => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === "mercadopago"
     );
     if (mpPaymentEvent && eventData.oAuthMercadoPago?.mpPublicKey) {
@@ -74,7 +74,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
         onUpdatePaymentMethod('bank_transfer');
       }
     }
-  }, [eventData.paymentEvent, eventData.oAuthMercadoPago, purchaseData.paymentMethod, onUpdatePaymentMethod]);
+  }, [eventData.payments, eventData.oAuthMercadoPago, purchaseData.paymentMethod, onUpdatePaymentMethod]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -83,7 +83,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     }
   };
 
-  const transferMethod = eventData.paymentEvent?.find(
+  const transferMethod = eventData.payments?.find(
     (pe) => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === "transferenciabancaria"
   );
 
