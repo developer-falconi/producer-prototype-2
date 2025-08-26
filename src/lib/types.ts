@@ -64,7 +64,7 @@ export interface Event {
   products?: ProductEventDto[];
   combos?: ComboEventDto[];
   artists: EventArtistDto[];
-  paymentEvent: EventPaymentDto[];
+  payments: EventPaymentDto[];
 }
 
 export interface Prevent {
@@ -204,6 +204,8 @@ export interface WebDetails {
   eventSubtitle: string;
   galleryTitle: string;
   gallerySubtitle: string;
+  totalEvents: number;
+  totalTickets: number;
 }
 
 export enum ProductStatusEnum {
