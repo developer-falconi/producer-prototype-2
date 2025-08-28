@@ -47,8 +47,11 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
     });
   };
 
-  const getClosestActivePreventa = (preventasList: Prevent[]): Prevent | null => {
-    const now = new Date();
+  const getFeaturedPrevent = (preventasList: Prevent[]): Prevent | null => {
+    return preventasList.find((preventa) => preventa.featured) || null;
+  };
+
+  const getOldestActivePrevent = (preventasList: Prevent[]): Prevent | null => {
     const activePreventas = preventasList.filter(
       (preventa) => preventa.status === PreventStatusEnum.ACTIVE
     );
@@ -58,19 +61,16 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
     }
 
     activePreventas.sort((a, b) => {
-      const endDateA = new Date(a.endDate);
-      const endDateB = new Date(b.endDate);
-
-      const diffA = Math.abs(endDateA.getTime() - now.getTime());
-      const diffB = Math.abs(endDateB.getTime() - now.getTime());
-
-      return diffA - diffB;
+      const endDateA = new Date(a.endDate).getTime();
+      const endDateB = new Date(b.endDate).getTime();
+      return endDateA - endDateB;
     });
+
     return activePreventas[0];
-  }
+  };
 
   const displayPrice = event.prevents && event.prevents.length > 0
-    ? getClosestActivePreventa(event.prevents)?.price
+    ? getFeaturedPrevent(event.prevents)?.price || getOldestActivePrevent(event.prevents)?.price
     : null;
 
   const formattedPrice = displayPrice === 0
