@@ -77,6 +77,7 @@ export interface Prevent {
   status: PreventStatusEnum;
   startDate: Date;
   endDate: Date;
+  featured: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
