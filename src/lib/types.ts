@@ -28,7 +28,7 @@ export interface Producer {
   phone: string;
   createdAt: string;
   updatedAt: string;
-  events: Event[];
+  events: EventDto[];
   users: User[];
   email: Email;
   totalEvents: number;
@@ -44,7 +44,7 @@ export interface Email {
   updatedAt: Date | string;
 }
 
-export interface Event {
+export interface EventDto {
   id: number;
   name: string;
   description: string;
@@ -140,6 +140,12 @@ export interface TicketInfo {
   gender: GenderEnum;
   phone: string;
   isCompleted: boolean;
+}
+
+export interface ProductBuyerInfo {
+  docNumber: string;
+  email: string;
+  fullName: string;
 }
 
 export interface PurchaseData {
@@ -286,7 +292,7 @@ export class EventImageDto {
   id?: number;
   name: string;
   url: string;
-  event: Event;
+  event: EventDto;
 }
 
 export interface PaymentMethodDto {
@@ -305,6 +311,33 @@ export interface EventPaymentDto {
   accountBank: string | null;
   accountAlias: string | null;
   paymentMethod: PaymentMethodDto;
+}
+
+export interface InEventPurchaseData {
+  buyer: ProductBuyerInfo;
+  products: PurchaseProductItem[];
+  combos: PurchaseComboItem[];
+  paymentMethod: "mercadopago" | "cash" | null;
+  prefId: string | null;
+  total: number;
+}
+
+export class ProductItemDto {
+  productId: number;
+  quantity: number
+}
+
+export class ComboItemDto {
+  comboId: number;
+  quantity: number
+}
+
+export interface InEventPurchasePayload {
+  buyer: ProductBuyerInfo;
+  products: ProductItemDto[];
+  combos: ComboItemDto[];
+  paymentMethod: "mercadopago" | "cash" | null;
+  total: number;
 }
 
 export type ApiResponse<T> =

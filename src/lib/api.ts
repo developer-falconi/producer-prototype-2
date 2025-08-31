@@ -1,4 +1,4 @@
-import { ApiResponse, Client, ClientTypeEnum, Event, EventImageDto, Participant, PreferenceData, Producer, PurchaseComboItem, PurchaseProductItem } from "./types";
+import { ApiResponse, Client, ClientTypeEnum, EventDto, EventImageDto, InEventPurchasePayload, Participant, PreferenceData, Producer, Voucher } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
 
@@ -15,7 +15,7 @@ export async function fetchProducerData(): Promise<ApiResponse<Producer>> {
   }
 }
 
-export async function fetchProducerEventsData(): Promise<ApiResponse<Event[]>> {
+export async function fetchProducerEventsData(): Promise<ApiResponse<EventDto[]>> {
   try {
     const response = await fetch(`${API_URL}/producer/domain/events`);
     if (!response.ok) {
@@ -28,7 +28,7 @@ export async function fetchProducerEventsData(): Promise<ApiResponse<Event[]>> {
   }
 }
 
-export async function fetchProducerEventDetailData(eventId: number): Promise<ApiResponse<Event>> {
+export async function fetchProducerEventDetailData(eventId: number): Promise<ApiResponse<EventDto>> {
   try {
     const response = await fetch(`${API_URL}/producer/domain/event/${eventId}`);
     if (!response.ok) {
@@ -83,6 +83,64 @@ export async function submitTicketForm(formData: FormData, eventId: number, prev
 }
 
 export async function createPreference(
+  preventId: number,
+  clients: Participant[],
+  products: { productId: number, quantity: number }[],
+  combos: { comboId: number, quantity: number }[],
+  total: number,
+  promoter?: string
+): Promise<ApiResponse<PreferenceData>> {
+  try {
+    const payload = {
+      clients,
+      products,
+      combos,
+      total,
+      promoter
+    }
+    const response = await fetch(`${API_URL}/mercadopago/create?prevent=${preventId}`, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to submit ticket form");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error submitting ticket form:", error);
+    return { success: false };
+  }
+}
+
+
+export async function submitLiveEventPurchase(payload: InEventPurchasePayload, eventId: number): Promise<ApiResponse<Voucher>> {
+  try {
+    const url = `${API_URL}/client/purchase/live/${eventId}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to submit ticket form");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error submitting ticket form: ", error);
+    return { success: false };
+  }
+}
+
+export async function createLiveEventPreference(
   preventId: number,
   clients: Participant[],
   products: { productId: number, quantity: number }[],

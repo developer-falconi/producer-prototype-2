@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { cn, formatPrice } from '@/lib/utils';
 import { motion, Easing } from "framer-motion";
-import { Event, PurchaseData } from '@/lib/types';
+import { EventDto, PurchaseData } from '@/lib/types';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -16,7 +16,7 @@ const itemVariants = {
 };
 
 interface PaymentMethodProps {
-  eventData: Event;
+  eventData: EventDto;
   purchaseData: PurchaseData;
   onUpdatePaymentMethod: (method: 'mercadopago' | 'bank_transfer' | 'free') => void;
   onUpdatePurchaseFile: (file: File) => void;

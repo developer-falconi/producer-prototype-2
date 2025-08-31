@@ -1,13 +1,14 @@
 import { CircleDollarSign, Radio } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatEventDate, formatEventPrice } from "@/lib/utils";
-import { Event, Prevent, PreventStatusEnum } from "@/lib/types";
+import { EventDto, Prevent, PreventStatusEnum } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { SetURLSearchParams } from "react-router-dom";
 import { TicketPurchaseFlow } from "./TicketPurchase/TicketPurchaseFlow";
+import QuickInEventPurchaseFlow from "./InEventPurchase/InEventPurchaseFlow";
 
 interface EventCardProps {
-  event: Event;
+  event: EventDto;
   initialOpenEventId: number | null;
   promoterKey: string | null;
   setSearchParams: SetURLSearchParams;
@@ -129,13 +130,22 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
           </div>
         </CardContent>
       </Card>
+
       {isEventDetailsOpen && (
-        <TicketPurchaseFlow
-          initialEvent={event}
-          isOpen={isEventDetailsOpen}
-          promoterKey={promoterKey}
-          onClose={handleCloseDetails}
-        />
+        isLive ? (
+          <QuickInEventPurchaseFlow
+            event={event}
+            isOpen={isEventDetailsOpen}
+            onClose={handleCloseDetails}
+          />
+        ) : (
+          <TicketPurchaseFlow
+            initialEvent={event}
+            isOpen={isEventDetailsOpen}
+            promoterKey={promoterKey}
+            onClose={handleCloseDetails}
+          />
+        )
       )}
     </>
   );

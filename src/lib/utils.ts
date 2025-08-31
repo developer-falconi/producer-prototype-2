@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { PreventStatusEnum } from "./types";
+import * as qrcode from 'qrcode';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -95,4 +96,13 @@ export function calculateTimeRemaining(targetDate: string): {
   const seconds = Math.floor((difference % (1000 * 60)) / 1000);
 
   return { days, hours, minutes, seconds, total: difference };
+}
+
+export const generateQrCode = async (data: string): Promise<string> => {
+  try {
+    return await qrcode.toDataURL(data, { errorCorrectionLevel: 'H' });
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    throw error;
+  }
 }

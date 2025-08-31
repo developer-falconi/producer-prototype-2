@@ -5,9 +5,9 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, Event, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
+import { ClientData, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
-import { NavigationButtons } from './NavigationButtons';
+import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
 import { createPreference, fetchProducerEventDetailData, submitTicketForm } from '@/lib/api';
 import Spinner from '../Spinner';
@@ -30,7 +30,7 @@ const steps = [
 ];
 
 interface TicketPurchaseFlowProps {
-  initialEvent: Event;
+  initialEvent: EventDto;
   promoterKey: string | null;
   isOpen: boolean;
   onClose: () => void;
@@ -50,7 +50,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     promoter: promoterKey,
     total: 0
   });
-  const [fullEventDetails, setFullEventDetails] = useState<Event | null>(null);
+  const [fullEventDetails, setFullEventDetails] = useState<EventDto | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<{ status: 'success' | 'error', message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -149,15 +149,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   }, [isOpen, initialEvent.id, fullEventDetails]);
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-    };
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
   useEffect(() => {
@@ -575,6 +568,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 isPaymentMethodStep={isPaymentMethodStep}
                 mpPreferenceId={mpPreferenceId}
                 mpPublicKey={mpPublicKey}
+                eventStarted={false}
               />
             )}
           </motion.div>

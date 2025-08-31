@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { cn, formatDate, formatPrice, preventStatusLabels } from '@/lib/utils';
-import { Event, PurchaseData, Prevent, PreventStatusEnum } from '@/lib/types';
+import { EventDto, PurchaseData, Prevent, PreventStatusEnum } from '@/lib/types';
 import { Button } from '../ui/button';
 import { motion, Easing } from 'framer-motion';
 import { CountdownPrevent } from '../CountdownPrevent';
 
 interface TicketSelectionProps {
-  eventData: Event;
+  eventData: EventDto;
   purchaseData: PurchaseData;
   onUpdatePurchase: (data: Partial<PurchaseData>) => void;
 }

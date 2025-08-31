@@ -14,13 +14,13 @@ import Footer from "@/components/Footer";
 import Spinner from "@/components/Spinner";
 import EventCard from "@/components/EventCard";
 import { fetchProducerEventsData } from "@/lib/api";
-import { Event } from "@/lib/types";
+import { EventDto } from "@/lib/types";
 import { useProducer } from "@/context/ProducerContext";
 
 const Events = () => {
   const { producer, loadingProducer } = useProducer();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventDto[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<EventDto[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);

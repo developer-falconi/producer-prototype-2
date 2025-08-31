@@ -1,9 +1,9 @@
-import { Event, PurchaseData } from '@/lib/types';
+import { EventDto, PurchaseData } from '@/lib/types';
 import { formatPrice, paymentMethodLabels } from '@/lib/utils';
 import React from 'react';
 
 interface OrderSummaryProps {
-  eventData: Event;
+  eventData: EventDto;
   purchaseData: PurchaseData;
 }
 
