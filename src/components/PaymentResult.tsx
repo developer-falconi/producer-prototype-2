@@ -80,7 +80,7 @@ export default function PaymentResult({ status, eventBought }: { status: string,
           </motion.div>
         )}
 
-        {/* Event Details */}
+        {/* EventDto Details */}
         {eventBought && status === 'approved' && (
           <div className="mt-4 text-left text-lg font-semibold">
             <p>Evento: {eventBought.name}</p>

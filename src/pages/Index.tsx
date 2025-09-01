@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import Spinner from "@/components/Spinner";
 import { useProducer } from "@/context/ProducerContext";
 import { cn } from "@/lib/utils";
-import { Event, PaymentStatus } from "@/lib/types";
+import { EventDto, PaymentStatus } from "@/lib/types";
 import { fetchProducerEventDetailData } from "@/lib/api";
 import PaymentResult from "@/components/PaymentResult";
 import { Link, useLocation } from "react-router-dom";
@@ -22,7 +22,7 @@ const Index = () => {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [paymentEventId, setPaymentEventId] = useState<string | null>(null);
   const [loadingEventPayment, setLoadingEventPayment] = useState<boolean>(false);
-  const [eventBought, setEventBought] = useState<Event>();
+  const [eventBought, setEventBought] = useState<EventDto>();
   const [isDialogVisible, setIsDialogVisible] = useState<boolean>(false);
 
   const [statsInView, setStatsInView] = useState(false);

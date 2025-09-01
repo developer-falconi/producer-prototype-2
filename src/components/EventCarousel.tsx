@@ -1,4 +1,4 @@
-import { Event } from "@/lib/types";
+import { EventDto } from "@/lib/types";
 import { Link, useSearchParams } from "react-router-dom";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import CountdownTimer from "./CountdownTimer";
 import { Radio } from "lucide-react";
 
-const EventCarousel = ({ events }: { events: Event[] }) => {
+const EventCarousel = ({ events }: { events: EventDto[] }) => {
   if (!events || events.length === 0) return null;
 
   const [searchParams] = useSearchParams();
@@ -56,7 +56,7 @@ const EventCarousel = ({ events }: { events: Event[] }) => {
                   )}
 
                   <img
-                    src={event.logo || 'https://via.placeholder.com/600x900?text=Event+Image'}
+                    src={event.logo || 'https://via.placeholder.com/600x900?text=EventDto+Image'}
                     alt={event.name}
                     className="w-full h-full object-cover object-center"
                     loading="lazy"

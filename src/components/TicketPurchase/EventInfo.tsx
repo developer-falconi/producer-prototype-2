@@ -1,13 +1,13 @@
 import React from 'react';
 import { Easing, motion } from 'framer-motion';
-import { ArtistGenderEnum, Event } from '@/lib/types';
+import { ArtistGenderEnum, EventDto } from '@/lib/types';
 import { formatDate, formatTime } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Calendar } from 'lucide-react';
 import { EventArtistsDisplay } from '../EventArtistsDisplay';
 
 interface EventInfoProps {
-  event: Event;
+  event: EventDto;
 }
 
 export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {

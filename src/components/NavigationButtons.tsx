@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Check, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import SmallSpinner from '../SmallSpinner';
-import MercadoPagoButton from '../MercadoPago';
-import { Checkbox } from '../ui/checkbox';
+import SmallSpinner from './SmallSpinner';
+import MercadoPagoButton from './MercadoPago';
+import { Checkbox } from './ui/checkbox';
 
 interface NavigationButtonsProps {
   currentStep: number;
@@ -22,6 +22,7 @@ interface NavigationButtonsProps {
   isPaymentMethodStep: boolean;
   mpPreferenceId: string | null;
   mpPublicKey: string;
+  eventStarted: boolean;
 }
 
 export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
@@ -39,7 +40,8 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   isConfirmationStep,
   isPaymentMethodStep,
   mpPreferenceId,
-  mpPublicKey
+  mpPublicKey,
+  eventStarted
 }) => {
   const isInitialStep = currentStep === 0;
   const isFinalStatusStep = currentStep === totalSteps;
@@ -47,20 +49,19 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   const [loadingMpButton, setLoadingMpButton] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  let nextButtonText = 'Continuar';
-  let nextButtonIcon = <ChevronRight className="w-4 h-4 ml-2" />;
-  let nextButtonClass = 'bg-green-700 hover:bg-green-700/80';
+  let nextButtonText = "Continuar";
+  let nextButtonIcon: React.ReactNode = <ChevronRight className="w-4 h-4 ml-2" />;
+  let nextButtonClass = "bg-green-700 hover:bg-green-700/80";
   let nextButtonAction = onNext;
   let disableNextButton = !canProceed || isGeneratingPreference || isSubmitting || isLoading;
 
-  if (isConfirmationStep) {
-    disableNextButton = disableNextButton || !termsAccepted;
-  }
+  if (isConfirmationStep) disableNextButton ||= !termsAccepted;
+
 
   const shouldRenderNextButton = !(isMercadoPagoSelected && isConfirmationStep && mpPreferenceId);
 
   if (isInitialStep) {
-    nextButtonText = 'Comprar Tickets';
+    nextButtonText = !eventStarted ? 'Comprar Tickets' : 'Comprar Productos';
     nextButtonIcon = <Ticket className="w-4 h-4 mr-2" />;
     nextButtonClass = 'w-full bg-red-700 hover:bg-red-700/80';
     nextButtonAction = onNext;
@@ -94,10 +95,19 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   );
 
   return (
-    <div className={containerClasses}>
+    <div
+      className={cn(
+        "w-full sticky bottom-0 bg-black/60 backdrop-blur-md p-2 pt-3",
+        "border-t border-white/10",
+        "flex flex-col gap-3",
+        "pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+      )}
+      role="region"
+      aria-label="Acciones del flujo de compra"
+    >
       {/* Checkbox row is now a standalone item in the flex-col container */}
       {isConfirmationStep && (
-        <div className="flex flex-row items-start space-x-2 text-white my-2">
+        <div className="flex flex-row items-start space-x-2 text-white">
           <Checkbox
             id="terms"
             checked={termsAccepted}
@@ -119,22 +129,33 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       )}
 
       {/* This new div acts as a container for the buttons, keeping them in a row */}
-      <div className={cn(
-        isConfirmationStep && isMercadoPagoSelected ? 'flex flex-col gap-1' : 'flex gap-3',
-        "w-full"
-      )}>
+      <div
+        className={cn(
+          isConfirmationStep && isMercadoPagoSelected ? "flex flex-col gap-2" : "flex gap-3",
+          "w-full"
+        )}
+      >
         {/* Botón MPM */}
         {isConfirmationStep && isMercadoPagoSelected && mpPreferenceId && mpPublicKey && (
-          <div className="relative">
+          <div className="relative w-full">
             {!termsAccepted && (
-              <div className="absolute inset-0 bg-gray-800 opacity-50 z-10 rounded-lg cursor-not-allowed" />
+              <div
+                className="absolute inset-0 z-20 rounded-lg bg-black/40 pointer-events-auto"
+                aria-hidden="true"
+              />
             )}
-            <MercadoPagoButton
-              preferenceId={mpPreferenceId}
-              publicKey={mpPublicKey}
-              loadingButton={loadingMpButton}
-              setLoadingButton={setLoadingMpButton}
-            />
+
+            <div
+              className={cn("relative", !termsAccepted && "pointer-events-none")}
+              aria-disabled={!termsAccepted}
+            >
+              <MercadoPagoButton
+                preferenceId={mpPreferenceId}
+                publicKey={mpPublicKey}
+                loadingButton={loadingMpButton}
+                setLoadingButton={setLoadingMpButton}
+              />
+            </div>
           </div>
         )}
 
@@ -152,6 +173,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             Anterior
           </Button>
         )}
+
         {shouldRenderNextButton && !isFinalStatusStep && (
           <Button
             onClick={nextButtonAction}

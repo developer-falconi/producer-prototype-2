@@ -1,83 +1,67 @@
-import React, { useState } from 'react';
-import { Wallet } from '@mercadopago/sdk-react';
-import { cn } from '@/lib/utils';
-import Spinner from './Spinner';
-import SmallSpinner from './SmallSpinner';
-import { SpinnerSize } from '@/lib/types';
+import { useEffect, useRef } from "react";
 
-interface MercadoPagoButtonProps {
-  preferenceId: string | null;
-  publicKey: string;
-  loadingButton: boolean;
-  setLoadingButton: React.Dispatch<React.SetStateAction<boolean>>;
+declare global {
+  interface Window {
+    MercadoPago?: any;
+  }
 }
 
-const MercadoPagoButton: React.FC<MercadoPagoButtonProps> = ({
-  preferenceId,
+export default function MercadoPagoButton({
   publicKey,
+  preferenceId,
   loadingButton,
-  setLoadingButton
-}) => {
-  const initialization: any = { redirectMode: 'self', preferenceId };
+  setLoadingButton,
+}: {
+  publicKey: string;
+  preferenceId: string;
+  loadingButton: boolean;
+  setLoadingButton: (b: boolean) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const bricksRef = useRef<any>(null);
 
-  const handleOnSubmit = async () => {
-    console.log('Mercado Pago Wallet Brick: Payment process initiated by user.');
-  };
+  useEffect(() => {
+    let cancelled = false;
 
-  const handleOnReady = async () => {
-    console.log('Mercado Pago Wallet Brick: Ready.');
-    setLoadingButton(false);
-  };
+    async function mount() {
+      if (!window.MercadoPago || !preferenceId || !containerRef.current) return;
+      try {
+        const mp = new window.MercadoPago(publicKey, { locale: "es-AR" });
+        bricksRef.current = mp.bricks();
+        await bricksRef.current.create("wallet", "mp-wallet", {
+          initialization: { redirectMode: 'self', preferenceId },
+          customization: { theme: 'dark', valueProp: 'smart_option', customStyle: { hideValueProp: true } },
+        });
+        if (!cancelled) setLoadingButton(false);
+      } catch {
+        if (!cancelled) setLoadingButton(false);
+      }
+    }
 
-  const handleOnError = async (error: any) => {
-    console.error('Mercado Pago Wallet Brick Error:', error);
-  };
+    if (containerRef.current) containerRef.current.innerHTML = "";
+    setLoadingButton(true);
+    mount();
 
-  if (!publicKey) {
-    return (
-      <div style={{ padding: '10px', border: '1px solid red', color: 'red', borderRadius: '4px' }}>
-        Error de configuración: La clave pública de Mercado Pago no está disponible.
-        El botón de pago no puede mostrarse.
-      </div>
-    );
-  }
-
-  if (!preferenceId) {
-    console.warn('MercadoPagoButton: preferenceId is null or undefined. Wallet Brick will not render.');
-    return (
-      <div style={{ fontStyle: 'italic', padding: '10px', color: 'gray' }}>
-        Preparando botón de pago... (Esperando ID de preferencia)
-      </div>
-    );
-  }
+    return () => {
+      cancelled = true;
+      try {
+        bricksRef.current?.unmount("mp-wallet");
+      } catch { }
+    };
+  }, [publicKey, preferenceId, setLoadingButton]);
 
   return (
-    <div className={cn(
-      loadingButton && 'w-full flex justify-center p-4'
-    )}
-    >
-      <SmallSpinner
-        className={cn(
-          !loadingButton && "hidden"
-        )}
-        size={SpinnerSize.MEDIUM}
-      />
+    <div className="w-full">
       <div
-        className={cn(
-          'p-0 m-0',
-          loadingButton && "hidden"
-        )}
-      >
-        <Wallet
-          initialization={initialization}
-          customization={{ theme: 'dark', valueProp: 'smart_option', customStyle: { hideValueProp: true } }}
-          onSubmit={handleOnSubmit}
-          onReady={handleOnReady}
-          onError={handleOnError}
-        />
-      </div>
+        id="mp-wallet"
+        ref={containerRef}
+        className="w-full rounded-lg bg-white/5 border border-white/10 p-0"
+        aria-busy={loadingButton}
+      />
+      {/* Fallback si el Brick tarda o falla */}
+      {loadingButton && (
+        <div className="mt-2 text-center text-sm text-zinc-300">Cargando botón de Mercado Pago…</div>
+      )}
     </div>
   );
-};
-
-export default React.memo(MercadoPagoButton);
+}

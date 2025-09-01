@@ -28,7 +28,7 @@ export interface Producer {
   phone: string;
   createdAt: string;
   updatedAt: string;
-  events: Event[];
+  events: EventDto[];
   users: User[];
   email: Email;
   totalEvents: number;
@@ -44,7 +44,7 @@ export interface Email {
   updatedAt: Date | string;
 }
 
-export interface Event {
+export interface EventDto {
   id: number;
   name: string;
   description: string;
@@ -142,6 +142,12 @@ export interface TicketInfo {
   isCompleted: boolean;
 }
 
+export interface ProductBuyerInfo {
+  docNumber: string;
+  email: string;
+  fullName: string;
+}
+
 export interface PurchaseData {
   selectedPrevent: Prevent | null;
   ticketQuantity: number;
@@ -152,7 +158,9 @@ export interface PurchaseData {
   promoter: string;
   comprobante: File;
   paymentMethod: 'mercadopago' | 'bank_transfer' | 'free' | null;
+  coupon: CouponEvent | null;
   total: number;
+  totalWithDiscount: number | null;
 }
 
 export interface ClientData {
@@ -286,7 +294,7 @@ export class EventImageDto {
   id?: number;
   name: string;
   url: string;
-  event: Event;
+  event: EventDto;
 }
 
 export interface PaymentMethodDto {
@@ -306,6 +314,58 @@ export interface EventPaymentDto {
   accountAlias: string | null;
   paymentMethod: PaymentMethodDto;
 }
+
+export interface InEventPurchaseData {
+  buyer: ProductBuyerInfo;
+  products: PurchaseProductItem[];
+  combos: PurchaseComboItem[];
+  paymentMethod: "mercadopago" | "cash" | null;
+  prefId: string | null;
+  total: number;
+}
+
+export class ProductItemDto {
+  productId: number;
+  quantity: number
+}
+
+export class ComboItemDto {
+  comboId: number;
+  quantity: number
+}
+
+export interface InEventPurchasePayload {
+  buyer: ProductBuyerInfo;
+  products: ProductItemDto[];
+  combos: ComboItemDto[];
+  paymentMethod: "mercadopago" | "cash" | null;
+  total: number;
+}
+
+export type CouponDiscountType = 'PERCENT' | 'AMOUNT';
+export type CouponChannel = 'ONLINE' | 'IN_EVENT' | 'BOTH';
+
+export interface CouponEvent {
+  id: number;
+  eventId: number;
+  name: string;
+  description?: string | null;
+  code: string;
+  discountType: CouponDiscountType;
+  value: string;
+  maxDiscountAmount?: string | null;
+  minOrderAmount?: string | null;
+  maxUsesTotal?: number | null;
+  maxUsesPerUser?: number | null;
+  isActive: boolean;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  channel: CouponChannel;
+  usesCount: number;
+  totalGrossAmount: string;
+  totalDiscountAmount: string;
+}
+
 
 export type ApiResponse<T> =
   | { success: true; data: T; message?: string, status?: string }

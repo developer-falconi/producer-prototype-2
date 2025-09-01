@@ -1,10 +1,57 @@
-import { Event, PurchaseData } from '@/lib/types';
+import { CouponEvent, EventDto, PurchaseData } from '@/lib/types';
 import { formatPrice, paymentMethodLabels } from '@/lib/utils';
 import React from 'react';
 
 interface OrderSummaryProps {
-  eventData: Event;
+  eventData: EventDto;
   purchaseData: PurchaseData;
+}
+
+const num = (v: unknown, def = 0) => {
+  const n = parseFloat(String(v ?? ''));
+  return Number.isFinite(n) ? n : def;
+};
+
+function calcCouponDiscount(subtotal: number, coupon: CouponEvent | null): {
+  discount: number;
+  details?: string;
+  reason?: string;
+} {
+  if (!coupon) return { discount: 0 };
+
+  const minOrder = num(coupon.minOrderAmount, 0);
+  if (subtotal < minOrder) {
+    return {
+      discount: 0,
+      details:
+        coupon.discountType === 'PERCENT'
+          ? `${coupon.value}%${minOrder > 0 ? ` · mínimo ${formatPrice(minOrder)}` : ''}`
+          : `${formatPrice(num(coupon.value))}${minOrder > 0 ? ` · mínimo ${formatPrice(minOrder)}` : ''}`,
+      reason: `No cumple el mínimo de compra (${formatPrice(minOrder)})`,
+    };
+  }
+
+  if (coupon.discountType === 'PERCENT') {
+    const pct = num(coupon.value);
+    const cap = coupon.maxDiscountAmount ? num(coupon.maxDiscountAmount) : null;
+
+    let d = subtotal * (pct / 100);
+    if (cap != null) d = Math.min(d, cap);
+    d = Math.max(0, Math.min(d, subtotal));
+
+    return {
+      discount: d,
+      details: `${pct}%${cap != null ? ` · tope ${formatPrice(cap)}` : ''}${minOrder > 0 ? ` · mínimo ${formatPrice(minOrder)}` : ''
+        }`,
+    };
+  } else {
+    const amount = num(coupon.value);
+    const d = Math.max(0, Math.min(amount, subtotal));
+    return {
+      discount: d,
+      details: `${formatPrice(amount)}${minOrder > 0 ? ` · mínimo ${formatPrice(minOrder)}` : ''}`,
+    };
+  }
 }
 
 export const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -15,8 +62,8 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
 
   const productsSummary = purchaseData.products.map(item => {
-    const priceNum = parseFloat(item.product.price);
-    const discountNum = parseFloat(item.product.discountPercentage);
+    const priceNum = num(item.product.price);
+    const discountNum = num(item.product.discountPercentage);
     const effectivePrice = priceNum * (1 - discountNum / 100);
 
     return {
@@ -32,7 +79,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   );
 
   const combosSummary = purchaseData.combos.map(item => {
-    const priceNum = item.combo.price;
+    const priceNum = num(item.combo.price);
     return {
       name: item.combo.name,
       price: priceNum,
@@ -45,10 +92,23 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
     0
   );
 
+  // Subtotal antes de cupón
   const subtotalAllItems = subtotalTickets + totalProductsPrice + totalCombosPrice;
 
-  const mercadoPagoFee = purchaseData.paymentMethod === 'mercadopago' ? subtotalAllItems * 0.0824 : 0;
-  const total = subtotalAllItems + mercadoPagoFee;
+  // Descuento por cupón
+  const { discount, details: couponDetails, reason: couponReason } = calcCouponDiscount(
+    subtotalAllItems,
+    purchaseData.coupon ?? null
+  );
+
+  // Subtotal neto luego del cupón
+  const netSubtotal = Math.max(0, subtotalAllItems - discount);
+
+  // Comisión MP (sobre el neto)
+  const mercadoPagoFee =
+    purchaseData.paymentMethod === 'mercadopago' ? netSubtotal * 0.0824 : 0;
+
+  const total = netSubtotal + mercadoPagoFee;
 
   return (
     <div className="space-y-4 p-8">
@@ -124,6 +184,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
               </span>
             )}
           </div>
+
           {totalProductsPrice > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-gray-400">Productos:</span>
@@ -136,44 +197,76 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
               <span className="font-medium text-white text-right">{formatPrice(totalCombosPrice)}</span>
             </div>
           )}
-          {
-            total === 0 ? (
-              <div className="flex justify-between items-center text-base font-semibold pt-2 border-t border-gray-700">
-                <span className="text-gray-300">Total:</span>
-                <span className="text-green-400 text-right">¡Total Gratis!</span>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center text-base font-semibold pt-2 border-t border-gray-700">
-                  <span className="text-gray-300">Subtotal:</span>
-                  <span className="text-green-400 text-right">{formatPrice(subtotalAllItems)}</span>
-                </div>
-                {mercadoPagoFee > 0 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Comisión Mercado Pago:</span>
-                    <span className="text-red-400 text-right">{formatPrice(mercadoPagoFee)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center text-xl font-bold pt-3 border-t border-gray-600 mt-4">
-                  <span className="text-white">Total Final:</span>
-                  <span className="text-green-500 text-right">{formatPrice(total)}</span>
-                </div>
-              </>
-            )
-          }
-        </div >
-      </div >
 
-      {/* For Bank Transfer, the "Confirmar Compra" button is handled by NavigationButtons */}
-      {
-        purchaseData.paymentMethod === 'bank_transfer' && (
-          <div className="mt-8 text-center">
-            <p className="text-gray-400 text-sm">
-              Al hacer click en "Confirmar Compra", tu pedido será enviado para validación manual de la transferencia.
-            </p>
-          </div>
-        )
-      }
-    </div >
+          {/* Cupón */}
+          {purchaseData.coupon && (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">
+                  Cupón ({purchaseData.coupon.code}):
+                </span>
+                <span className={`font-medium ${discount > 0 ? 'text-red-400' : 'text-gray-400'} text-right`}>
+                  {discount > 0 ? `- ${formatPrice(discount)}` : 'No aplica'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center -mt-2">
+                <span className="text-xs text-gray-500">
+                  {couponDetails}
+                </span>
+                {couponReason && (
+                  <span className="text-xs text-amber-400 text-right">{couponReason}</span>
+                )}
+              </div>
+            </>
+          )}
+
+          {total === 0 ? (
+            <div className="flex justify-between items-center text-base font-semibold pt-2 border-t border-gray-700">
+              <span className="text-gray-300">Total:</span>
+              <span className="text-green-400 text-right">¡Total Gratis!</span>
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-between items-center text-base font-semibold pt-2 border-t border-gray-700">
+                <span className="text-gray-300">Subtotal:</span>
+                <span className="text-green-400 text-right">{formatPrice(subtotalAllItems)}</span>
+              </div>
+
+              {discount > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Descuento cupón:</span>
+                  <span className="text-red-400 text-right">- {formatPrice(discount)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">Subtotal neto:</span>
+                <span className="font-medium text-white text-right">{formatPrice(netSubtotal)}</span>
+              </div>
+
+              {mercadoPagoFee > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Comisión Mercado Pago:</span>
+                  <span className="text-red-400 text-right">{formatPrice(mercadoPagoFee)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center text-xl font-bold pt-3 border-t border-gray-600 mt-4">
+                <span className="text-white">Total Final:</span>
+                <span className="text-green-500 text-right">{formatPrice(total)}</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {purchaseData.paymentMethod === 'bank_transfer' && (
+        <div className="mt-8 text-center">
+          <p className="text-gray-400 text-sm">
+            Al hacer click en "Confirmar Compra", tu pedido será enviado para validación manual de la transferencia.
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
