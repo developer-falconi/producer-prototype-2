@@ -106,3 +106,8 @@ export const generateQrCode = async (data: string): Promise<string> => {
     throw error;
   }
 }
+
+export const toNum = (v: string | number | null | undefined) => {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+};

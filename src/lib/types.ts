@@ -158,7 +158,9 @@ export interface PurchaseData {
   promoter: string;
   comprobante: File;
   paymentMethod: 'mercadopago' | 'bank_transfer' | 'free' | null;
+  coupon: CouponEvent | null;
   total: number;
+  totalWithDiscount: number | null;
 }
 
 export interface ClientData {
@@ -339,6 +341,31 @@ export interface InEventPurchasePayload {
   paymentMethod: "mercadopago" | "cash" | null;
   total: number;
 }
+
+export type CouponDiscountType = 'PERCENT' | 'AMOUNT';
+export type CouponChannel = 'ONLINE' | 'IN_EVENT' | 'BOTH';
+
+export interface CouponEvent {
+  id: number;
+  eventId: number;
+  name: string;
+  description?: string | null;
+  code: string;
+  discountType: CouponDiscountType;
+  value: string;
+  maxDiscountAmount?: string | null;
+  minOrderAmount?: string | null;
+  maxUsesTotal?: number | null;
+  maxUsesPerUser?: number | null;
+  isActive: boolean;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  channel: CouponChannel;
+  usesCount: number;
+  totalGrossAmount: string;
+  totalDiscountAmount: string;
+}
+
 
 export type ApiResponse<T> =
   | { success: true; data: T; message?: string, status?: string }

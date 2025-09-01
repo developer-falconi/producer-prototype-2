@@ -88,7 +88,9 @@ export async function createPreference(
   products: { productId: number, quantity: number }[],
   combos: { comboId: number, quantity: number }[],
   total: number,
-  promoter?: string
+  totalWithDiscount: number | null,
+  promoter: string,
+  couponId: number
 ): Promise<ApiResponse<PreferenceData>> {
   try {
     const payload = {
@@ -96,8 +98,11 @@ export async function createPreference(
       products,
       combos,
       total,
-      promoter
+      totalWithDiscount,
+      promoter,
+      coupon: couponId
     }
+
     const response = await fetch(`${API_URL}/mercadopago/create?prevent=${preventId}`, {
       method: "POST",
       headers: {
@@ -171,5 +176,18 @@ export async function createLiveEventPreference(
   } catch (error) {
     console.error("Error submitting ticket form:", error);
     return { success: false };
+  }
+}
+
+export async function validateCoupon(eventId: number, code: string) {
+  try {
+    const response = await fetch(`${API_URL}/producer/domain/event/${eventId}/coupon?coupon=${encodeURIComponent(code)}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch producer data");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching producer data:", error);
+    throw error;
   }
 }

@@ -5,7 +5,7 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
+import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -17,6 +17,7 @@ import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
 import { initMercadoPago } from '@mercadopago/sdk-react';
 import { toast } from 'sonner';
+import { toNum } from '@/lib/utils';
 
 const steps = [
   'Seleccionar Entradas',
@@ -38,6 +39,7 @@ interface TicketPurchaseFlowProps {
 
 export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialEvent, promoterKey, isOpen, onClose }) => {
   const [currentStep, setCurrentStep] = useState(0);
+
   const [purchaseData, setPurchaseData] = useState<PurchaseData>({
     selectedPrevent: null,
     ticketQuantity: 0,
@@ -48,14 +50,18 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     comprobante: undefined,
     paymentMethod: null,
     promoter: promoterKey,
-    total: 0
+    coupon: null,
+    total: 0,
+    totalWithDiscount: null
   });
+
   const [fullEventDetails, setFullEventDetails] = useState<EventDto | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<{ status: 'success' | 'error', message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
   const [mpGeneratingPreference, setMpGeneratingPreference] = useState<boolean>(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponEvent | null>(null);
 
   //motion
   const [loadingDetails, setLoadingDetails] = useState(true);
@@ -157,36 +163,41 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     const ticketPrice = purchaseData.selectedPrevent?.price || 0;
     const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
 
-    const totalProductsPrice = purchaseData.products.reduce(
-      (sum, item) => {
-        const priceNum = parseFloat(item.product.price.toString());
-        const discountNum = parseFloat(item.product.discountPercentage.toString());
-        const effectivePrice = priceNum * (1 - discountNum / 100);
-        return sum + effectivePrice * item.quantity;
-      },
-      0
-    );
+    const totalProductsPrice = purchaseData.products.reduce((sum, item) => {
+      const priceNum = parseFloat(item.product.price.toString());
+      const discountNum = parseFloat(item.product.discountPercentage.toString());
+      const effectivePrice = priceNum * (1 - discountNum / 100);
+      return sum + effectivePrice * item.quantity;
+    }, 0);
 
-    const totalCombosPrice = purchaseData.combos.reduce(
-      (sum, item) => {
-        const priceNum = parseFloat(item.combo.price.toString());
-        return sum + priceNum * item.quantity;
-      },
-      0
-    );
+    const totalCombosPrice = purchaseData.combos.reduce((sum, item) => {
+      const priceNum = parseFloat(item.combo.price.toString());
+      return sum + priceNum * item.quantity;
+    }, 0);
 
     const subtotalAllItems = subtotalTickets + totalProductsPrice + totalCombosPrice;
-    const newTotal = subtotalAllItems;
 
-    if (purchaseData.total !== newTotal) {
-      setPurchaseData(prev => ({ ...prev, total: newTotal }));
+    let discount = 0;
+    if (appliedCoupon) {
+      const minOrder = appliedCoupon.minOrderAmount != null ? Number(appliedCoupon.minOrderAmount) : null;
+      if (minOrder == null || subtotalAllItems >= minOrder) {
+        discount = computeCouponDiscount(subtotalAllItems, appliedCoupon);
+      }
     }
+
+    const finalTotal = Math.max(0, subtotalAllItems - discount);
+
+    setPurchaseData(prev => ({
+      ...prev,
+      total: finalTotal,
+      totalWithDiscount: appliedCoupon ? finalTotal : null,
+    }));
   }, [
     purchaseData.selectedPrevent,
     purchaseData.ticketQuantity,
     purchaseData.products,
     purchaseData.combos,
-    purchaseData.total
+    appliedCoupon,
   ]);
 
   const onUpdatePurchase = (data: Partial<PurchaseData>) => {
@@ -225,6 +236,83 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     setPurchaseData(prev => ({ ...prev, products, combos }));
   };
 
+  const currentSubtotal = React.useMemo(() => {
+    const ticketPrice = toNum(purchaseData.selectedPrevent?.price);
+    const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
+
+    const productsSum = purchaseData.products.reduce((s, i) => {
+      const p = toNum(i.product.price);
+      const d = toNum(i.product.discountPercentage);
+      return s + (p * (1 - d / 100)) * i.quantity;
+    }, 0);
+
+    const combosSum = purchaseData.combos.reduce(
+      (s, i) => s + toNum(i.combo.price) * i.quantity, 0
+    );
+
+    return subtotalTickets + productsSum + combosSum;
+  }, [
+    purchaseData.selectedPrevent,
+    purchaseData.ticketQuantity,
+    purchaseData.products,
+    purchaseData.combos,
+  ]);
+
+  const computeCouponDiscount = (subtotal: number, coupon: CouponEvent | null): number => {
+    if (!coupon) return 0;
+
+    const value = toNum(coupon.value);
+
+    if (coupon.discountType === 'PERCENT') {
+      let d = subtotal * (value / 100);
+      const cap = coupon.maxDiscountAmount != null ? toNum(coupon.maxDiscountAmount) : null;
+      if (cap != null) d = Math.min(d, cap);
+      return Math.max(0, Math.min(d, subtotal));
+    }
+
+    return Math.max(0, Math.min(value, subtotal));
+  };
+
+  const currentDiscount = React.useMemo(() => {
+    if (!appliedCoupon) return 0;
+
+    const minOrder = appliedCoupon.minOrderAmount != null
+      ? toNum(appliedCoupon.minOrderAmount)
+      : null;
+
+    if (minOrder != null && currentSubtotal < minOrder) return 0;
+
+    return computeCouponDiscount(currentSubtotal, appliedCoupon);
+  }, [appliedCoupon, currentSubtotal]);
+
+  const handleCouponApplied = (coupon: CouponEvent) => {
+    const minOrder = coupon.minOrderAmount != null ? toNum(coupon.minOrderAmount) : null;
+
+    if (minOrder != null && currentSubtotal < minOrder) {
+      toast.error(`Este cupón requiere una compra mínima de $${minOrder.toFixed(2)}.`);
+      return;
+    }
+
+    setAppliedCoupon(coupon);
+    setPurchaseData(prev => ({ ...prev, coupon }));
+  };
+
+  const handleCouponRemoved = () => {
+    setAppliedCoupon(null);
+    setPurchaseData(prev => ({ ...prev, coupon: null }));
+  };
+
+  React.useEffect(() => {
+    const total = currentSubtotal;
+    const totalWithDiscount = Math.max(0, currentSubtotal - currentDiscount);
+
+    setPurchaseData(prev => ({
+      ...prev,
+      total,
+      totalWithDiscount,
+    }));
+  }, [currentSubtotal, currentDiscount]);
+
   const generateMercadoPagoPreference = async () => {
     if (!mpPublicKey || !purchaseData.selectedPrevent) {
       console.error("Mercado Pago not configured or prevent not selected.");
@@ -245,8 +333,20 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       quantity: c.quantity
     }));
 
+    const couponId = purchaseData.coupon ? purchaseData.coupon?.id : null;
+
     try {
-      const res = await createPreference(purchaseData.selectedPrevent.id, updatedParticipants, updatedProducts, updatedCombos, purchaseData.total, purchaseData.promoter);
+      const res = await createPreference(
+        purchaseData.selectedPrevent.id,
+        updatedParticipants,
+        updatedProducts,
+        updatedCombos,
+        purchaseData.total,
+        purchaseData.totalWithDiscount,
+        purchaseData.promoter,
+        couponId
+      );
+
       if (res.success) {
         setMpPreferenceId(res.data.preferenceId);
         setMpGeneratingPreference(false);
@@ -328,7 +428,9 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       promoter: '',
       comprobante: undefined,
       paymentMethod: null,
-      total: 0
+      coupon: null,
+      total: 0,
+      totalWithDiscount: null
     });
     setMpPreferenceId(null);
     setMpGeneratingPreference(false);
@@ -357,7 +459,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       submitData.append('products', JSON.stringify(updatedProducts));
       submitData.append('combos', JSON.stringify(updatedCombos));
       submitData.append('total', JSON.stringify(purchaseData.total));
+      submitData.append('totalWithDiscount', JSON.stringify(purchaseData?.totalWithDiscount));
       submitData.append('promoter', promoterKey);
+
+      if (purchaseData.coupon) submitData.append('coupon', String(purchaseData.coupon.id));
 
       if (purchaseData.comprobante) {
         submitData.append('comprobante', purchaseData.comprobante);
@@ -436,6 +541,11 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           <ContactInfo
             purchaseData={purchaseData}
             onUpdateEmail={updateEmail}
+            eventId={initialEvent.id}
+            appliedCoupon={appliedCoupon}
+            discountAmount={currentDiscount}
+            onCouponApplied={handleCouponApplied}
+            onCouponRemoved={handleCouponRemoved}
           />
         );
       case 'Productos':
