@@ -23,6 +23,7 @@ interface NavigationButtonsProps {
   mpPreferenceId: string | null;
   mpPublicKey: string;
   eventStarted: boolean;
+  onStartPayment: () => void;
 }
 
 export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
@@ -41,7 +42,8 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   isPaymentMethodStep,
   mpPreferenceId,
   mpPublicKey,
-  eventStarted
+  eventStarted,
+  onStartPayment
 }) => {
   const isInitialStep = currentStep === 0;
   const isFinalStatusStep = currentStep === totalSteps;
@@ -154,6 +156,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
                 publicKey={mpPublicKey}
                 loadingButton={loadingMpButton}
                 setLoadingButton={setLoadingMpButton}
+                onStartPayment={onStartPayment}
               />
             </div>
           </div>
