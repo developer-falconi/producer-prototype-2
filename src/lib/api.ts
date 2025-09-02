@@ -146,22 +146,17 @@ export async function submitLiveEventPurchase(payload: InEventPurchasePayload, e
 }
 
 export async function createLiveEventPreference(
-  preventId: number,
-  clients: Participant[],
-  products: { productId: number, quantity: number }[],
-  combos: { comboId: number, quantity: number }[],
-  total: number,
-  promoter?: string
+  eventId: number,
+  data: InEventPurchasePayload
 ): Promise<ApiResponse<PreferenceData>> {
   try {
     const payload = {
-      clients,
-      products,
-      combos,
-      total,
-      promoter
+      clients: data.buyer,
+      products: data.products,
+      combos: data.combos,
+      total: data.total
     }
-    const response = await fetch(`${API_URL}/mercadopago/create?prevent=${preventId}`, {
+    const response = await fetch(`${API_URL}/mercadopago/create/live?event=${eventId}`, {
       method: "POST",
       headers: {
         'Content-Type': 'application/json'

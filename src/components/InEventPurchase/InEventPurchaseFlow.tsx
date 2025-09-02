@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useAnimate, useDragControls, useMotionValue } from "framer-motion";
 import { ComboEventDto, EventDto, InEventPurchaseData, InEventPurchasePayload, ProductBuyerInfo, ProductEventDto, ProductTypeEnum, PurchaseComboItem, PurchaseProductItem } from "@/lib/types";
-import { fetchProducerEventDetailData, submitLiveEventPurchase } from "@/lib/api";
+import { createLiveEventPreference, fetchProducerEventDetailData, submitLiveEventPurchase } from "@/lib/api";
 import BuyerStep from "./BuyerStep";
 import CatalogStep from "./CatalogStep";
 import PaymentStep from "./PaymentStep";
@@ -243,14 +243,10 @@ export default function InEventPurchaseFlow({
         products: purchaseData.products.map(p => ({ productId: p.product.id, quantity: p.quantity })),
         combos: purchaseData.combos.map(c => ({ comboId: c.combo.id, quantity: c.quantity })),
         total: totals.grandTotal,
+        paymentMethod: purchaseData.paymentMethod
       };
 
-      // Simulación de la llamada a la API
-      // const res = await createPreference(payload); 
-
-      // Reemplaza con una llamada de API real
-      const res = { success: true, data: { preferenceId: "YOUR_PREF_ID_FROM_API" }, message: '' };
-
+      const res = await createLiveEventPreference(fullEventDetails.id, payload);
       if (res.success) {
         updatePurchaseData({ prefId: res.data.preferenceId });
         setStep(Step.Review);
@@ -269,7 +265,7 @@ export default function InEventPurchaseFlow({
 
   const handleComplete = async () => {
     setIsSubmitting(true);
-    
+
     try {
       const payload: InEventPurchasePayload = {
         buyer: purchaseData.buyer,
@@ -451,6 +447,7 @@ export default function InEventPurchaseFlow({
               mpPreferenceId={purchaseData.prefId}
               mpPublicKey={mpPublicKey || ""}
               eventStarted={true}
+              onStartPayment={handleCloseDrawer}
             />
           </motion.div>
         </motion.div>

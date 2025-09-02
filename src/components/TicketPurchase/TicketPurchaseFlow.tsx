@@ -679,6 +679,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 mpPreferenceId={mpPreferenceId}
                 mpPublicKey={mpPublicKey}
                 eventStarted={false}
+                onStartPayment={handleCloseDrawer}
               />
             )}
           </motion.div>

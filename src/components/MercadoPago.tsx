@@ -1,3 +1,4 @@
+import { Wallet } from "@mercadopago/sdk-react";
 import { useEffect, useRef } from "react";
 
 declare global {
@@ -11,17 +12,26 @@ export default function MercadoPagoButton({
   preferenceId,
   loadingButton,
   setLoadingButton,
+  onStartPayment
 }: {
   publicKey: string;
   preferenceId: string;
   loadingButton: boolean;
   setLoadingButton: (b: boolean) => void;
+  onStartPayment?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const bricksRef = useRef<any>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let clickedOnce = false;
+
+    const handlePreClickRedirect = () => {
+      if (clickedOnce) return;
+      clickedOnce = true;
+      try { onStartPayment?.(); } catch { }
+    }
 
     async function mount() {
       if (!window.MercadoPago || !preferenceId || !containerRef.current) return;
@@ -41,6 +51,9 @@ export default function MercadoPagoButton({
     if (containerRef.current) containerRef.current.innerHTML = "";
     setLoadingButton(true);
     mount();
+
+    const el = containerRef.current;
+    el?.addEventListener("click", handlePreClickRedirect, { capture: true, once: true });
 
     return () => {
       cancelled = true;
