@@ -1,80 +1,106 @@
-import { Wallet } from "@mercadopago/sdk-react";
-import { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { initMercadoPago, Wallet } from "@mercadopago/sdk-react";
 
-declare global {
-  interface Window {
-    MercadoPago?: any;
-  }
-}
-
-export default function MercadoPagoButton({
-  publicKey,
-  preferenceId,
-  loadingButton,
-  setLoadingButton,
-  onStartPayment
-}: {
-  publicKey: string;
+type Props = {
+  mpPublicKey: string;
   preferenceId: string;
   loadingButton: boolean;
   setLoadingButton: (b: boolean) => void;
-  onStartPayment?: () => void;
-}) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const bricksRef = useRef<any>(null);
+  onStartPayment: () => void | Promise<void>;
+  locale?: "es-AR" | "es-CL" | "es-CO" | "es-MX" | "es-VE" | "es-UY" | "es-PE" | "pt-BR" | "en-US";
+};
+
+function MercadoPagoButton({
+  mpPublicKey,
+  preferenceId,
+  loadingButton,
+  setLoadingButton,
+  onStartPayment,
+  locale = "es-AR",
+}: Props) {
+  const [ready, setReady] = useState(false);
+  const lastInitKeyRef = useRef<string | null>(null);
+
+  const clickTsRef = useRef<number | null>(null);
+  const firedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
-    let clickedOnce = false;
+    (async () => {
+      setLoadingButton(true);
+      if (!mpPublicKey) { setLoadingButton(false); return; }
 
-    const handlePreClickRedirect = () => {
-      if (clickedOnce) return;
-      clickedOnce = true;
-      try { onStartPayment?.(); } catch { }
-    }
-
-    async function mount() {
-      if (!window.MercadoPago || !preferenceId || !containerRef.current) return;
-      try {
-        const mp = new window.MercadoPago(publicKey, { locale: "es-AR" });
-        bricksRef.current = mp.bricks();
-        await bricksRef.current.create("wallet", "mp-wallet", {
-          initialization: { redirectMode: 'self', preferenceId },
-          customization: { theme: 'dark', valueProp: 'smart_option', customStyle: { hideValueProp: true } },
-        });
-        if (!cancelled) setLoadingButton(false);
-      } catch {
-        if (!cancelled) setLoadingButton(false);
+      if (lastInitKeyRef.current !== mpPublicKey) {
+        try { initMercadoPago(mpPublicKey, { locale }); } catch { }
+        lastInitKeyRef.current = mpPublicKey;
       }
-    }
 
-    if (containerRef.current) containerRef.current.innerHTML = "";
-    setLoadingButton(true);
-    mount();
+      if (!cancelled) { setReady(true); setLoadingButton(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [mpPublicKey, locale, setLoadingButton]);
 
-    const el = containerRef.current;
-    el?.addEventListener("click", handlePreClickRedirect, { capture: true, once: true });
+  useEffect(() => {
+    const handleNavStart = () => {
+      if (firedRef.current) return;
+      const ts = clickTsRef.current;
+      if (!ts) return;
+      if (Date.now() - ts > 15000) return;
 
-    return () => {
-      cancelled = true;
-      try {
-        bricksRef.current?.unmount("mp-wallet");
-      } catch { }
+      firedRef.current = true;
+      onStartPayment();
     };
-  }, [publicKey, preferenceId, setLoadingButton]);
+
+    window.addEventListener("pagehide", handleNavStart);
+    window.addEventListener("unload", handleNavStart);
+    return () => {
+      window.removeEventListener("pagehide", handleNavStart);
+      window.removeEventListener("unload", handleNavStart);
+    };
+  }, [onStartPayment]);
+
+  const initialization = useMemo(
+    () => ({ preferenceId, redirectMode: "self" } as const),
+    [preferenceId]
+  );
+
+  const customization = useMemo(
+    () => ({ theme: "dark", texts: { valueProp: "smart_option" }, customStyle: { hideValueProp: true } } as const),
+    []
+  );
 
   return (
     <div className="w-full">
-      <div
-        id="mp-wallet"
-        ref={containerRef}
-        className="w-full rounded-lg bg-white/5 border border-white/10 p-0"
-        aria-busy={loadingButton}
-      />
-      {/* Fallback si el Brick tarda o falla */}
-      {loadingButton && (
+      <div className="w-full rounded-lg bg-white/5 border border-white/10 p-0" aria-busy={loadingButton || !ready}>
+        {ready && (
+          <Wallet
+            id="mp-wallet"
+            key={preferenceId}
+            locale={locale}
+            initialization={initialization}
+            customization={customization}
+            onSubmit={async () => {
+              clickTsRef.current = Date.now();
+              firedRef.current = false;
+            }}
+            onReady={() => setLoadingButton(false)}
+            onError={(err) => { console.error("MP Wallet error:", err); setLoadingButton(false); }}
+          />
+        )}
+      </div>
+
+      {(loadingButton || !ready) && (
         <div className="mt-2 text-center text-sm text-zinc-300">Cargando botón de Mercado Pago…</div>
       )}
     </div>
   );
 }
+
+export default React.memo(MercadoPagoButton, (prev, next) =>
+  prev.mpPublicKey === next.mpPublicKey &&
+  prev.preferenceId === next.preferenceId &&
+  prev.locale === next.locale &&
+  prev.loadingButton === next.loadingButton &&
+  prev.setLoadingButton === next.setLoadingButton &&
+  prev.onStartPayment === next.onStartPayment
+);

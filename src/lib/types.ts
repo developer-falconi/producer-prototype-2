@@ -320,7 +320,6 @@ export interface InEventPurchaseData {
   products: PurchaseProductItem[];
   combos: PurchaseComboItem[];
   paymentMethod: "mercadopago" | "cash" | null;
-  prefId: string | null;
   total: number;
 }
 
@@ -335,11 +334,11 @@ export class ComboItemDto {
 }
 
 export interface InEventPurchasePayload {
-  buyer: ProductBuyerInfo;
+  client: ProductBuyerInfo;
   products: ProductItemDto[];
   combos: ComboItemDto[];
-  paymentMethod: "mercadopago" | "cash" | null;
   total: number;
+  coupon: number | null;
 }
 
 export type CouponDiscountType = 'PERCENT' | 'AMOUNT';

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useAnimate, useDragControls, useMotionValue } from "framer-motion";
-import { ComboEventDto, EventDto, InEventPurchaseData, InEventPurchasePayload, ProductBuyerInfo, ProductEventDto, ProductTypeEnum, PurchaseComboItem, PurchaseProductItem } from "@/lib/types";
+import { ComboEventDto, CouponEvent, EventDto, InEventPurchaseData, InEventPurchasePayload, ProductBuyerInfo, ProductEventDto, ProductTypeEnum, PurchaseComboItem, PurchaseProductItem } from "@/lib/types";
 import { createLiveEventPreference, fetchProducerEventDetailData, submitLiveEventPurchase } from "@/lib/api";
 import BuyerStep from "./BuyerStep";
 import CatalogStep from "./CatalogStep";
@@ -13,6 +13,8 @@ import { ProgressBar } from "./ProgressBar";
 import { NavigationButtons } from "../NavigationButtons";
 import EventPurchaseBanner from "./EventPurchaseBanner";
 import PurchaseStatus from "./PurchaseStatus";
+import { initMercadoPago } from "@mercadopago/sdk-react";
+import { initMpOnce } from "@/lib/mp";
 
 const Step = {
   Banner: 0,
@@ -43,23 +45,29 @@ export default function InEventPurchaseFlow({
     products: [],
     combos: [],
     paymentMethod: 'mercadopago',
-    prefId: null,
     total: 0,
   });
+
   const [error, setError] = useState<string | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
   const [isGeneratingPreference, setIsGeneratingPreference] = useState(false);
 
   const [fullEventDetails, setFullEventDetails] = useState<EventDto | null>(null);
   const [purchaseCode, setPurchaseCode] = useState<number | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponEvent | null>(null);
 
   const [scope, animate] = useAnimate();
   const [sheetRef, { height }] = useMeasure();
   const dragControls = useDragControls();
   const y = useMotionValue(0);
 
-  const mpPublicKey = fullEventDetails?.oAuthMercadoPago?.mpPublicKey || null;
+  const mpPublicKey = useMemo(() => {
+    return fullEventDetails?.oAuthMercadoPago?.mpPublicKey || null;
+  }, [fullEventDetails]);
+
   const hasMP = Boolean(mpPublicKey);
 
   const availableProducts: ProductEventDto[] = fullEventDetails?.products ?? [];
@@ -172,7 +180,6 @@ export default function InEventPurchaseFlow({
         products: [],
         combos: [],
         paymentMethod: "mercadopago",
-        prefId: null,
         total: 0,
       });
       setError(null);
@@ -180,6 +187,8 @@ export default function InEventPurchaseFlow({
       setIsGeneratingPreference(false);
       setIsSubmitting(false);
       setPurchaseCode(null);
+      setAppliedCoupon(null);
+      setMpPreferenceId(null);
     }
   }, [isOpen]);
 
@@ -194,7 +203,7 @@ export default function InEventPurchaseFlow({
     })();
 
     const maybeGoToQR = () => {
-      if (purchaseData.paymentMethod === "mercadopago" && purchaseData.prefId) {
+      if (purchaseData.paymentMethod === "mercadopago" && mpPreferenceId) {
         setStep(Step.QR);
       }
     };
@@ -208,7 +217,7 @@ export default function InEventPurchaseFlow({
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [step, purchaseData.paymentMethod, purchaseData.prefId]);
+  }, [step, purchaseData.paymentMethod, mpPreferenceId]);
 
   const handleCloseDrawer = async () => {
     await animate(scope.current, { opacity: [1, 0] }, { duration: 0.25 });
@@ -237,18 +246,17 @@ export default function InEventPurchaseFlow({
     setError(null);
 
     try {
-      const payload = {
-        eventId: event.id,
-        buyer: purchaseData.buyer,
+      const payload: InEventPurchasePayload = {
+        client: purchaseData.buyer,
         products: purchaseData.products.map(p => ({ productId: p.product.id, quantity: p.quantity })),
         combos: purchaseData.combos.map(c => ({ comboId: c.combo.id, quantity: c.quantity })),
         total: totals.grandTotal,
-        paymentMethod: purchaseData.paymentMethod
+        coupon: appliedCoupon?.id || null
       };
 
       const res = await createLiveEventPreference(fullEventDetails.id, payload);
       if (res.success) {
-        updatePurchaseData({ prefId: res.data.preferenceId });
+        setMpPreferenceId(res.data.preferenceId);
         setStep(Step.Review);
         return true;
       }
@@ -268,11 +276,11 @@ export default function InEventPurchaseFlow({
 
     try {
       const payload: InEventPurchasePayload = {
-        buyer: purchaseData.buyer,
+        client: purchaseData.buyer,
         products: purchaseData.products.map(p => ({ productId: p.product.id, quantity: p.quantity })),
         combos: purchaseData.combos.map(c => ({ comboId: c.combo.id, quantity: c.quantity })),
-        paymentMethod: purchaseData.paymentMethod,
         total: totals.grandTotal,
+        coupon: appliedCoupon?.id || null
       };
       const result = await submitLiveEventPurchase(payload, event.id);
 
@@ -356,7 +364,7 @@ export default function InEventPurchaseFlow({
         return (
           <QRStep
             total={totals.grandTotal}
-            qrValue={purchaseData.prefId || ""}
+            qrValue={mpPreferenceId || ""}
             onClose={handleCloseDrawer}
           />
         );
@@ -444,7 +452,7 @@ export default function InEventPurchaseFlow({
               isGeneratingPreference={isGeneratingPreference}
               isConfirmationStep={step === Step.Review}
               isPaymentMethodStep={step === Step.Payment}
-              mpPreferenceId={purchaseData.prefId}
+              mpPreferenceId={mpPreferenceId}
               mpPublicKey={mpPublicKey || ""}
               eventStarted={true}
               onStartPayment={handleCloseDrawer}
