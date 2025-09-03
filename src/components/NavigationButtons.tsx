@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Check, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -51,6 +51,39 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   const [loadingMpButton, setLoadingMpButton] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  const [mountWallet, setMountWallet] = useState(false);
+
+  useEffect(() => {
+    const canMount =
+      isConfirmationStep &&
+      isMercadoPagoSelected &&
+      !!mpPreferenceId &&
+      !!mpPublicKey &&
+      termsAccepted;
+
+    if (canMount && !mountWallet) setMountWallet(true);
+  }, [
+    isConfirmationStep,
+    isMercadoPagoSelected,
+    mpPreferenceId,
+    mpPublicKey,
+    termsAccepted,
+    mountWallet,
+  ]);
+
+  const walletNode = useMemo(() => {
+    if (!mpPublicKey || !mpPreferenceId) return null;
+    return (
+      <MercadoPagoButton
+        mpPublicKey={mpPublicKey}
+        preferenceId={mpPreferenceId}
+        loadingButton={loadingMpButton}
+        setLoadingButton={setLoadingMpButton}
+        onStartPayment={onStartPayment}
+      />
+    );
+  }, [mpPublicKey, mpPreferenceId, onStartPayment, loadingMpButton]);
+
   let nextButtonText = "Continuar";
   let nextButtonIcon: React.ReactNode = <ChevronRight className="w-4 h-4 ml-2" />;
   let nextButtonClass = "bg-green-700 hover:bg-green-700/80";
@@ -91,10 +124,6 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       nextButtonAction = onComplete;
     }
   }
-
-  const containerClasses = cn(
-    "w-full bg-black/50 backdrop-blur-sm p-2 flex flex-col gap-3"
-  );
 
   return (
     <div
@@ -138,26 +167,13 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
         )}
       >
         {/* Botón MPM */}
-        {isConfirmationStep && isMercadoPagoSelected && mpPreferenceId && mpPublicKey && (
+        {isConfirmationStep && isMercadoPagoSelected && mountWallet && (
           <div className="relative w-full">
             {!termsAccepted && (
-              <div
-                className="absolute inset-0 z-20 rounded-lg bg-black/40 pointer-events-auto"
-                aria-hidden="true"
-              />
+              <div className="absolute inset-0 z-20 rounded-lg bg-black/40 pointer-events-auto" />
             )}
-
-            <div
-              className={cn("relative", !termsAccepted && "pointer-events-none")}
-              aria-disabled={!termsAccepted}
-            >
-              <MercadoPagoButton
-                preferenceId={mpPreferenceId}
-                publicKey={mpPublicKey}
-                loadingButton={loadingMpButton}
-                setLoadingButton={setLoadingMpButton}
-                onStartPayment={onStartPayment}
-              />
+            <div className={cn("relative", !termsAccepted && "pointer-events-none")} aria-disabled={!termsAccepted}>
+              {walletNode}
             </div>
           </div>
         )}
