@@ -52,10 +52,10 @@ function MercadoPagoButton({
     };
 
     window.addEventListener("pagehide", handleNavStart);
-    window.addEventListener("beforeunload", handleNavStart);
+    window.addEventListener("unload", handleNavStart);
     return () => {
       window.removeEventListener("pagehide", handleNavStart);
-      window.removeEventListener("beforeunload", handleNavStart);
+      window.removeEventListener("unload", handleNavStart);
     };
   }, [onStartPayment]);
 
