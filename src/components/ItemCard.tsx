@@ -1,6 +1,6 @@
 import { cn, formatPrice } from "@/lib/utils";
-import { Card, CardContent } from "../ui/card";
-import { Button } from "../ui/button";
+import { Card, CardContent } from "./ui/card";
+import { Button } from "./ui/button";
 import { Percent, AlertTriangle } from "lucide-react";
 import { useId } from "react";
 

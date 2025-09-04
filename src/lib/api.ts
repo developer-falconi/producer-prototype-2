@@ -88,7 +88,6 @@ export async function createPreference(
   products: { productId: number, quantity: number }[],
   combos: { comboId: number, quantity: number }[],
   total: number,
-  totalWithDiscount: number | null,
   promoter: string,
   couponId: number
 ): Promise<ApiResponse<PreferenceData>> {
@@ -98,7 +97,6 @@ export async function createPreference(
       products,
       combos,
       total,
-      totalWithDiscount,
       promoter,
       coupon: couponId
     }
