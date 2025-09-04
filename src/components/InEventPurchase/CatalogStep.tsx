@@ -1,7 +1,7 @@
 import { ProductEventDto, ComboEventDto, ProductTypeEnum, PurchaseProductItem, PurchaseComboItem } from "@/lib/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useMemo, useState } from "react";
-import ItemCard from "./ItemCard";
+import ItemCard from "../ItemCard";
 import { Search, Package, Sandwich } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FormInput } from "../ui/form-input";

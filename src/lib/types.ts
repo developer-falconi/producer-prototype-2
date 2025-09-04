@@ -67,6 +67,11 @@ export interface EventDto {
   payments: EventPaymentDto[];
 }
 
+export enum PreventPromoTypeEnum {
+  NONE = "NONE",
+  X_FOR_Y = "X_FOR_Y",
+}
+
 export interface Prevent {
   id: number;
   name: string;
@@ -78,6 +83,13 @@ export interface Prevent {
   startDate: Date;
   endDate: Date;
   featured: boolean;
+  promoType: PreventPromoTypeEnum;
+  promoPackSize?: number | null;
+  promoPayFor?: number | null;
+  promoIsActive?: boolean;
+  promoStartsAt?: string | null;
+  promoEndsAt?: string | null;
+  promoMaxBundlesPerPurchase?: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -160,7 +172,6 @@ export interface PurchaseData {
   paymentMethod: 'mercadopago' | 'bank_transfer' | 'free' | null;
   coupon: CouponEvent | null;
   total: number;
-  totalWithDiscount: number | null;
 }
 
 export interface ClientData {

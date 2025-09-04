@@ -5,7 +5,7 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
+import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventPromoTypeEnum, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -51,8 +51,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     paymentMethod: null,
     promoter: promoterKey,
     coupon: null,
-    total: 0,
-    totalWithDiscount: null
+    total: 0
   });
 
   const [fullEventDetails, setFullEventDetails] = useState<EventDto | null>(null);
@@ -80,13 +79,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
   const dynamicSteps = useMemo(() => {
     if (!fullEventDetails) return steps;
-
     let currentDynamicSteps = [...steps];
-
     if (fullEventDetails.products?.length === 0 && fullEventDetails.combos?.length === 0) {
       currentDynamicSteps = currentDynamicSteps.filter(step => step !== 'Productos');
     }
-
     return currentDynamicSteps;
   }, [fullEventDetails]);
 
@@ -333,7 +329,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         updatedProducts,
         updatedCombos,
         purchaseData.total,
-        purchaseData.totalWithDiscount,
         purchaseData.promoter,
         couponId
       );
@@ -420,8 +415,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       comprobante: undefined,
       paymentMethod: null,
       coupon: null,
-      total: 0,
-      totalWithDiscount: null
+      total: 0
     });
     setMpPreferenceId(null);
     setMpGeneratingPreference(false);
@@ -450,11 +444,9 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       submitData.append('products', JSON.stringify(updatedProducts));
       submitData.append('combos', JSON.stringify(updatedCombos));
       submitData.append('total', JSON.stringify(purchaseData.total));
-      submitData.append('totalWithDiscount', JSON.stringify(purchaseData?.totalWithDiscount));
-      submitData.append('promoter', promoterKey);
 
+      if (purchaseData.promoter) submitData.append('coupon', purchaseData.promoter);
       if (purchaseData.coupon) submitData.append('coupon', String(purchaseData.coupon.id));
-
       if (purchaseData.comprobante) {
         submitData.append('comprobante', purchaseData.comprobante);
       }

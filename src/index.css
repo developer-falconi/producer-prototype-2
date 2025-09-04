@@ -145,3 +145,41 @@ All colors MUST be HSL.
     padding: 1rem;
   }
 }
+
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff !important;
+  transition: background-color 99999s ease-in-out 0s !important;
+}
+
+input:-moz-autofill,
+textarea:-moz-autofill,
+select:-moz-autofill {
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  -moz-text-fill-color: #fff !important;
+  caret-color: #fff !important;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+.cmdk-item[data-selected="true"],
+.cmdk-item[aria-selected="true"] {
+  background-color: transparent !important;
+  color: #fff;
+}
+
+[data-radix-popper-content-wrapper] [data-highlighted],
+[data-radix-popper-content-wrapper] [data-state="checked"] {
+  background-color: transparent !important;
+}
+
+.cmdk-item:hover,
+[data-radix-popper-content-wrapper] [role="option"]:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}

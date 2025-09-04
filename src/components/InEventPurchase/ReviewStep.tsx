@@ -10,7 +10,7 @@ export default function ReviewStep({
 }: {
   purchaseData: InEventPurchaseData;
 }) {
-  const { buyer, products, combos, prefId, total, paymentMethod } = purchaseData;
+  const { buyer, products, combos, total, paymentMethod } = purchaseData;
 
   const { subtotal, discountTotal } = calcTotals(products, combos);
   const allItems = [
