@@ -17,7 +17,6 @@ import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
 import { toast } from 'sonner';
 import { toNum } from '@/lib/utils';
-import { initMpOnce } from '@/lib/mp';
 
 const steps = [
   'Seleccionar Entradas',
