@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState, UIEvent } from 'react';
 import { cn, formatPrice } from '@/lib/utils';
-import { motion, Easing } from "framer-motion";
+import { motion, Easing, Variants } from "framer-motion";
 import { EventDto, PurchaseData } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CreditCard, Landmark, ShieldCheck, Zap, BadgeCheck, Paperclip } from 'lucide-react';
+import { CreditCard, Landmark, ShieldCheck, Zap, BadgeCheck, Paperclip, AlertCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const itemVariants = {
@@ -31,6 +31,38 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
 
   const [error, setError] = useState<string>();
   const [isMpConfiguredForEvent, setIsMpConfiguredForEvent] = useState<boolean>(false);
+
+  const activePaymentMethods = useMemo(() => {
+    return eventData.payments?.filter(pe => pe.paymentMethod.active) || [];
+  }, [eventData.payments]);
+
+  const defaultPaymentMethod: 'mercadopago' | 'bank_transfer' | 'free' = useMemo(() => {
+    if (activePaymentMethods.length === 0) {
+      return null;
+    }
+
+    if (purchaseData.total === 0) {
+      return 'free';
+    }
+
+    const mercadopagoMethod = activePaymentMethods.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'mercadopago');
+    const mpEnabled = !!eventData.oAuthMercadoPago?.mpPublicKey;
+
+    if (mercadopagoMethod && mpEnabled) {
+      return 'mercadopago';
+    }
+
+    const transferMethod = activePaymentMethods?.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'transferenciabancaria');
+    const hasTransferDetails = transferMethod?.accountAlias?.length > 0 && transferMethod?.accountBank?.length > 0 && transferMethod?.accountFullName?.length > 0
+
+    if (transferMethod && hasTransferDetails) {
+      return 'bank_transfer';
+    }
+
+    return null;
+  }, [activePaymentMethods, purchaseData.total]);
+
+  const [selected, setSelected] = useState<'mercadopago' | 'bank_transfer' | 'free'>(defaultPaymentMethod);
 
   const calculateSubtotal = () => {
     const ticketPrice = purchaseData.selectedPrevent?.price || 0;
@@ -61,27 +93,22 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   const mpFeeRate = 0.0824;
   const mpFee = subtotal * mpFeeRate;
 
-  useEffect(() => {
-    const mpEnabled = !!eventData.oAuthMercadoPago?.mpPublicKey &&
-      !!eventData.payments?.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'mercadopago');
-
-    setIsMpConfiguredForEvent(mpEnabled);
-
-    if (!mpEnabled && purchaseData.paymentMethod === 'mercadopago') {
-      setError("Mercado Pago no está configurado para este evento. Se seleccionó Transferencia.");
-      onUpdatePaymentMethod('bank_transfer');
-    } else {
-      setError(undefined);
-    }
-  }, [eventData.oAuthMercadoPago, eventData.payments, purchaseData.paymentMethod, onUpdatePaymentMethod]);
-
   const transferMethod = useMemo(
     () => eventData.payments?.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'transferenciabancaria'),
     [eventData.payments]
   );
 
   const hasMP = isMpConfiguredForEvent && purchaseData.total > 0;
+  const hasBankTransfer = !!transferMethod;
   const isFree = purchaseData.total === 0;
+  console.log(selected)
+  useEffect(() => {
+    if (!hasMP && !hasBankTransfer && !isFree) {
+      setError("No hay métodos de pago activos asociados a este evento.");
+    } else {
+      setError(undefined);
+    }
+  }, [hasMP, hasBankTransfer, isFree]);
 
   type CardKey = 'mercadopago' | 'bank_transfer' | 'free';
   const cards = useMemo(() => {
@@ -120,21 +147,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [page, setPage] = useState(0);
 
-  const defaultSelected: CardKey = isFree ? 'free' : (hasMP ? 'mercadopago' : 'bank_transfer');
-  const [selected, setSelected] = useState<CardKey>(purchaseData.paymentMethod ?? defaultSelected);
-
   useEffect(() => {
-    // Sincroniza estado interno cuando cambia el total o la config del evento
-    const next = isFree ? 'free' : (hasMP ? 'mercadopago' : 'bank_transfer');
-    setSelected(prev => {
-      if (prev === 'mercadopago' && !hasMP) return 'bank_transfer';
-      if (isFree) return 'free';
-      return prev ?? next;
-    });
-  }, [isFree, hasMP]);
-
-  useEffect(() => {
-    // Propaga método elegido hacia arriba si no coincide
     if (selected !== purchaseData.paymentMethod) {
       onUpdatePaymentMethod(selected);
     }
@@ -262,24 +275,26 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
       </div>
 
       {/* Resumen */}
-      <div className={cn("relative rounded-xl p-4", "border border-white/10 bg-white/[0.03]")}>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-zinc-400">Subtotal</span>
-          <span className="text-sm font-bold text-white">{formatPrice(subtotal)}</span>
-        </div>
-
-        {selected === 'mercadopago' && (
-          <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="text-red-400">Comisión MP (8.24%)</span>
-            <span className="font-semibold text-red-400">+ {formatPrice(mpFee)}</span>
+      {selected && (
+        <div className={cn("relative rounded-xl p-4", "border border-white/10 bg-white/[0.03]")}>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-zinc-400">Subtotal</span>
+            <span className="text-sm font-bold text-white">{formatPrice(subtotal)}</span>
           </div>
-        )}
 
-        <div className="mt-2 border-t border-white/10 pt-2 flex items-center justify-between">
-          <span className="text-base text-zinc-200">Total</span>
-          <span className="text-xl font-extrabold text-white">{formatPrice(totalDisplay)}</span>
+          {selected === 'mercadopago' && (
+            <div className="mt-2 flex items-center justify-between text-xs">
+              <span className="text-red-400">Comisión MP (8.24%)</span>
+              <span className="font-semibold text-red-400">+ {formatPrice(mpFee)}</span>
+            </div>
+          )}
+
+          <div className="mt-2 border-t border-white/10 pt-2 flex items-center justify-between">
+            <span className="text-base text-zinc-200">Total</span>
+            <span className="text-xl font-extrabold text-white">{formatPrice(totalDisplay)}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Detalles transferencia + comprobante */}
       {selected === 'bank_transfer' && purchaseData.total > 0 && (
@@ -312,7 +327,38 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
         </div>
       )}
 
-      {error && <p className="text-sm text-rose-400">{error}</p>}
+      {error && <ErrorNotification message={error} />}
+    </motion.div>
+  );
+};
+
+interface ErrorNotificationProps {
+  message: string;
+}
+
+const errorVariants: Variants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 100, damping: 10 }
+  },
+};
+
+export const ErrorNotification: React.FC<ErrorNotificationProps> = ({ message }) => {
+  return (
+    <motion.div
+      className={cn(
+        "flex items-center gap-3 rounded-lg border border-rose-500/30 bg-rose-500/10 p-4",
+        "text-sm font-medium text-rose-400"
+      )}
+      variants={errorVariants}
+      initial="hidden"
+      animate="visible"
+      exit="hidden"
+    >
+      <AlertCircle className="h-5 w-5 flex-shrink-0" />
+      <p>{message}</p>
     </motion.div>
   );
 };
