@@ -49,6 +49,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     const mpEnabled = !!eventData.oAuthMercadoPago?.mpPublicKey;
 
     if (mercadopagoMethod && mpEnabled) {
+      setIsMpConfiguredForEvent(true);
       return 'mercadopago';
     }
 
@@ -101,7 +102,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   const hasMP = isMpConfiguredForEvent && purchaseData.total > 0;
   const hasBankTransfer = !!transferMethod;
   const isFree = purchaseData.total === 0;
-  console.log(selected)
+  
   useEffect(() => {
     if (!hasMP && !hasBankTransfer && !isFree) {
       setError("No hay métodos de pago activos asociados a este evento.");
