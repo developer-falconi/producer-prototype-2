@@ -33,20 +33,6 @@ const Navbar = () => {
       {!isMobile && <span>{item.label}</span>}
     </Link>
   );
-
-  useEffect(() => {
-    if (producer) {
-      document.title = `${producer.name} Platform`;
-      const faviconLink = document.querySelector("link[rel='icon']") as HTMLLinkElement;
-      if (faviconLink) {
-        faviconLink.href = producer.logo || '/favicon.svg';
-      }
-
-      if (producer.googleAnalyticsId) initializeGoogleAnalytics(producer.googleAnalyticsId);
-    } else {
-      document.title = 'Producer Platform';
-    }
-  }, [producer]);
   
   if(!producer) return
 
