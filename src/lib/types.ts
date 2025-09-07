@@ -55,7 +55,8 @@ export interface EventDto {
   folder: boolean;
   featured: boolean;
   alias: string | null;
-  logo: string;
+  flyer: string;
+  banner: string;
   createdAt: string;
   updatedAt: string;
   prevents: Prevent[];

@@ -96,7 +96,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
           )}
 
           <img
-            src={event.logo}
+            src={event.flyer}
             alt={event.name}
             className="absolute inset-0 w-full h-full aspect-9/16 object-cover group-hover:scale-110 transition-transform duration-700"
           />
