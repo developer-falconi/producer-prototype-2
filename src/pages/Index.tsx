@@ -251,8 +251,8 @@ const Index = () => {
         >
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-4">
             {[
-              { icon: Users, num: producer.webDetails.totalTickets || 0, label: "Entradas Vendidas" },
-              { icon: Award, num: producer.webDetails.totalEvents || 0, label: "Eventos Exitosos" },
+              { icon: Users, num: producer?.webDetails?.totalTickets || 0, label: "Entradas Vendidas" },
+              { icon: Award, num: producer?.webDetails?.totalEvents || 0, label: "Eventos Exitosos" },
               { icon: TrendingUp, num: 100, label: "Satisfacción del Cliente" },
             ].map(({ icon: Icon, num, label }, i) => (
               <motion.div
