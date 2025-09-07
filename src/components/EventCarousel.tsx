@@ -56,7 +56,7 @@ const EventCarousel = ({ events }: { events: EventDto[] }) => {
                   )}
 
                   <img
-                    src={event.logo || 'https://via.placeholder.com/600x900?text=EventDto+Image'}
+                    src={event.flyer || 'https://via.placeholder.com/600x900?text=EventDto+Image'}
                     alt={event.name}
                     className="w-full h-full object-cover object-center"
                     loading="lazy"

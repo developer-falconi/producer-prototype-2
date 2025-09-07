@@ -58,7 +58,7 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
         <motion.div
           className="absolute inset-0 w-full h-full"
           variants={imageVariants}
-          style={{ background: `url(${event.logo}) center center / ${isMobile ? 'cover' : 'contain'} no-repeat` }}
+          style={{ background: `url(${event.flyer}) center center / ${isMobile ? 'cover' : 'contain'} no-repeat` }}
         >
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
         </motion.div>
