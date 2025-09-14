@@ -270,7 +270,7 @@ const Gallery = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
         <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
         <Link to='https://www.produtik.com' target="_blank">
-          <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+          <div className="flex items-center gap-2 bg-[#001B97] hover:bg-[#001B97]/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
             Encontranos en Produtik <ExternalLink className="h-4 w-4" />
           </div>
         </Link>
@@ -312,7 +312,7 @@ const Gallery = () => {
             <div className="text-center mb-12">
               <motion.h1
                 variants={textVariants}
-                className="text-4xl lg:text-5xl font-bold text-white mb-4"
+                className="text-4xl lg:text-5xl font-bold text-white my-3"
               >
                 {producer.webDetails?.galleryTitle || `Galería ${producer.name}`}
               </motion.h1>
@@ -364,7 +364,7 @@ const Gallery = () => {
             <motion.div variants={textVariants} className="text-center mt-8">
               <motion.div
                 variants={itemVariants}
-                className="bg-gray-800/80 backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
+                className="bg-slate-950 backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
               >
                 <h3 className="text-2xl font-bold text-gray-100 mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
                 <p className="text-gray-200 mb-6">
@@ -387,7 +387,7 @@ const Gallery = () => {
                   <motion.div variants={buttonVariants}>
                     <Button
                       asChild
-                      className="bg-blue-800 hover:bg-blue-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
+                      className="bg-[#001B97] hover:bg-[#001B97]/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
                     >
                       <a
                         href={`https://instagram.com/${producer.instagram}`}
