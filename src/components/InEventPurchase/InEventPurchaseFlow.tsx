@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useAnimate, useDragControls, useMotionValue } from "framer-motion";
-import { ComboEventDto, CouponEvent, EventDto, InEventPurchaseData, InEventPurchasePayload, ProductBuyerInfo, ProductEventDto, ProductTypeEnum, PurchaseComboItem, PurchaseProductItem } from "@/lib/types";
+import { AnimatePresence, motion, PanInfo, useAnimate, useDragControls, useMotionValue } from "framer-motion";
+import { ComboEventDto, CouponEvent, EventDto, InEventPurchaseData, InEventPurchasePayload, ProductEventDto, ProductTypeEnum } from "@/lib/types";
 import { createLiveEventPreference, fetchProducerEventDetailData, submitLiveEventPurchase } from "@/lib/api";
 import BuyerStep from "./BuyerStep";
 import CatalogStep from "./CatalogStep";
@@ -13,8 +13,11 @@ import { ProgressBar } from "./ProgressBar";
 import { NavigationButtons } from "../NavigationButtons";
 import EventPurchaseBanner from "./EventPurchaseBanner";
 import PurchaseStatus from "./PurchaseStatus";
-import { initMercadoPago } from "@mercadopago/sdk-react";
-import { initMpOnce } from "@/lib/mp";
+import { useProducer } from "@/context/ProducerContext";
+import { useTracking } from "@/hooks/use-tracking";
+
+const DRAG_CLOSE_PX = 100;
+const DRAG_CLOSE_VELOCITY = 800;
 
 const Step = {
   Banner: 0,
@@ -49,7 +52,7 @@ export default function InEventPurchaseFlow({
   });
 
   const [error, setError] = useState<string | null>(null);
-  const [loadingDetails, setLoadingDetails] = useState(true)
+  const [loadingDetails, setLoadingDetails] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
@@ -59,10 +62,13 @@ export default function InEventPurchaseFlow({
   const [purchaseCode, setPurchaseCode] = useState<number | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponEvent | null>(null);
 
+  const scrollableContentRef = useRef<HTMLDivElement>(null);
+
   const [scope, animate] = useAnimate();
   const [sheetRef, { height }] = useMeasure();
-  const dragControls = useDragControls();
   const y = useMotionValue(0);
+  const dragControls = useDragControls();
+  const [isAtTop, setIsAtTop] = useState(true);
 
   const mpPublicKey = useMemo(() => {
     return fullEventDetails?.oAuthMercadoPago?.mpPublicKey || null;
@@ -72,6 +78,16 @@ export default function InEventPurchaseFlow({
 
   const availableProducts: ProductEventDto[] = fullEventDetails?.products ?? [];
   const availableCombos: ComboEventDto[] = fullEventDetails?.combos ?? [];
+
+  const { producer } = useProducer();
+  const tracking = useTracking({ producer, channel: "live" });
+
+  const viewTrackedRef = useRef(false);
+  const beginCheckoutTrackedRef = useRef(false);
+  const lastCartRef = useRef<{
+    productQtys: Record<number, number>;
+    comboQtys: Record<number, number>;
+  }>({ productQtys: {}, comboQtys: {} });
 
   const updatePurchaseData = (newData: Partial<InEventPurchaseData>) => {
     setPurchaseData(prevData => ({ ...prevData, ...newData }));
@@ -83,22 +99,15 @@ export default function InEventPurchaseFlow({
       if (!product) return;
 
       let newProducts = [...purchaseData.products];
-      const existingItemIndex = newProducts.findIndex(p => p.product.id === id);
+      const idx = newProducts.findIndex(p => p.product.id === id);
 
       if (nextQty > 0) {
-        const newPurchaseProductItem = {
-          quantity: nextQty,
-          product: product
-        };
-        if (existingItemIndex > -1) {
-          newProducts[existingItemIndex] = newPurchaseProductItem;
-        } else {
-          newProducts.push(newPurchaseProductItem);
-        }
-      } else if (existingItemIndex > -1) {
-        newProducts.splice(existingItemIndex, 1);
+        const nextItem = { quantity: nextQty, product };
+        if (idx > -1) newProducts[idx] = nextItem;
+        else newProducts.push(nextItem);
+      } else if (idx > -1) {
+        newProducts.splice(idx, 1);
       }
-
       updatePurchaseData({ products: newProducts });
 
     } else if (type === ProductTypeEnum.COMBO) {
@@ -106,48 +115,48 @@ export default function InEventPurchaseFlow({
       if (!combo) return;
 
       let newCombos = [...purchaseData.combos];
-      const existingItemIndex = newCombos.findIndex(c => c.combo.id === id);
+      const idx = newCombos.findIndex(c => c.combo.id === id);
 
       if (nextQty > 0) {
-        const newPurchaseComboItem = {
-          quantity: nextQty,
-          combo: combo
-        };
-        if (existingItemIndex > -1) {
-          newCombos[existingItemIndex] = newPurchaseComboItem;
-        } else {
-          newCombos.push(newPurchaseComboItem);
-        }
-      } else if (existingItemIndex > -1) {
-        newCombos.splice(existingItemIndex, 1);
+        const nextItem = { quantity: nextQty, combo };
+        if (idx > -1) newCombos[idx] = nextItem;
+        else newCombos.push(nextItem);
+      } else if (idx > -1) {
+        newCombos.splice(idx, 1);
       }
-
       updatePurchaseData({ combos: newCombos });
     }
   };
 
   const totals = useMemo(() => {
     const productsTotal = purchaseData.products.reduce((acc, item) => {
-      const price = parseFloat(item.product.price.toString());
-      const discount = parseFloat(item.product.discountPercentage.toString());
-      const effectivePrice = price * (1 - (isNaN(discount) ? 0 : discount) / 100);
+      const price = Number(item.product.price) || 0;
+      const discount = Number(item.product.discountPercentage) || 0;
+      const effectivePrice = price * (1 - discount / 100);
       return acc + effectivePrice * item.quantity;
     }, 0);
 
     const combosTotal = purchaseData.combos.reduce((acc, item) => {
-      const price = parseFloat(item.combo.price.toString());
+      const price = Number(item.combo.price) || 0;
       return acc + price * item.quantity;
     }, 0);
 
     const grandTotal = productsTotal + combosTotal;
-    return { subtotal: productsTotal + combosTotal, grandTotal };
+    return { subtotal: grandTotal, grandTotal };
   }, [purchaseData.products, purchaseData.combos]);
 
   useEffect(() => {
     if (purchaseData.total !== totals.grandTotal) {
       setPurchaseData(prev => ({ ...prev, total: totals.grandTotal }));
     }
-  }, [totals.grandTotal]);
+  }, [totals.grandTotal, purchaseData.total]);
+
+  useEffect(() => {
+    if (isOpen && (fullEventDetails || event) && !viewTrackedRef.current) {
+      tracking.viewEvent(fullEventDetails || event);
+      viewTrackedRef.current = true;
+    }
+  }, [isOpen, fullEventDetails, event, tracking]);
 
   useEffect(() => {
     if (isOpen && !fullEventDetails) {
@@ -165,6 +174,24 @@ export default function InEventPurchaseFlow({
         }
       })();
     }
+    const handleScroll = () => {
+      if (scrollableContentRef.current) {
+        const top = scrollableContentRef.current.scrollTop || 0;
+        setIsAtTop(top <= 2);
+      }
+    };
+
+    const currentScrollRef = scrollableContentRef.current;
+    if (currentScrollRef) {
+      currentScrollRef.addEventListener('scroll', handleScroll);
+      handleScroll();
+    }
+
+    return () => {
+      if (currentScrollRef) {
+        currentScrollRef.removeEventListener('scroll', handleScroll);
+      }
+    };
   }, [isOpen, event.id, fullEventDetails]);
 
   useEffect(() => {
@@ -189,6 +216,10 @@ export default function InEventPurchaseFlow({
       setPurchaseCode(null);
       setAppliedCoupon(null);
       setMpPreferenceId(null);
+
+      viewTrackedRef.current = false;
+      beginCheckoutTrackedRef.current = false;
+      lastCartRef.current = { productQtys: {}, comboQtys: {} };
     }
   }, [isOpen]);
 
@@ -220,23 +251,91 @@ export default function InEventPurchaseFlow({
   }, [step, purchaseData.paymentMethod, mpPreferenceId]);
 
   const handleCloseDrawer = async () => {
-    await animate(scope.current, { opacity: [1, 0] }, { duration: 0.25 });
-    await animate("#ticket-sheet", { y: [0, height] }, { ease: "easeInOut", duration: 0.25 });
+    await animate(scope.current, { opacity: [1, 0] }, { duration: 0.3 });
+
+    const yStart = typeof y.get() === "number" ? y.get() : 0;
+    await animate("#ticket-sheet", { y: [yStart, height] }, {
+      ease: "easeInOut",
+      duration: 0.3
+    });
+
     onClose();
   };
 
-  const handlePointerDown = (event) => {
-    if (y.get() === 0) {
-      y.set(0);
+  const onDragEndSheet = async (_: any, info: PanInfo) => {
+    const dragged = info.offset.y;
+    const velocity = info.velocity.y;
+
+    if (dragged > DRAG_CLOSE_PX || velocity > DRAG_CLOSE_VELOCITY) {
+      await handleCloseDrawer();
+    } else {
+      await animate(y, 0, { type: "spring", stiffness: 300, damping: 30 });
     }
   };
+
+  const handlePointerDown = (event: any) => {
+    if (isAtTop) {
+      dragControls.start(event);
+    }
+  };
+
+  useEffect(() => {
+    if (!fullEventDetails) return;
+    const prev = lastCartRef.current;
+
+    const currentProducts: Record<number, number> = {};
+    purchaseData.products.forEach(it => { currentProducts[it.product.id] = it.quantity; });
+    Object.entries(currentProducts).forEach(([idStr, qty]) => {
+      const id = Number(idStr);
+      const prevQty = prev.productQtys[id] ?? 0;
+      const delta = qty - prevQty;
+      if (delta > 0) {
+        const item = purchaseData.products.find(p => p.product.id === id)!;
+        tracking.addProduct(fullEventDetails, item.product, delta);
+      }
+    });
+
+    const currentCombos: Record<number, number> = {};
+    purchaseData.combos.forEach(it => { currentCombos[it.combo.id] = it.quantity; });
+    Object.entries(currentCombos).forEach(([idStr, qty]) => {
+      const id = Number(idStr);
+      const prevQty = prev.comboQtys[id] ?? 0;
+      const delta = qty - prevQty;
+      if (delta > 0) {
+        const item = purchaseData.combos.find(c => c.combo.id === id)!;
+        tracking.addCombo(fullEventDetails, item.combo, delta);
+      }
+    });
+
+    lastCartRef.current.productQtys = currentProducts;
+    lastCartRef.current.comboQtys = currentCombos;
+  }, [fullEventDetails, purchaseData.products, purchaseData.combos, tracking]);
+
+  const buildTrackingItems = () => {
+    const items: Array<{ product?: ProductEventDto; combo?: ComboEventDto; qty?: number }> = [];
+    purchaseData.products.forEach(p => { if (p.quantity > 0) items.push({ product: p.product, qty: p.quantity }); });
+    purchaseData.combos.forEach(c => { if (c.quantity > 0) items.push({ combo: c.combo, qty: c.quantity }); });
+    return items;
+  };
+  const getCheckoutCoupon = (): string | null => (appliedCoupon?.id != null ? String(appliedCoupon.id) : null);
+  const getCheckoutValue = (): number => Number(totals.grandTotal || 0);
+
+  useEffect(() => {
+    if (!fullEventDetails) return;
+    if (step === Step.Review && !beginCheckoutTrackedRef.current) {
+      tracking.beginCheckout(fullEventDetails, buildTrackingItems(), {
+        coupon: getCheckoutCoupon(),
+        value: getCheckoutValue(),
+      });
+      beginCheckoutTrackedRef.current = true;
+    }
+  }, [step, fullEventDetails, purchaseData.products, purchaseData.combos, tracking]);
 
   const generatePreference = async () => {
     if (!hasMP) {
       setError("Mercado Pago no está configurado para este evento.");
       return false;
     }
-
     if (totals.grandTotal <= 0) {
       setError("Agregá productos antes de generar el pago.");
       return false;
@@ -254,9 +353,18 @@ export default function InEventPurchaseFlow({
         coupon: appliedCoupon?.id || null
       };
 
-      const res = await createLiveEventPreference(fullEventDetails.id, payload);
+      const res = await createLiveEventPreference(fullEventDetails!.id, payload);
       if (res.success) {
         setMpPreferenceId(res.data.preferenceId);
+
+        if (fullEventDetails && !beginCheckoutTrackedRef.current) {
+          tracking.beginCheckout(fullEventDetails, buildTrackingItems(), {
+            coupon: getCheckoutCoupon(),
+            value: getCheckoutValue(),
+          });
+          beginCheckoutTrackedRef.current = true;
+        }
+
         setStep(Step.Review);
         return true;
       }
@@ -273,7 +381,6 @@ export default function InEventPurchaseFlow({
 
   const handleComplete = async () => {
     setIsSubmitting(true);
-
     try {
       const payload: InEventPurchasePayload = {
         client: purchaseData.buyer,
@@ -285,25 +392,31 @@ export default function InEventPurchaseFlow({
       const result = await submitLiveEventPurchase(payload, event.id);
 
       if (result.success) {
-        setPurchaseCode(result.data.id)
+        setPurchaseCode(result.data.id);
+        tracking.purchase(fullEventDetails || event, {
+          transactionId: String(result.data.id),
+          value: getCheckoutValue(),
+          items: buildTrackingItems(),
+          coupon: getCheckoutCoupon(),
+        });
         setStep(Step.PurchaseStatus);
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
 
   const handleNext = () => {
     if (step < Step.QR) {
-      setStep((prevStep) => prevStep + 1 as StepKey);
+      setStep((prevStep) => (prevStep + 1) as StepKey);
     }
   };
 
   const handlePrevious = () => {
     if (step > Step.Buyer) {
-      setStep((prevStep) => prevStep - 1 as StepKey);
+      setStep((prevStep) => (prevStep - 1) as StepKey);
     }
   };
 
@@ -334,10 +447,12 @@ export default function InEventPurchaseFlow({
       case Step.Banner:
         return <EventPurchaseBanner />;
       case Step.Buyer:
-        return <BuyerStep
-          buyer={purchaseData.buyer}
-          setBuyer={(newBuyer) => updatePurchaseData({ buyer: newBuyer })}
-        />;
+        return (
+          <BuyerStep
+            buyer={purchaseData.buyer}
+            setBuyer={(newBuyer) => updatePurchaseData({ buyer: newBuyer })}
+          />
+        );
       case Step.Catalog:
         return (
           <CatalogStep
@@ -357,9 +472,7 @@ export default function InEventPurchaseFlow({
           />
         );
       case Step.Review:
-        return (
-          <ReviewStep purchaseData={purchaseData} />
-        );
+        return <ReviewStep purchaseData={purchaseData} />;
       case Step.QR:
         return (
           <QRStep
@@ -409,9 +522,11 @@ export default function InEventPurchaseFlow({
             dragControls={dragControls}
             dragListener={false}
             dragConstraints={{ top: 0 }}
-            dragElastic={{ top: 0, bottom: 0.5 }}
+            dragElastic={{ top: 0, bottom: 0.2 }}
+            onDragEnd={onDragEndSheet}
             onPointerDown={handlePointerDown}
             onClick={(e) => e.stopPropagation()}
+            style={{ cursor: isAtTop ? 'grab' : 'auto', y }}
           >
             <div className="flex justify-center mt-1 cursor-grab">
               <button className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"></button>
@@ -456,6 +571,7 @@ export default function InEventPurchaseFlow({
               mpPublicKey={mpPublicKey || ""}
               eventStarted={true}
               onStartPayment={handleCloseDrawer}
+              onTrack={tracking.ui}
             />
           </motion.div>
         </motion.div>

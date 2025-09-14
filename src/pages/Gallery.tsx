@@ -12,9 +12,12 @@ import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { fetchProducerGalleryData } from "@/lib/api";
 import { EventImageDto } from "@/lib/types";
+// tracking
+import { useTracking } from "@/hooks/use-tracking";
 
 const Gallery = () => {
   const { producer } = useProducer();
+  const tracking = useTracking({ producer }); // page_view se dispara acá
   const [mediaContent, setMediaContent] = useState<EventImageDto[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -26,15 +29,22 @@ const Gallery = () => {
           const resp = await fetchProducerGalleryData();
           if (resp.success && resp.data) {
             setMediaContent(resp.data);
+            tracking.ui("gallery_loaded", { count: resp.data.length });
+            if (!resp.data?.length) {
+              tracking.ui("gallery_empty");
+            }
+          } else {
+            tracking.ui("gallery_load_error", { reason: "bad_response" });
           }
-        } catch (err) {
-          console.error("Error fetching event details:", err);
+        } catch (err: any) {
+          console.error("Error fetching gallery:", err);
+          tracking.ui("gallery_load_error", { reason: "exception", message: String(err?.message || err) });
         } finally {
           setLoading(false);
         }
       })();
     }
-  }, [producer]);
+  }, [producer, tracking]);
 
   const categories = [
     { key: "all", label: "Todo", icon: ImageIcon },
@@ -50,13 +60,16 @@ const Gallery = () => {
 
   const filteredContent = mediaContent;
 
+  // track del filtro (si activan los filtros de arriba)
+  useEffect(() => {
+    tracking.ui("gallery_filter_selected", { category_key: selectedCategory });
+  }, [selectedCategory, tracking]);
+
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
@@ -66,11 +79,7 @@ const Gallery = () => {
       y: 0,
       opacity: 1,
       scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 10
-      } as const
+      transition: { type: "spring", stiffness: 100, damping: 10 } as const
     },
     exit: { opacity: 0, scale: 0.8, transition: { duration: 0.2 } }
   };
@@ -85,6 +94,22 @@ const Gallery = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
+  const mediaKind = (item: EventImageDto) =>
+    item?.name?.toLowerCase?.() === "video" ? "video" : "image";
+
+  const onMediaOpenChange = (item: EventImageDto, open: boolean) => {
+    const kind = mediaKind(item);
+    const payload = {
+      id: item.id,
+      name: item.name,
+      kind,
+      url: item.url,
+      event_id: item.event?.id,
+      event_name: item.event?.name,
+    };
+    tracking.ui(open ? "gallery_media_open" : "gallery_media_close", payload);
+  };
+
   const renderMediaCard = (item: EventImageDto, index: number) => {
     if (item.name === "video") {
       return (
@@ -94,13 +119,23 @@ const Gallery = () => {
           style={{ animationDelay: `${0.1 * index}s` }}
         >
           <CardContent className="p-0">
-            <Dialog>
+            <Dialog onOpenChange={(open) => onMediaOpenChange(item, open)}>
               <DialogTrigger asChild>
-                <div className="relative overflow-hidden cursor-pointer">
+                <div
+                  className="relative overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    tracking.ui("gallery_card_click", {
+                      id: item.id,
+                      kind: "video",
+                      event_id: item.event?.id,
+                    });
+                  }}
+                >
                   <img
                     src={item.url}
                     alt={item.name}
                     className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
+                    onLoad={() => tracking.ui("gallery_media_impression", { id: item.id, kind: "video" })}
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
@@ -120,6 +155,7 @@ const Gallery = () => {
                     className="w-full h-full rounded-lg"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    onLoad={() => tracking.ui("gallery_video_iframe_loaded", { id: item.id })}
                   />
                 </div>
               </DialogContent>
@@ -136,13 +172,23 @@ const Gallery = () => {
         style={{ animationDelay: `${0.1 * index}s` }}
       >
         <CardContent className="p-0">
-          <Dialog>
+          <Dialog onOpenChange={(open) => onMediaOpenChange(item, open)}>
             <DialogTrigger asChild>
-              <div className="relative overflow-hidden cursor-pointer">
+              <div
+                className="relative overflow-hidden cursor-pointer"
+                onClick={() => {
+                  tracking.ui("gallery_card_click", {
+                    id: item.id,
+                    kind: "image",
+                    event_id: item.event?.id,
+                  });
+                }}
+              >
                 <img
                   src={item.url}
                   alt={item.name}
                   className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
+                  onLoad={() => tracking.ui("gallery_media_impression", { id: item.id, kind: "image" })}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent transition-opacity duration-300">
                   <div className="absolute bottom-4 left-4 right-4">
@@ -163,6 +209,7 @@ const Gallery = () => {
                 src={item.url}
                 alt={item.name}
                 className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+                onLoad={() => tracking.ui("gallery_dialog_image_loaded", { id: item.id })}
               />
             </DialogContent>
           </Dialog>
@@ -220,34 +267,8 @@ const Gallery = () => {
             </motion.p>
           </div>
 
-          {/* Category Filters */}
-          {/* <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="flex flex-wrap justify-center gap-4 mb-12"
-          >
-            {categories.map((category) => {
-              const Icon = category.icon;
-              return (
-                <motion.div key={category.key} variants={buttonVariants}>
-                  <Button
-                    onClick={() => setSelectedCategory(category.key)}
-                    variant={selectedCategory === category.key ? "default" : "outline"}
-                    className={cn(
-                      "px-6 py-2 rounded-full transition-all duration-300",
-                      selectedCategory === category.key
-                        ? "bg-blue-800 text-white hover:bg-blue-800/80 hover:scale-105"
-                        : "border-white/30 text-white bg-gray-800 hover:bg-gray-800/80 hover:scale-105"
-                    )}
-                  >
-                    <Icon className="w-4 h-4 mr-2" />
-                    {category.label}
-                  </Button>
-                </motion.div>
-              );
-            })}
-          </motion.div> */}
+          {/* Category Filters (si los usan, ya trackea arriba con gallery_filter_selected) */}
+          {/* ... */}
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -280,12 +301,9 @@ const Gallery = () => {
           </AnimatePresence>
 
           {/* Call to Action */}
-          <motion.div
-            variants={textVariants}
-            className="text-center mt-8"
-          >
+          <motion.div variants={textVariants} className="text-center mt-8">
             <motion.div
-              variants={itemVariants} // Reusing itemVariants for the CTA box
+              variants={itemVariants}
               className="bg-gray-800/80 backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
             >
               <h3 className="text-2xl font-bold text-gray-100 mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
@@ -298,7 +316,12 @@ const Gallery = () => {
                     asChild
                     className="bg-gray-800 hover:bg-gray-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
                   >
-                    <a href="/events">Ver Próximos Eventos</a>
+                    <a
+                      href="/events"
+                      onClick={() => tracking.ui("gallery_cta_view_events_click")}
+                    >
+                      Ver Próximos Eventos
+                    </a>
                   </Button>
                 </motion.div>
                 <motion.div variants={buttonVariants}>
@@ -306,7 +329,12 @@ const Gallery = () => {
                     asChild
                     className="bg-blue-800 hover:bg-blue-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
                   >
-                    <a href={`https://instagram.com/${producer.instagram}`} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={`https://instagram.com/${producer.instagram}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => tracking.ui("gallery_cta_follow_click", { handle: producer.instagram })}
+                    >
                       <ExternalLink className="w-4 h-4 mr-2" />
                       Síguenos
                     </a>

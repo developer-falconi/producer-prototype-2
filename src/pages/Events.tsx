@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Search, Filter, ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search, Filter, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,23 +11,44 @@ import {
 } from "@/components/ui/select";
 import { Link, useSearchParams } from "react-router-dom";
 import Footer from "@/components/Footer";
-import Spinner from "@/components/Spinner";
 import EventCard from "@/components/EventCard";
 import { fetchProducerEventsData } from "@/lib/api";
 import { EventDto } from "@/lib/types";
 import { useProducer } from "@/context/ProducerContext";
+import { useTracking } from "@/hooks/use-tracking";
+import { useDebouncedValue } from "@/hooks/use-debounce";
+import Spinner from "@/components/Spinner"; // ⬅️ loader
+
+const VALID_STATUS = new Set(["all", "active", "completed"]);
 
 const Events = () => {
   const { producer, loadingProducer } = useProducer();
+  const tracking = useTracking({ producer });
+
   const [events, setEvents] = useState<EventDto[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<EventDto[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState<"all" | "active" | "completed">("all");
 
   const [initialOpenEventId, setInitialOpenEventId] = useState<number | null>(null);
   const [promoterKey, setPromoterKey] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const searchRef = useRef<HTMLInputElement>(null);
+  const debouncedSearch = useDebouncedValue(searchTerm, 350);
+
+  const updateURLParams = (patch: Record<string, string | null | undefined>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      Object.entries(patch).forEach(([k, v]) => {
+        if (v === null || v === undefined || v === "") next.delete(k);
+        else next.set(k, v);
+      });
+      return next;
+    }, { replace: true });
+  };
 
   useEffect(() => {
     (async () => {
@@ -36,7 +57,6 @@ const Events = () => {
         const resp = await fetchProducerEventsData();
         if (resp.success && resp.data) {
           setEvents(resp.data);
-          setFilteredEvents(resp.data);
         } else {
           console.error("Failed to fetch producer data:", resp);
         }
@@ -54,14 +74,37 @@ const Events = () => {
 
     const promoterKeyParam = searchParams.get("promoter");
     setPromoterKey(promoterKeyParam || null);
+
+    const qParam = searchParams.get("q") ?? "";
+    if (qParam !== searchTerm) setSearchTerm(qParam);
+
+    const statusParam = (searchParams.get("status") ?? "all").toLowerCase();
+    const normalized = VALID_STATUS.has(statusParam)
+      ? (statusParam as typeof statusFilter)
+      : "all";
+    if (normalized !== statusFilter) setStatusFilter(normalized);
   }, [searchParams]);
 
   useEffect(() => {
-    let filtered = events;
+    const currentQ = searchParams.get("q") ?? "";
+    const currentStatus = (searchParams.get("status") ?? "all").toLowerCase();
 
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
+    const next: Record<string, string | null> = {
+      q: searchTerm || null,
+      status: statusFilter !== "all" ? statusFilter : null,
+    };
+
+    const sameQ = (next.q ?? "") === currentQ;
+    const sameS = (next.status ?? "all") === currentStatus;
+    if (!sameQ || !sameS) updateURLParams(next);
+  }, [searchTerm, statusFilter]);
+
+  const filteredEvents = useMemo(() => {
+    let list = events;
+
+    if (debouncedSearch) {
+      const term = debouncedSearch.toLowerCase();
+      list = list.filter(
         (e) =>
           e.name.toLowerCase().includes(term) ||
           e.description.toLowerCase().includes(term)
@@ -69,118 +112,207 @@ const Events = () => {
     }
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter(
-        (e) => e.status === statusFilter.toUpperCase()
-      );
+      list = list.filter((e) => e.status === statusFilter.toUpperCase());
     }
 
-    setFilteredEvents(filtered);
-  }, [events, searchTerm, statusFilter]);
+    return list;
+  }, [events, debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    if (!producer) return;
+    tracking.search(debouncedSearch || "", filteredEvents.length);
+  }, [debouncedSearch, filteredEvents.length, producer, tracking]);
+
+  const handleSelectFromGrid = (e: EventDto) => {
+    tracking.selectFromList("events_grid", e);
+  };
+
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+        ev.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    updateURLParams({ q: null, status: null });
+  };
+
+  const SkeletonCard = () => (
+    <div className="rounded-xl overflow-hidden bg-white/5 border border-white/10 animate-pulse">
+      <div className="h-[350px] bg-white/10" />
+      <div className="p-4 space-y-3">
+        <div className="h-5 w-3/4 bg-white/10 rounded" />
+        <div className="h-4 w-1/2 bg-white/10 rounded" />
+        <div className="h-9 w-24 bg-white/10 rounded mt-2" />
+      </div>
+    </div>
+  );
 
   if (loading || loadingProducer) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
         <Spinner />
+        <span className="sr-only">Cargando eventos…</span>
       </div>
-    );
-  }
-
-  if (!producer) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
-        <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
-        <Link to='https://www.produtik.com' target="_blank">
-          <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
-            Encontranos en Produtik <ExternalLink className="h-4 w-4" />
-          </div>
-        </Link>
-      </div>
-    );
+    )
   }
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
-      <div className="container max-w-7xl mx-auto">
-        {/* header and filters unchanged */}
-        <div className="text-center mb-12 animate-fade-in">
-          <h1 className="text-4xl lg:text-5xl font-bold text-white mb-4">
-            {producer.webDetails?.eventTitle || 'Nuestros Eventos'}
-          </h1>
-          <p className="text-xl text-gray-200 max-w-2xl mx-auto">
-            {
-              producer.webDetails?.eventSubtitle
-              || 'Descubre todas las experiencias únicas que hemos creado y las que están por venir'
-            }
-          </p>
-        </div>
-
-        <div
-          className="flex flex-col md:flex-row gap-4 mb-8 animate-fade-in"
-          style={{ animationDelay: "0.1s" }}
-        >
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-800 w-5 h-5" />
-            <Input
-              placeholder="Buscar eventos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white/10 border-gray-900/20 text-white placeholder:text-white"
-            />
-          </div>
-
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full md:w-48 bg-white/10 border-gray-900/20 text-white">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
-              <SelectItem
-                value="all"
-                className="text-white hover:bg-slate-700 cursor-pointer"
-              >
-                Todos
-              </SelectItem>
-              <SelectItem
-                value="active"
-                className="text-white hover:bg-slate-700 cursor-pointer"
-              >
-                Activos
-              </SelectItem>
-              <SelectItem
-                value="completed"
-                className="text-white hover:bg-slate-700 cursor-pointer"
-              >
-                Finalizados
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {filteredEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              initialOpenEventId={initialOpenEventId}
-              promoterKey={promoterKey}
-              setSearchParams={setSearchParams}
-            />
-          ))}
-        </div>
-
-        {filteredEvents.length === 0 && (
-          <div className="text-center py-12 animate-fade-in">
-            <div className="text-white text-lg mb-4">
-              No se encontraron eventos
-            </div>
-            <p className="text-gray-800">
-              Intenta ajustar los filtros de búsqueda
+      {producer ? (
+        <>
+          {/* Header */}
+          <header className="container max-w-7xl mx-auto p-6 text-center">
+            <h1 className="text-4xl lg:text-5xl font-bold text-white my-3">
+              {producer?.webDetails?.eventTitle || "Nuestros Eventos"}
+            </h1>
+            <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
+              {producer?.webDetails?.eventSubtitle ||
+                "Descubre todas las experiencias únicas que hemos creado y las que están por venir"}
             </p>
-          </div>
-        )}
-      </div>
+          </header>
 
-      <Footer producer={producer} />
+          {/* Filtros sticky */}
+          <div className="sticky top-0 z-30 border-y border-white/10 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/35">
+            <div className="max-w-7xl mx-auto px-4">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 py-3">
+                {/* Buscar */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 w-5 h-5" />
+                  <Input
+                    ref={searchRef}
+                    placeholder="Buscar eventos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 bg-white/10 border-white/15 text-white placeholder:text-white/60"
+                    aria-label="Buscar eventos"
+                  />
+                </div>
+
+                {/* Estado */}
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={statusFilter}
+                    onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+                  >
+                    <SelectTrigger className="w-full md:w-48 bg-white/10 border-white/15 text-white">
+                      <Filter className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                      <SelectItem value="all" className="cursor-pointer">
+                        Todos
+                      </SelectItem>
+                      <SelectItem value="active" className="cursor-pointer">
+                        Activos
+                      </SelectItem>
+                      <SelectItem value="completed" className="cursor-pointer">
+                        Finalizados
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="text-white/80 hover:text-white hover:bg-white/10"
+                    title="Limpiar filtros"
+                  >
+                    <X className="w-4 h-4 mr-1" /> Limpiar
+                  </Button>
+                </div>
+
+                {/* Contador */}
+                <div
+                  className="md:ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white"
+                  aria-live="polite"
+                >
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/15 px-2 text-xs">
+                    {filteredEvents.length}
+                  </span>
+                  Resultados
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contenido */}
+          <main className="max-w-7xl mx-auto p-8">
+            {/* Loading con skeletons */}
+            {(loading || loadingProducer) && (
+              <div className="grid md:grid-cols-3 gap-8">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            )}
+
+            {/* Grid */}
+            {!loading && !loadingProducer && (
+              <>
+                <div className="grid md:grid-cols-3 gap-8">
+                  {filteredEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      role="group"
+                      className="contents"
+                      onClick={() => handleSelectFromGrid(event)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") handleSelectFromGrid(event);
+                      }}
+                    >
+                      <EventCard
+                        event={event}
+                        initialOpenEventId={initialOpenEventId}
+                        promoterKey={promoterKey}
+                        setSearchParams={setSearchParams}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Empty state */}
+                {filteredEvents.length === 0 && (
+                  <div className="text-center py-16">
+                    <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+                      <Search className="h-6 w-6 text-white/80" />
+                    </div>
+                    <div className="text-white text-lg mb-2">
+                      No se encontraron eventos
+                    </div>
+                    <p className="text-white/70 mb-6">
+                      Intenta ajustar la búsqueda o cambiar el estado
+                    </p>
+                    <Button onClick={clearFilters} className="bg-white text-black hover:bg-white/90">
+                      Quitar filtros
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
+          <Footer producer={producer} />
+        </>
+      ) : (
+      <div className="min-h-screen flex items-center justify-center">
+          <p className="font-medium text-lg text-white mb-2">
+            Error al cargar los datos del productor.
+          </p>
+          <Link to="https://www.produtik.com" target="_blank">
+            <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+              Encontranos en Produtik <ExternalLink className="h-4 w-4" />
+            </div>
+          </Link>
+        </div>
+      )}
     </div>
   );
 };
