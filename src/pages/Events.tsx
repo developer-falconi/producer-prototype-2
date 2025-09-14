@@ -47,8 +47,7 @@ const Events = () => {
 
   const siteName = producer?.name || "Produtik";
   const baseTitle = producer?.webDetails?.eventTitle || "Nuestros Eventos";
-  const baseSubtitle =
-    producer?.webDetails?.eventSubtitle ||
+  const baseSubtitle = producer?.webDetails?.eventSubtitle ||
     "Descubre todas las experiencias únicas que hemos creado y las que están por venir";
 
   const title = activeEvent
@@ -194,7 +193,7 @@ const Events = () => {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
+    <>
       <Helmet prioritizeSeoTags>
         <title>{title}</title>
         <link rel="icon" href={iconHref} />
@@ -234,143 +233,144 @@ const Events = () => {
           </script>
         )}
       </Helmet>
+      <div className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
+        {producer ? (
+          <>
+            {/* Header */}
+            <header className="container max-w-7xl mx-auto p-6 text-center">
+              <h1 className="text-4xl lg:text-5xl font-bold text-white my-3">
+                {producer?.webDetails?.eventTitle || "Nuestros Eventos"}
+              </h1>
+              <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
+                {producer?.webDetails?.eventSubtitle ||
+                  "Descubre todas las experiencias únicas que hemos creado y las que están por venir"}
+              </p>
+            </header>
 
-      {producer ? (
-        <>
-          {/* Header */}
-          <header className="container max-w-7xl mx-auto p-6 text-center">
-            <h1 className="text-4xl lg:text-5xl font-bold text-white my-3">
-              {producer?.webDetails?.eventTitle || "Nuestros Eventos"}
-            </h1>
-            <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
-              {producer?.webDetails?.eventSubtitle ||
-                "Descubre todas las experiencias únicas que hemos creado y las que están por venir"}
-            </p>
-          </header>
-
-          {/* Filtros sticky */}
-          <div className="border-y border-white/10 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/35">
-            <div className="max-w-7xl mx-auto px-4">
-              <div className="flex flex-col md:flex-row md:flex-nowrap md:items-center gap-3 py-3">
-                {/* Buscar – ocupa 1/2 en md */}
-                <div className="relative w-full md:basis-1/2 md:flex-shrink-0">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 w-5 h-5" />
-                  <Input
-                    ref={searchRef}
-                    placeholder="Buscar eventos..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-white/10 border-white/15 text-white placeholder:text-white/60"
-                    aria-label="Buscar eventos"
-                  />
-                </div>
-
-                {/* Grupo derecho – comparte la otra mitad */}
-                <div className="flex w-full md:basis-1/2 md:items-center gap-3">
-                  {/* Estado */}
-                  <div className="flex items-center">
-                    <Select
-                      value={statusFilter}
-                      onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
-                    >
-                      <SelectTrigger className="w-full md:w-48 bg-white/10 border-white/15 text-white">
-                        <Filter className="w-4 h-4 mr-2" />
-                        <SelectValue placeholder="Estado" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-900 border-slate-700 text-white">
-                        <SelectItem value="all" className="cursor-pointer">Todos</SelectItem>
-                        <SelectItem value="active" className="cursor-pointer">Activos</SelectItem>
-                        <SelectItem value="completed" className="cursor-pointer">Finalizados</SelectItem>
-                      </SelectContent>
-                    </Select>
+            {/* Filtros sticky */}
+            <div className="border-y border-white/10 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/35">
+              <div className="max-w-7xl mx-auto px-4">
+                <div className="flex flex-col md:flex-row md:flex-nowrap md:items-center gap-3 py-3">
+                  {/* Buscar – ocupa 1/2 en md */}
+                  <div className="relative w-full md:basis-1/2 md:flex-shrink-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 w-5 h-5" />
+                    <Input
+                      ref={searchRef}
+                      placeholder="Buscar eventos..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 bg-white/10 border-white/15 text-white placeholder:text-white/60"
+                      aria-label="Buscar eventos"
+                    />
                   </div>
 
-                  {/* Limpiar */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearFilters}
-                    className="text-white/80 hover:text-white hover:bg-white/10"
-                    title="Limpiar filtros"
-                    aria-label="Limpiar filtros"
-                  >
-                    <X className="w-4 h-4 mr-1" /> Limpiar
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+                  {/* Grupo derecho – comparte la otra mitad */}
+                  <div className="flex w-full md:basis-1/2 md:items-center gap-3">
+                    {/* Estado */}
+                    <div className="flex items-center">
+                      <Select
+                        value={statusFilter}
+                        onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+                      >
+                        <SelectTrigger className="w-full md:w-48 bg-white/10 border-white/15 text-white">
+                          <Filter className="w-4 h-4 mr-2" />
+                          <SelectValue placeholder="Estado" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                          <SelectItem value="all" className="cursor-pointer">Todos</SelectItem>
+                          <SelectItem value="active" className="cursor-pointer">Activos</SelectItem>
+                          <SelectItem value="completed" className="cursor-pointer">Finalizados</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-          {/* Contenido */}
-          <main className="max-w-7xl mx-auto p-8">
-            {/* Loading con skeletons */}
-            {(loading || loadingProducer) && (
-              <div className="grid md:grid-cols-3 gap-8">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <SkeletonCard key={i} />
-                ))}
-              </div>
-            )}
-
-            {/* Grid */}
-            {!loading && !loadingProducer && (
-              <>
-                <div className="grid md:grid-cols-3 gap-8">
-                  {filteredEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      role="group"
-                      className="contents"
-                      onClick={() => handleSelectFromGrid(event)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") handleSelectFromGrid(event);
-                      }}
+                    {/* Limpiar */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="text-white/80 hover:text-white hover:bg-white/10"
+                      title="Limpiar filtros"
+                      aria-label="Limpiar filtros"
                     >
-                      <EventCard
-                        event={event}
-                        initialOpenEventId={initialOpenEventId}
-                        promoterKey={promoterKey}
-                        setSearchParams={setSearchParams}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Empty state */}
-                {filteredEvents.length === 0 && (
-                  <div className="text-center py-16">
-                    <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
-                      <Search className="h-6 w-6 text-white/80" />
-                    </div>
-                    <div className="text-white text-lg mb-2">
-                      No se encontraron eventos
-                    </div>
-                    <p className="text-white/70 mb-6">
-                      Intenta ajustar la búsqueda o cambiar el estado
-                    </p>
-                    <Button onClick={clearFilters} className="bg-white text-black hover:bg-white/90">
-                      Quitar filtros
+                      <X className="w-4 h-4 mr-1" /> Limpiar
                     </Button>
                   </div>
-                )}
-              </>
-            )}
-          </main>
-          <Footer producer={producer} />
-        </>
-      ) : (
-        <div className="min-h-screen flex flex-col items-center justify-center">
-          <p className="font-medium text-lg text-white mb-2">
-            Error al cargar los datos del productor.
-          </p>
-          <Link to="https://app.produtik.com" target="_blank">
-            <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
-              Encontranos en Produtik <ExternalLink className="h-4 w-4" />
+                </div>
+              </div>
             </div>
-          </Link>
-        </div>
-      )}
-    </div>
+
+            {/* Contenido */}
+            <main className="max-w-7xl mx-auto p-8">
+              {/* Loading con skeletons */}
+              {(loading || loadingProducer) && (
+                <div className="grid md:grid-cols-3 gap-8">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                  ))}
+                </div>
+              )}
+
+              {/* Grid */}
+              {!loading && !loadingProducer && (
+                <>
+                  <div className="grid md:grid-cols-3 gap-8">
+                    {filteredEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        role="group"
+                        className="contents"
+                        onClick={() => handleSelectFromGrid(event)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") handleSelectFromGrid(event);
+                        }}
+                      >
+                        <EventCard
+                          event={event}
+                          initialOpenEventId={initialOpenEventId}
+                          promoterKey={promoterKey}
+                          setSearchParams={setSearchParams}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Empty state */}
+                  {filteredEvents.length === 0 && (
+                    <div className="text-center py-16">
+                      <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+                        <Search className="h-6 w-6 text-white/80" />
+                      </div>
+                      <div className="text-white text-lg mb-2">
+                        No se encontraron eventos
+                      </div>
+                      <p className="text-white/70 mb-6">
+                        Intenta ajustar la búsqueda o cambiar el estado
+                      </p>
+                      <Button onClick={clearFilters} className="bg-white text-black hover:bg-white/90">
+                        Quitar filtros
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </main>
+            <Footer producer={producer} />
+          </>
+        ) : (
+          <div className="min-h-screen flex flex-col items-center justify-center">
+            <p className="font-medium text-lg text-white mb-2">
+              Error al cargar los datos del productor.
+            </p>
+            <Link to="https://app.produtik.com" target="_blank">
+              <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+                Encontranos en Produtik <ExternalLink className="h-4 w-4" />
+              </div>
+            </Link>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 
