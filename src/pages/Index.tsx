@@ -284,7 +284,7 @@ const Index = () => {
                 aria-hidden="true"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-slate-950/60 to-slate-950/95 z-[1]" />
+            <div className="absolute inset-0 bg-slate-950/20 z-[1]" />
 
             {eventsForHeroCarousel.length > 0 && (
               <div className="relative z-[2] w-full md:w-1/2 max-w-[720px] mx-auto mb-2">
