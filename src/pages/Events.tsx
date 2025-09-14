@@ -182,9 +182,9 @@ const Events = () => {
           {/* Filtros sticky */}
           <div className="border-y border-white/10 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/35">
             <div className="max-w-7xl mx-auto px-4">
-              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 py-3">
-                {/* Buscar */}
-                <div className="relative flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 py-3 items-start">
+                {/* Buscar – fila 1, ocupa 3 columnas */}
+                <div className="relative md:col-span-3">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 w-5 h-5" />
                   <Input
                     ref={searchRef}
@@ -196,8 +196,8 @@ const Events = () => {
                   />
                 </div>
 
-                {/* Estado */}
-                <div className="flex items-center gap-2">
+                {/* Estado – fila 2, col 1 */}
+                <div className="flex items-center">
                   <Select
                     value={statusFilter}
                     onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
@@ -207,32 +207,30 @@ const Events = () => {
                       <SelectValue placeholder="Estado" />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-900 border-slate-700 text-white">
-                      <SelectItem value="all" className="cursor-pointer">
-                        Todos
-                      </SelectItem>
-                      <SelectItem value="active" className="cursor-pointer">
-                        Activos
-                      </SelectItem>
-                      <SelectItem value="completed" className="cursor-pointer">
-                        Finalizados
-                      </SelectItem>
+                      <SelectItem value="all" className="cursor-pointer">Todos</SelectItem>
+                      <SelectItem value="active" className="cursor-pointer">Activos</SelectItem>
+                      <SelectItem value="completed" className="cursor-pointer">Finalizados</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
 
+                {/* Limpiar – fila 2, col 2 */}
+                <div className="flex items-center">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={clearFilters}
                     className="text-white/80 hover:text-white hover:bg-white/10"
                     title="Limpiar filtros"
+                    aria-label="Limpiar filtros"
                   >
                     <X className="w-4 h-4 mr-1" /> Limpiar
                   </Button>
                 </div>
 
-                {/* Contador */}
+                {/* Contador – fila 2, col 3 (alineado a la derecha) */}
                 <div
-                  className="md:ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white"
+                  className="justify-self-start md:justify-self-end inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white"
                   aria-live="polite"
                 >
                   <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/15 px-2 text-xs">
@@ -302,7 +300,7 @@ const Events = () => {
           <Footer producer={producer} />
         </>
       ) : (
-      <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <p className="font-medium text-lg text-white mb-2">
             Error al cargar los datos del productor.
           </p>
