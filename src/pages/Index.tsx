@@ -100,22 +100,35 @@ const Index = () => {
     return featuredEvents.length > 0 ? featuredEvents : producer.events.slice(0, 3);
   }, [featuredEvents, producer]);
 
+  const handleHeroCta = useCallback(() => {
+    if (eventsForHeroCarousel[0]) {
+      tracking.selectFromList("Hero CTA", eventsForHeroCarousel[0]);
+    }
+  }, [eventsForHeroCarousel, tracking]);
+
+  useEffect(() => {
+    if (!paymentStatus || !eventBought) return;
+    const p = paymentStatus.params || {};
+    const totalValue = Number(p.total || p.transaction_amount || p.amount || 0);
+    const items: Array<{ prevent?: any; qty?: number }> = [];
+    if ((eventBought as any).featuredPrevent) {
+      items.push({ prevent: (eventBought as any).featuredPrevent, qty: 1 });
+    }
+    tracking.handleMercadoPagoReturn(paymentStatus, eventBought, totalValue, items);
+  }, [paymentStatus, eventBought, tracking]);
+
   const meta = useMemo(() => {
     const siteName = producer?.name || "Produtik";
-    const subtitle = producer?.webDetails?.subtitle ||
-      "Explorando nuevas fronteras en la creación de eventos únicos.";
+    const subtitle =
+      producer?.webDetails?.subtitle || "Explorando nuevas fronteras en la creación de eventos únicos.";
     const title = `Inicio — ${siteName}`;
     const description = subtitle.length > 180 ? subtitle.slice(0, 177) + "…" : subtitle;
 
     const origin = typeof window !== "undefined" ? window.location.origin : "https://example.com";
-    const url = typeof window !== "undefined"
-      ? `${origin}${location.pathname}${location.search}`
-      : `${origin}/`;
+    const url =
+      typeof window !== "undefined" ? `${origin}${location.pathname}${location.search}` : `${origin}/`;
 
-    const ogImage = eventsForHeroCarousel[0]?.flyer ||
-      producer?.logo ||
-      "/og-default.jpg";
-
+    const ogImage = eventsForHeroCarousel[0]?.flyer || producer?.logo || "/og-default.jpg";
     const favicon = producer?.logo || "/favicon.svg";
 
     const orgLd = {
@@ -161,24 +174,6 @@ const Index = () => {
 
     return { siteName, title, description, url, ogImage, favicon, orgLd, siteLd, eventsLd };
   }, [producer, eventsForHeroCarousel, location.pathname, location.search]);
-
-  useEffect(() => {
-    if (!eventsForHeroCarousel.length) return;
-    eventsForHeroCarousel.slice(0, 3).forEach((ev) => tracking.viewEvent(ev));
-  }, [eventsForHeroCarousel, tracking]);
-
-  useEffect(() => {
-    if (!paymentStatus || !eventBought) return;
-    const p = paymentStatus.params || {};
-    const totalValue = Number(p.total || p.transaction_amount || p.amount || 0);
-    const items: Array<{ prevent?: any; qty?: number }> = [];
-    if ((eventBought as any).featuredPrevent) items.push({ prevent: (eventBought as any).featuredPrevent, qty: 1 });
-    tracking.handleMercadoPagoReturn(paymentStatus, eventBought, totalValue, items);
-  }, [paymentStatus, eventBought, tracking]);
-
-  const handleHeroCta = useCallback(() => {
-    if (eventsForHeroCarousel[0]) tracking.selectFromList("Hero CTA", eventsForHeroCarousel[0]);
-  }, [eventsForHeroCarousel, tracking]);
 
   if (loadingProducer) {
     return (
@@ -231,10 +226,9 @@ const Index = () => {
         {/* JSON-LD */}
         <script type="application/ld+json">{JSON.stringify(meta.orgLd)}</script>
         <script type="application/ld+json">{JSON.stringify(meta.siteLd)}</script>
-        {meta.eventsLd && (
-          <script type="application/ld+json">{JSON.stringify(meta.eventsLd)}</script>
-        )}
+        {meta.eventsLd && <script type="application/ld+json">{JSON.stringify(meta.eventsLd)}</script>}
       </Helmet>
+
       <div className="flex flex-col min-h-screen bg-neutral-950 text-white font-sans antialiased">
         <AnimatePresence>
           {isDialogVisible && (
@@ -290,7 +284,7 @@ const Index = () => {
                 aria-hidden="true"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-neutral-950/80 via-neutral-950/50 to-neutral-950/90 z-[1]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-slate-950/60 to-slate-950/95 z-[1]" />
 
             {eventsForHeroCarousel.length > 0 && (
               <div className="relative z-[2] w-full md:w-1/2 max-w-[720px] mx-auto mb-2">
@@ -307,9 +301,7 @@ const Index = () => {
               <motion.h1
                 className={cn(
                   "font-extrabold mb-5 leading-tight drop-shadow-lg text-center w-full",
-                  eventsForHeroCarousel.length > 0
-                    ? "text-3xl lg:text-5xl"
-                    : "text-5xl"
+                  eventsForHeroCarousel.length > 0 ? "text-3xl lg:text-5xl" : "text-5xl"
                 )}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -321,9 +313,7 @@ const Index = () => {
                     alt={`Logo de ${producer.name}`}
                     className={cn(
                       "block rounded-full mx-auto mb-4 object-cover ring-1 ring-white/15",
-                      eventsForHeroCarousel.length > 0
-                        ? "h-20 w-20 md:h-28 md:w-28"
-                        : "h-24 w-24 md:h-28 md:w-28"
+                      eventsForHeroCarousel.length > 0 ? "h-20 w-20 md:h-28 md:w-28" : "h-24 w-24 md:h-28 md:w-28"
                     )}
                     loading="lazy"
                     decoding="async"
@@ -338,8 +328,7 @@ const Index = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: 0.3 }}
               >
-                {producer.webDetails?.subtitle ??
-                  "Explorando nuevas fronteras en la creación de eventos únicos."}
+                {producer.webDetails?.subtitle ?? "Explorando nuevas fronteras en la creación de eventos únicos."}
               </motion.p>
 
               <motion.div
@@ -349,22 +338,24 @@ const Index = () => {
                 className="flex flex-wrap items-center gap-3 justify-center w-full"
               >
                 <Link to={`/events${search}`} onClick={handleHeroCta}>
-                  <button className="bg-white text-neutral-900 font-semibold py-3 px-7 rounded-full shadow-lg text-base md:text-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 inline-flex items-center">
+                  <button className="bg-[#001B97] text-white font-semibold py-3 px-7 rounded-full shadow-lg text-base md:text-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 inline-flex items-center">
                     Ver todos los eventos <ArrowRight className="ml-2 h-5 w-5" />
                   </button>
                 </Link>
               </motion.div>
             </div>
           </section>
+
           {/* ESTADÍSTICAS */}
           <section
-            className="relative isolate py-12 bg-neutral-900/70 border-y border-white/5"
+            className="relative isolate py-12 bg-gradient-to-br from-[#001B97] via-slate-950 to-black text-white"
             ref={statsSectionRef}
             aria-labelledby="stats-heading"
           >
-            {/* Glow sutil de fondo */}
             <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(800px_240px_at_50%_-60px,rgba(255,255,255,0.10),transparent)]" />
-            <h2 id="stats-heading" className="sr-only">Indicadores de la productora</h2>
+            <h2 id="stats-heading" className="sr-only">
+              Indicadores de la productora
+            </h2>
 
             <div className="max-w-7xl mx-auto px-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
@@ -377,7 +368,7 @@ const Index = () => {
                     key={i}
                     role="group"
                     aria-label={label}
-                    className="rounded-2xl bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] py-4 text-center transition-all duration-300 hover:bg-white/[0.06] hover:-translate-y-1 focus-within:-translate-y-1 focus-within:ring-2 focus-within:ring-cyan-400/30"
+                    className="rounded-2xl bg-black/20 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] py-4 text-center transition-all duration-300 hover:bg-black/30 hover:-translate-y-1 focus-within:-translate-y-1 focus-within:ring-2 focus-within:ring-cyan-400/30"
                     initial={{ opacity: 0, y: 16 }}
                     animate={statsInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
                     transition={{ delay: 0.08 + i * 0.08, duration: 0.5 }}
@@ -385,7 +376,10 @@ const Index = () => {
                   >
                     <div className="mx-auto mb-3 sm:mb-4 grid place-items-center">
                       <div className="relative">
-                        <div className="absolute inset-0 rounded-full blur-xl opacity-30 group-hover:opacity-60 transition" style={{ background: 'radial-gradient(closest-side, rgba(255,255,255,0.25), transparent)' }} />
+                        <div
+                          className="absolute inset-0 rounded-full blur-xl opacity-30 group-hover:opacity-60 transition"
+                          style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.25), transparent)" }}
+                        />
                         <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full ring-1 ring-white/10 bg-white/10 grid place-items-center">
                           <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" aria-hidden="true" />
                         </div>
@@ -405,8 +399,7 @@ const Index = () => {
           </section>
 
           {/* MISIÓN */}
-          <section className="relative py-12 bg-neutral-950 overflow-hidden">
-            {/* halo superior */}
+          <section className="relative py-12 bg-gradient-to-br from-black via-slate-950 to-[#001B97] text-white overflow-hidden">
             <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(700px_260px_at_50%_0%,rgba(34,211,238,0.14),transparent)]" />
 
             <motion.div
@@ -419,24 +412,21 @@ const Index = () => {
               }}
             >
               <motion.div
-                className="rounded-3xl border border-white/10 bg-white/[0.02] p-8 sm:p-12 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+                className="rounded-3xl border border-white/10 bg-black/20 p-8 sm:p-12 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
                 variants={{ hidden: {}, visible: {} }}
               >
-                <motion.h2
-                  className="text-3xl sm:text-4xl font-bold tracking-tight"
-                  variants={{ hidden: {}, visible: {} }}
-                >
+                <motion.h2 className="text-3xl sm:text-4xl font-bold tracking-tight" variants={{ hidden: {}, visible: {} }}>
                   Nuestra misión
                 </motion.h2>
 
-                {/* divisor sutil */}
                 <div className="mx-auto mt-4 sm:mt-5 h-px w-24 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
                 <motion.p
                   className="mt-4 sm:mt-6 text-base sm:text-lg text-neutral-300 leading-relaxed"
                   variants={{ hidden: {}, visible: {} }}
                 >
-                  {producer.webDetails?.mission ?? `En ${producer.name}, cada evento es una conexión auténtica entre música, arte y gastronomía, diseñada para emocionar e inspirar.`}
+                  {producer.webDetails?.mission ??
+                    `En ${producer.name}, cada evento es una conexión auténtica entre música, arte y gastronomía, diseñada para emocionar e inspirar.`}
                 </motion.p>
               </motion.div>
             </motion.div>

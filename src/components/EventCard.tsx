@@ -7,7 +7,7 @@ import { SetURLSearchParams } from "react-router-dom";
 import { TicketPurchaseFlow } from "./TicketPurchase/TicketPurchaseFlow";
 import QuickInEventPurchaseFlow from "./InEventPurchase/InEventPurchaseFlow";
 import { useProducer } from "@/context/ProducerContext";
-import { trackViewEvent, trackSelectItem } from "@/lib/analytics";
+import { useTracking } from "@/hooks/use-tracking";
 
 interface EventCardProps {
   event: EventDto;
@@ -17,8 +17,10 @@ interface EventCardProps {
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promoterKey, setSearchParams }) => {
-  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
   const { producer } = useProducer();
+  const tracking = useTracking({ producer });
+
+  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
 
   useEffect(() => {
     if (initialOpenEventId && event.id === initialOpenEventId) {
@@ -29,12 +31,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
   useEffect(() => {
     if (isEventDetailsOpen) {
       try {
-        trackViewEvent(event, producer);
+        tracking.viewEvent(event);
       } catch (e) {
-        console.warn("trackViewEvent error:", e);
+        console.warn("viewEvent tracking error:", e);
       }
     }
-  }, [isEventDetailsOpen, event, producer]);
+  }, [isEventDetailsOpen, event, tracking]);
 
   const statusColors = {
     ACTIVE: "bg-green-800",
@@ -47,14 +49,14 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
 
   const handleCardClick = () => {
     try {
-      trackSelectItem("events_grid", event, producer);
+      tracking.selectFromList("events_grid", event);
     } catch (e) {
-      console.warn("trackSelectItem error:", e);
+      console.warn("selectFromList tracking error:", e);
     }
 
     setIsEventDetailsOpen(true);
-    setSearchParams(prev => {
-      prev.set('event', String(event.id));
+    setSearchParams((prev) => {
+      prev.set("event", String(event.id));
       return prev;
     });
   };

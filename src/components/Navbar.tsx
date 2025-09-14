@@ -3,8 +3,6 @@ import { Home, Ticket, Images } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useProducer } from "@/context/ProducerContext";
-import { useEffect } from "react";
-import { initializeGoogleAnalytics } from "@/lib/analytics";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const navItems = [
@@ -26,23 +24,22 @@ const Navbar = () => {
       to={`${item.path}${search}`}
       className={cn(
         "flex items-center space-x-2 px-3 py-2 rounded-lg transition",
-        isActive(item.path) ? "bg-blue-800 rounded-lg text-white" : "text-white hover:text-blue-800"
+        isActive(item.path) ? "bg-blue-800 rounded-lg text-white" : "text-white hover:text-blue-400"
       )}
     >
       {item.icon}
       {!isMobile && <span>{item.label}</span>}
     </Link>
   );
-  
-  if(!producer) return
+
+  if (!producer) return
 
   return (
-    <nav
-      className={cn(
-        "fixed inset-x-0 z-40 bg-black/80 backdrop-blur-lg",
-        isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
-      )}
-    >
+    <nav className={cn(
+      "fixed inset-x-0 z-40 bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60",
+      isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
+    )}>
+
       <div className="max-w-7xl mx-auto px-4">
         {isMobile ? (
           <div className="flex justify-around items-center h-12">

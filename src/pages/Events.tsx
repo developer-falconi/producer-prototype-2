@@ -30,8 +30,7 @@ const Events = () => {
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<"all" | "active" | "completed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed">("all");
 
   const [initialOpenEventId, setInitialOpenEventId] = useState<number | null>(null);
   const [promoterKey, setPromoterKey] = useState<string | null>(null);
@@ -59,10 +58,10 @@ const Events = () => {
     return raw.length > 180 ? raw.slice(0, 177) + "…" : raw;
   })();
 
-  const image = activeEvent?.flyer || producer.logo ||
+  const image = activeEvent?.flyer || producer?.logo ||
     "/og-default.jpg";
 
-  const iconHref = activeEvent?.flyer || producer.logo ||
+  const iconHref = activeEvent?.flyer || producer?.logo ||
     "/favicon.svg";
 
   const url = `${window.location.origin}${window.location.pathname}${window.location.search}`;

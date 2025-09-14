@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, PanInfo, useAnimate, useDragControls, useMotionValue } from "framer-motion";
 import { ComboEventDto, CouponEvent, EventDto, InEventPurchaseData, InEventPurchasePayload, ProductEventDto, ProductTypeEnum } from "@/lib/types";
 import { createLiveEventPreference, fetchProducerEventDetailData, submitLiveEventPurchase } from "@/lib/api";
@@ -15,6 +15,9 @@ import EventPurchaseBanner from "./EventPurchaseBanner";
 import PurchaseStatus from "./PurchaseStatus";
 import { useProducer } from "@/context/ProducerContext";
 import { useTracking } from "@/hooks/use-tracking";
+import { Button } from "../ui/button";
+import { Send } from "lucide-react";
+import { toast } from "sonner";
 
 const DRAG_CLOSE_PX = 100;
 const DRAG_CLOSE_VELOCITY = 800;
@@ -144,6 +147,30 @@ export default function InEventPurchaseFlow({
     const grandTotal = productsTotal + combosTotal;
     return { subtotal: grandTotal, grandTotal };
   }, [purchaseData.products, purchaseData.combos]);
+
+  const handleShare = useCallback(async () => {
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const id = fullEventDetails?.id ?? event.id;
+      const url = `${origin}/events?event=${id}`;
+      const title = fullEventDetails?.name ?? event.name;
+      const text = `Mirá este evento: ${title}`;
+
+      if (navigator.share) {
+        await navigator.share({ title, text, url });
+        tracking.ui("share_event_native", { event_id: id, success: true });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copiado al portapapeles");
+        tracking.ui("share_event_copy", { event_id: id });
+      }
+    } catch (e: any) {
+      if (String(e?.name) !== "AbortError") {
+        toast.error("No se pudo compartir");
+        tracking.ui("share_event_error", { message: String(e?.message || e) });
+      }
+    }
+  }, [fullEventDetails, event.id, event.name, tracking]);
 
   useEffect(() => {
     if (purchaseData.total !== totals.grandTotal) {
@@ -530,6 +557,19 @@ export default function InEventPurchaseFlow({
           >
             <div className="flex justify-center mt-1 cursor-grab">
               <button className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"></button>
+            </div>
+
+            <div className="absolute top-6 right-2 md:top-5 md:right-5 z-50">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full bg-black text-white border border-white/20 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition"
+                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                title="Compartir evento"
+                aria-label="Compartir evento"
+              >
+                <Send className="h-5 w-5 text-white" />
+              </Button>
             </div>
 
             <div className="flex-grow pt-1 relative overflow-y-auto">
