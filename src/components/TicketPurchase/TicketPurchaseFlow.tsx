@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TicketSelection } from './TicketSelection';
 import { AttendeeData } from './AttendeeData';
 import { ContactInfo } from './ContactInfo';
@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { toNum } from '@/lib/utils';
 import { useProducer } from '@/context/ProducerContext';
 import { useTracking } from '@/hooks/use-tracking';
+import { Send } from 'lucide-react';
 
 const DRAG_CLOSE_PX = 100;
 const DRAG_CLOSE_VELOCITY = 800;
@@ -642,6 +643,31 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     }
   };
 
+  const handleShare = useCallback(async () => {
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const id = fullEventDetails?.id ?? initialEvent.id;
+      const url = `${origin}/events?event=${id}${purchaseData.promoter ? `&promoter=${encodeURIComponent(purchaseData.promoter)}` : ""
+        }`;
+      const title = fullEventDetails?.name ?? initialEvent.name;
+      const text = `Mirá este evento: ${title}`;
+
+      if (navigator.share) {
+        await navigator.share({ title, text, url });
+        tracking.ui("share_event_native", { event_id: id, success: true });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copiado al portapapeles");
+        tracking.ui("share_event_copy", { event_id: id });
+      }
+    } catch (e: any) {
+      if (String(e?.name) !== "AbortError") {
+        toast.error("No se pudo compartir");
+        tracking.ui("share_event_error", { message: String(e?.message || e) });
+      }
+    }
+  }, [fullEventDetails, initialEvent.id, initialEvent.name, purchaseData.promoter, tracking]);
+
   const renderCurrentStep = () => {
     if (currentStep === 0) {
       return <EventInfo event={fullEventDetails} />;
@@ -758,6 +784,19 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           >
             <div className="flex justify-center mt-1 cursor-grab">
               <button className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"></button>
+            </div>
+
+            <div className="absolute top-6 right-2 md:top-5 md:right-5 z-50">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full bg-black text-white border border-white/20 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition"
+                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                title="Compartir evento"
+                aria-label="Compartir evento"
+              >
+                <Send className="h-5 w-5 text-white" />
+              </Button>
             </div>
 
             <div

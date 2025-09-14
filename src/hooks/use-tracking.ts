@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import type {
   Producer,
@@ -20,6 +20,9 @@ import {
   trackLead,
   captureAttributionFromURL,
   setUserProperties,
+  readAttribution,
+  classifyEntry,
+  trackLandingEntry,
 } from "@/lib/analytics";
 
 type Currency = "ARS" | "USD" | "UYU" | "BRL" | string;
@@ -37,6 +40,8 @@ export function useTracking(
     captureAttributionFromURL(location.search, document.referrer);
   }, [location.search]);
 
+  const attribution = useMemo(() => readAttribution(), [location.search]);
+
   useEffect(() => {
     const title = document?.title;
     trackPageView(location.pathname + location.search, title, producer, { channel });
@@ -52,10 +57,43 @@ export function useTracking(
     }
   }, [producer]);
 
+  const entryOnceRef = useRef(false);
+  useEffect(() => {
+    if (entryOnceRef.current) return;
+
+    const ref = typeof document !== "undefined" ? document.referrer || "" : "";
+    let refOrigin = "";
+    try { refOrigin = ref ? new URL(ref).origin : ""; } catch { }
+
+    const sameOrigin = typeof window !== "undefined" && refOrigin === window.location.origin;
+
+    if (!sameOrigin) {
+      const k = `landing_visit_once_${producer?.id ?? "default"}`;
+      try {
+        if (sessionStorage.getItem(k) === "1") return;
+        sessionStorage.setItem(k, "1");
+      } catch { }
+
+      const info = classifyEntry(window.location.search, ref);
+      trackLandingEntry(producer, info);
+      entryOnceRef.current = true;
+    }
+  }, [producer]);
+
   const api = useMemo(() => {
     return {
       viewEvent: (event: EventDto) =>
         trackViewEvent(event, producer, currency, { channel }),
+
+      trackEventOpenOnce: (event: EventDto) => {
+        const key = `view_event_${event.id}`;
+        try {
+          if (sessionStorage.getItem(key) === "1") return false;
+          sessionStorage.setItem(key, "1");
+        } catch { }
+        trackViewEvent(event, producer, currency, { channel });
+        return true;
+      },
 
       addPrevent: (event: EventDto, prevent: Prevent, qty = 1) =>
         trackAddToCart(event, { prevent, qty }, producer, currency, { channel }),
@@ -80,8 +118,8 @@ export function useTracking(
           it.prevent
             ? { prevent: it.prevent, qty: it.qty }
             : it.combo
-            ? { combo: it.combo, qty: it.qty }
-            : { product: it.product!, qty: it.qty }
+              ? { combo: it.combo, qty: it.qty }
+              : { product: it.product!, qty: it.qty }
         );
         trackBeginCheckout(
           event,
@@ -114,8 +152,8 @@ export function useTracking(
           it.prevent
             ? { prevent: it.prevent, qty: it.qty }
             : it.combo
-            ? { combo: it.combo, qty: it.qty }
-            : { product: it.product!, qty: it.qty }
+              ? { combo: it.combo, qty: it.qty }
+              : { product: it.product!, qty: it.qty }
         );
         trackPurchase(
           event,
@@ -179,11 +217,13 @@ export function useTracking(
         const extra = { ...(payload || {}), producerId: producer?.id, currency, sale_channel: channel };
         try {
           (window as any)?.analytics?.track?.(action, extra);
-        } catch {}
+        } catch { }
         try {
           (window as any)?.gtag?.("event", action, extra);
-        } catch {}
+        } catch { }
       },
+
+      attribution
     };
   }, [producer, currency, channel]);
 

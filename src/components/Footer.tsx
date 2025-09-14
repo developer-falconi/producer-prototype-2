@@ -2,7 +2,7 @@ import { Producer } from "@/lib/types";
 
 const Footer = ({ producer }: { producer: Producer }) => {
   return (
-    <footer className="bg-black/90 backdrop-blur-sm p-4">
+    <footer className="bg-slate-950/95 backdrop-blur-sm p-4 border-t border-white/10">
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-4 gap-8 mb-4">
           <div className="space-y-4 col-span-2">
