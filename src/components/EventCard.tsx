@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { SetURLSearchParams } from "react-router-dom";
 import { TicketPurchaseFlow } from "./TicketPurchase/TicketPurchaseFlow";
 import QuickInEventPurchaseFlow from "./InEventPurchase/InEventPurchaseFlow";
+import { useProducer } from "@/context/ProducerContext";
+import { trackViewEvent, trackSelectItem } from "@/lib/analytics";
 
 interface EventCardProps {
   event: EventDto;
@@ -16,12 +18,23 @@ interface EventCardProps {
 
 const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promoterKey, setSearchParams }) => {
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
+  const { producer } = useProducer();
 
   useEffect(() => {
     if (initialOpenEventId && event.id === initialOpenEventId) {
       setIsEventDetailsOpen(true);
     }
   }, [initialOpenEventId, event.id]);
+
+  useEffect(() => {
+    if (isEventDetailsOpen) {
+      try {
+        trackViewEvent(event, producer);
+      } catch (e) {
+        console.warn("trackViewEvent error:", e);
+      }
+    }
+  }, [isEventDetailsOpen, event, producer]);
 
   const statusColors = {
     ACTIVE: "bg-green-800",
@@ -33,6 +46,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
   const statusColor = statusColors[event?.status] || "bg-gray-500";
 
   const handleCardClick = () => {
+    try {
+      trackSelectItem("events_grid", event, producer);
+    } catch (e) {
+      console.warn("trackSelectItem error:", e);
+    }
+
     setIsEventDetailsOpen(true);
     setSearchParams(prev => {
       prev.set('event', String(event.id));

@@ -5,7 +5,7 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventPromoTypeEnum, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
+import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -17,6 +17,11 @@ import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
 import { toast } from 'sonner';
 import { toNum } from '@/lib/utils';
+import { useProducer } from '@/context/ProducerContext';
+import { useTracking } from '@/hooks/use-tracking';
+
+const DRAG_CLOSE_PX = 100;
+const DRAG_CLOSE_VELOCITY = 800;
 
 const steps = [
   'Seleccionar Entradas',
@@ -61,7 +66,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const [mpGeneratingPreference, setMpGeneratingPreference] = useState<boolean>(false);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponEvent | null>(null);
 
-  //motion
+  // motion
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const scrollableContentRef = useRef<HTMLDivElement>(null);
@@ -84,6 +89,120 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     }
     return currentDynamicSteps;
   }, [fullEventDetails]);
+
+  const { producer } = useProducer();
+  const tracking = useTracking({ producer, channel: 'prevent' });
+
+  const viewTrackedRef = useRef(false);
+  const beginCheckoutTrackedRef = useRef(false);
+  const lastCartRef = useRef<{
+    preventId?: number;
+    preventQty: number;
+    productQtys: Record<number, number>;
+    comboQtys: Record<number, number>;
+  }>({
+    preventId: undefined,
+    preventQty: 0,
+    productQtys: {},
+    comboQtys: {}
+  });
+
+  const buildTrackingItems = () => {
+    const items: Array<{ prevent?: Prevent; product?: any; combo?: any; qty?: number }> = [];
+    if (purchaseData.selectedPrevent && purchaseData.ticketQuantity > 0) {
+      items.push({ prevent: purchaseData.selectedPrevent, qty: purchaseData.ticketQuantity });
+    }
+    purchaseData.products.forEach(p => {
+      if (p.quantity > 0) items.push({ product: p.product, qty: p.quantity });
+    });
+    purchaseData.combos.forEach(c => {
+      if (c.quantity > 0) items.push({ combo: c.combo, qty: c.quantity });
+    });
+    return items;
+  };
+
+  const getCheckoutCoupon = (): string | null => {
+    if (purchaseData.coupon?.id != null) return String(purchaseData.coupon.id);
+    if (purchaseData.promoter) return purchaseData.promoter;
+    return null;
+  };
+
+  const getCheckoutValue = (): number => {
+    const v = purchaseData.total;
+    return toNum(v);
+  };
+
+  useEffect(() => {
+    if (isOpen && fullEventDetails && !viewTrackedRef.current) {
+      tracking.viewEvent(fullEventDetails);
+      viewTrackedRef.current = true;
+    }
+  }, [isOpen, fullEventDetails, tracking]);
+
+  useEffect(() => {
+    if (!fullEventDetails) return;
+
+    const prev = lastCartRef.current;
+
+    const currentPreventId = purchaseData.selectedPrevent?.id;
+    const currentPreventQty = purchaseData.ticketQuantity || 0;
+
+    if (currentPreventId != null) {
+      const prevQty = prev.preventId === currentPreventId ? prev.preventQty : 0;
+      const delta = currentPreventQty - prevQty;
+      if (delta > 0 && purchaseData.selectedPrevent) {
+        tracking.addPrevent(fullEventDetails, purchaseData.selectedPrevent, delta);
+      }
+    }
+    lastCartRef.current.preventId = currentPreventId;
+    lastCartRef.current.preventQty = currentPreventQty;
+
+    const currentProducts: Record<number, number> = {};
+    purchaseData.products.forEach(it => { currentProducts[it.product.id] = it.quantity; });
+    Object.entries(currentProducts).forEach(([idStr, qty]) => {
+      const id = Number(idStr);
+      const prevQty = prev.productQtys[id] ?? 0;
+      const delta = qty - prevQty;
+      if (delta > 0) {
+        const item = purchaseData.products.find(p => p.product.id === id)!;
+        tracking.addProduct(fullEventDetails, item.product, delta);
+      }
+    });
+
+    const currentCombos: Record<number, number> = {};
+    purchaseData.combos.forEach(it => { currentCombos[it.combo.id] = it.quantity; });
+    Object.entries(currentCombos).forEach(([idStr, qty]) => {
+      const id = Number(idStr);
+      const prevQty = prev.comboQtys[id] ?? 0;
+      const delta = qty - prevQty;
+      if (delta > 0) {
+        const item = purchaseData.combos.find(c => c.combo.id === id)!;
+        tracking.addCombo(fullEventDetails, item.combo, delta);
+      }
+    });
+
+    lastCartRef.current.productQtys = currentProducts;
+    lastCartRef.current.comboQtys = currentCombos;
+  }, [
+    fullEventDetails,
+    purchaseData.selectedPrevent,
+    purchaseData.ticketQuantity,
+    purchaseData.products,
+    purchaseData.combos,
+    tracking
+  ]);
+
+  useEffect(() => {
+    if (!fullEventDetails) return;
+    const stepName = dynamicSteps[currentStep - 1];
+    if (stepName === 'Confirmación' && !beginCheckoutTrackedRef.current) {
+      tracking.beginCheckout(fullEventDetails, buildTrackingItems(), {
+        coupon: getCheckoutCoupon(),
+        value: getCheckoutValue(),
+      });
+      beginCheckoutTrackedRef.current = true;
+    }
+  }, [currentStep, dynamicSteps, fullEventDetails, tracking, purchaseData]);
 
   useEffect(() => {
     if (isOpen && !fullEventDetails) {
@@ -123,7 +242,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
     const handleScroll = () => {
       if (scrollableContentRef.current) {
-        setIsAtTop(scrollableContentRef.current.scrollTop === 0);
+        const top = scrollableContentRef.current.scrollTop || 0;
+        setIsAtTop(top <= 2);
       }
     };
 
@@ -334,6 +454,15 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
       if (res.success) {
         setMpPreferenceId(res.data.preferenceId);
+
+        if (fullEventDetails && !beginCheckoutTrackedRef.current) {
+          tracking.beginCheckout(fullEventDetails, buildTrackingItems(), {
+            coupon: getCheckoutCoupon(),
+            value: getCheckoutValue(),
+          });
+          beginCheckoutTrackedRef.current = true;
+        }
+
         setMpGeneratingPreference(false);
         setCurrentStep(currentStep + 1);
         return true;
@@ -450,9 +579,20 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         submitData.append('comprobante', purchaseData.comprobante);
       }
 
-      const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.selectedPrevent.id, purchaseData.total);
+      const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.selectedPrevent!.id, purchaseData.total);
       if (result.success) {
         setSubmissionStatus({ status: 'success', message: result['message'] || "¡Compra Exitosa! 🎉" });
+
+        if (purchaseData.paymentMethod === 'bank_transfer' && (fullEventDetails || initialEvent)) {
+          const evt = fullEventDetails || initialEvent;
+          const txn = `bank_${evt.id}_${Date.now()}`;
+          tracking.purchase(evt, {
+            transactionId: txn,
+            value: getCheckoutValue(),
+            items: buildTrackingItems(),
+            coupon: getCheckoutCoupon(),
+          });
+        }
       } else {
         setSubmissionStatus({ status: 'error', message: result['message'] || "Error al procesar tu compra. Por favor, inténtalo de nuevo." });
       }
@@ -477,19 +617,26 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     setCurrentStep(0);
     setFullEventDetails(null);
     setErrorDetails(null);
+    viewTrackedRef.current = false;
+    beginCheckoutTrackedRef.current = false;
+    lastCartRef.current = { preventQty: 0, productQtys: {}, comboQtys: {} };
+
     handleReset();
     onClose();
   };
 
   const onDragEndSheet = async (_: any, info: PanInfo) => {
-    if (y.get() >= 100) {
-      handleCloseDrawer();
+    const dragged = info.offset.y;
+    const velocity = info.velocity.y;
+
+    if (dragged > DRAG_CLOSE_PX || velocity > DRAG_CLOSE_VELOCITY) {
+      await handleCloseDrawer();
     } else {
       await animate(y, 0, { type: "spring", stiffness: 300, damping: 30 });
     }
   };
 
-  const handlePointerDown = (event) => {
+  const handlePointerDown = (event: any) => {
     if (isAtTop) {
       dragControls.start(event);
     }
@@ -603,15 +750,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             dragControls={dragControls}
             dragListener={false}
             dragConstraints={{ top: 0 }}
-            dragElastic={{ top: 0, bottom: 0.5 }}
+            dragElastic={{ top: 0, bottom: 0.2 }}
             onDragEnd={onDragEndSheet}
             onPointerDown={handlePointerDown}
             onClick={(e) => e.stopPropagation()}
             style={{ cursor: isAtTop ? 'grab' : 'auto', y }}
           >
-            <div
-              className="flex justify-center mt-1 cursor-grab"
-            >
+            <div className="flex justify-center mt-1 cursor-grab">
               <button className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"></button>
             </div>
 
@@ -631,18 +776,16 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 </div>
               ) : (
                 <>
-                  {/* Progress Bar */}
                   {currentStep > 0 && currentStep <= dynamicSteps.length && (
                     <ProgressBar currentStep={currentStep} steps={dynamicSteps} />
                   )}
-
-                  {/* Content */}
                   <div className="animate-fade-in overflow-hidden">
                     {renderCurrentStep()}
                   </div>
                 </>
               )}
             </div>
+
             {currentStep <= dynamicSteps.length - 1 && (
               <NavigationButtons
                 currentStep={currentStep}
@@ -659,9 +802,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 isConfirmationStep={isConfirmationStep}
                 isPaymentMethodStep={isPaymentMethodStep}
                 mpPreferenceId={mpPreferenceId}
-                mpPublicKey={mpPublicKey}
+                mpPublicKey={mpPublicKey || ''}
                 eventStarted={false}
                 onStartPayment={handleCloseDrawer}
+                onTrack={tracking.ui}
               />
             )}
           </motion.div>

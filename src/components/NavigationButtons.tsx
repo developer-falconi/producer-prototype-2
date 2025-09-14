@@ -21,9 +21,10 @@ interface NavigationButtonsProps {
   isConfirmationStep: boolean;
   isPaymentMethodStep: boolean;
   mpPreferenceId: string | null;
-  mpPublicKey: string;
+  mpPublicKey: string | null;
   eventStarted: boolean;
   onStartPayment: () => void;
+  onTrack: (action: string, payload?: Record<string, any>) => void;
 }
 
 export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
@@ -43,14 +44,14 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   mpPreferenceId,
   mpPublicKey,
   eventStarted,
-  onStartPayment
+  onStartPayment,
+  onTrack
 }) => {
   const isInitialStep = currentStep === 0;
   const isFinalStatusStep = currentStep === totalSteps;
 
   const [loadingMpButton, setLoadingMpButton] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
-
   const [mountWallet, setMountWallet] = useState(false);
 
   useEffect(() => {
@@ -61,7 +62,10 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       !!mpPublicKey &&
       termsAccepted;
 
-    if (canMount && !mountWallet) setMountWallet(true);
+    if (canMount && !mountWallet) {
+      setMountWallet(true);
+      onTrack?.('mp_wallet_mounted', { step: currentStep });
+    }
   }, [
     isConfirmationStep,
     isMercadoPagoSelected,
@@ -69,29 +73,71 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     mpPublicKey,
     termsAccepted,
     mountWallet,
+    currentStep,
+    onTrack,
   ]);
+
+  useEffect(() => {
+    if (!loadingMpButton) {
+      onTrack?.('mp_wallet_loaded', { step: currentStep });
+    }
+  }, [loadingMpButton, currentStep, onTrack]);
 
   const walletNode = useMemo(() => {
     if (!mpPublicKey || !mpPreferenceId) return null;
+    const handleStartPayment = () => {
+      onTrack?.('mp_wallet_pay_clicked', { step: currentStep });
+      onStartPayment();
+    };
     return (
       <MercadoPagoButton
         mpPublicKey={mpPublicKey}
         preferenceId={mpPreferenceId}
         loadingButton={loadingMpButton}
         setLoadingButton={setLoadingMpButton}
-        onStartPayment={onStartPayment}
+        onStartPayment={handleStartPayment}
       />
     );
-  }, [mpPublicKey, mpPreferenceId, onStartPayment, loadingMpButton]);
+  }, [mpPublicKey, mpPreferenceId, onStartPayment, loadingMpButton, currentStep, onTrack]);
+
+  const handlePrev = () => {
+    onTrack?.('checkout_prev_clicked', { step: currentStep });
+    onPrevious();
+  };
+
+  const handleGeneratePreference = () => {
+    onTrack?.('mp_generate_preference_clicked', { step: currentStep });
+    onGeneratePreference();
+  };
+
+  const handleConfirm = () => {
+    onTrack?.('checkout_confirm_clicked', { step: currentStep });
+    onComplete();
+  };
+
+  const handleNext = () => {
+    if (isInitialStep) {
+      onTrack?.('checkout_cta_clicked', {
+        step: currentStep,
+        mode: eventStarted ? 'products' : 'tickets',
+      });
+    } else if (isPaymentMethodStep && isMercadoPagoSelected && !mpPreferenceId) {
+      onTrack?.('mp_generate_preference_attempt_from_next', { step: currentStep });
+    } else if (isConfirmationStep) {
+      onTrack?.('checkout_next_on_confirmation', { step: currentStep });
+    } else {
+      onTrack?.('checkout_next_clicked', { step: currentStep });
+    }
+    onNext();
+  };
 
   let nextButtonText = "Continuar";
   let nextButtonIcon: React.ReactNode = <ChevronRight className="w-4 h-4 ml-2" />;
   let nextButtonClass = "bg-green-700 hover:bg-green-700/80";
-  let nextButtonAction = onNext;
+  let nextButtonAction = handleNext;
   let disableNextButton = !canProceed || isGeneratingPreference || isSubmitting || isLoading;
 
   if (isConfirmationStep) disableNextButton ||= !termsAccepted;
-
 
   const shouldRenderNextButton = !(isMercadoPagoSelected && isConfirmationStep && mpPreferenceId);
 
@@ -99,17 +145,18 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     nextButtonText = !eventStarted ? 'Comprar Tickets' : 'Comprar Productos';
     nextButtonIcon = <Ticket className="w-4 h-4 mr-2" />;
     nextButtonClass = 'w-full bg-red-700 hover:bg-red-700/80';
-    nextButtonAction = onNext;
+    nextButtonAction = handleNext;
   } else if (isPaymentMethodStep && isMercadoPagoSelected) {
     if (!mpPreferenceId) {
       nextButtonText = isGeneratingPreference ? 'Generando pago...' : 'Generar Link de Pago';
       nextButtonIcon = isGeneratingPreference ? <SmallSpinner /> : <ChevronRight className="w-4 h-4 ml-2" />;
       nextButtonClass = 'bg-blue-700 hover:bg-blue-700/80';
-      nextButtonAction = onGeneratePreference;
+      nextButtonAction = handleGeneratePreference;
     } else {
       nextButtonText = 'Continuar';
       nextButtonIcon = <ChevronRight className="w-4 h-4 ml-2" />;
       nextButtonClass = 'bg-green-700 hover:bg-green-700/80';
+      nextButtonAction = handleNext;
     }
   } else if (isConfirmationStep) {
     if (isMercadoPagoSelected && mpPreferenceId) {
@@ -121,7 +168,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       nextButtonText = 'Confirmar Compra';
       nextButtonIcon = isSubmitting ? <SmallSpinner /> : <Check className="w-4 h-4 mr-2" />;
       nextButtonClass = 'bg-blue-700 hover:bg-blue-700/80';
-      nextButtonAction = onComplete;
+      nextButtonAction = handleConfirm;
     }
   }
 
@@ -136,14 +183,15 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       role="region"
       aria-label="Acciones del flujo de compra"
     >
-      {/* Checkbox row is now a standalone item in the flex-col container */}
       {isConfirmationStep && (
         <div className="flex flex-row items-start space-x-2 text-white">
           <Checkbox
             id="terms"
             checked={termsAccepted}
             onCheckedChange={(checked) => {
-              setTermsAccepted(Boolean(checked));
+              const accepted = Boolean(checked);
+              setTermsAccepted(accepted);
+              onTrack?.('terms_toggle', { accepted, step: currentStep });
             }}
             className='border-white'
           />
@@ -159,14 +207,12 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
         </div>
       )}
 
-      {/* This new div acts as a container for the buttons, keeping them in a row */}
       <div
         className={cn(
           isConfirmationStep && isMercadoPagoSelected ? "flex flex-col gap-2" : "flex gap-3",
           "w-full"
         )}
       >
-        {/* Botón MPM */}
         {isConfirmationStep && isMercadoPagoSelected && mountWallet && (
           <div className="relative w-full">
             {!termsAccepted && (
@@ -178,10 +224,9 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
           </div>
         )}
 
-        {/* Botón Anterior */}
         {currentStep > 0 && !isFinalStatusStep && (
           <Button
-            onClick={onPrevious}
+            onClick={handlePrev}
             className={cn(
               "bg-red-700 hover:bg-red-700/80",
               isConfirmationStep && isMercadoPagoSelected ? 'w-full' : 'flex-1'
