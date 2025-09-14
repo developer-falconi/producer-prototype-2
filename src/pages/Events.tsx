@@ -180,7 +180,7 @@ const Events = () => {
           </header>
 
           {/* Filtros sticky */}
-          <div className="sticky top-0 z-30 border-y border-white/10 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/35">
+          <div className="border-y border-white/10 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/35">
             <div className="max-w-7xl mx-auto px-4">
               <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 py-3">
                 {/* Buscar */}

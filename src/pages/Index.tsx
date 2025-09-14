@@ -216,8 +216,8 @@ const Index = () => {
               className={cn(
                 "font-extrabold mb-5 leading-tight drop-shadow-lg",
                 eventsForHeroCarousel.length > 0
-                  ? "text-3xl md:text-4xl lg:text-5xl"
-                  : "text-4xl md:text-6xl lg:text-7xl xl:text-8xl"
+                  ? "text-3xl"
+                  : "text-4xl"
               )}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
