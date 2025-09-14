@@ -182,9 +182,9 @@ const Events = () => {
           {/* Filtros sticky */}
           <div className="border-y border-white/10 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/35">
             <div className="max-w-7xl mx-auto px-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 py-3 items-start">
-                {/* Buscar – fila 1, ocupa 3 columnas */}
-                <div className="relative md:col-span-3">
+              <div className="flex flex-col md:flex-row md:flex-nowrap md:items-center gap-3 py-3">
+                {/* Buscar – ocupa 1/2 en md */}
+                <div className="relative w-full md:basis-1/2 md:flex-shrink-0">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 w-5 h-5" />
                   <Input
                     ref={searchRef}
@@ -196,26 +196,27 @@ const Events = () => {
                   />
                 </div>
 
-                {/* Estado – fila 2, col 1 */}
-                <div className="flex items-center">
-                  <Select
-                    value={statusFilter}
-                    onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
-                  >
-                    <SelectTrigger className="w-full md:w-48 bg-white/10 border-white/15 text-white">
-                      <Filter className="w-4 h-4 mr-2" />
-                      <SelectValue placeholder="Estado" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-slate-700 text-white">
-                      <SelectItem value="all" className="cursor-pointer">Todos</SelectItem>
-                      <SelectItem value="active" className="cursor-pointer">Activos</SelectItem>
-                      <SelectItem value="completed" className="cursor-pointer">Finalizados</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Grupo derecho – comparte la otra mitad */}
+                <div className="flex w-full md:basis-1/2 md:items-center gap-3">
+                  {/* Estado */}
+                  <div className="flex items-center">
+                    <Select
+                      value={statusFilter}
+                      onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+                    >
+                      <SelectTrigger className="w-full md:w-48 bg-white/10 border-white/15 text-white">
+                        <Filter className="w-4 h-4 mr-2" />
+                        <SelectValue placeholder="Estado" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                        <SelectItem value="all" className="cursor-pointer">Todos</SelectItem>
+                        <SelectItem value="active" className="cursor-pointer">Activos</SelectItem>
+                        <SelectItem value="completed" className="cursor-pointer">Finalizados</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {/* Limpiar – fila 2, col 2 */}
-                <div className="flex items-center">
+                  {/* Limpiar */}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -226,17 +227,17 @@ const Events = () => {
                   >
                     <X className="w-4 h-4 mr-1" /> Limpiar
                   </Button>
-                </div>
 
-                {/* Contador – fila 2, col 3 (alineado a la derecha) */}
-                <div
-                  className="justify-self-start md:justify-self-end inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white"
-                  aria-live="polite"
-                >
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/15 px-2 text-xs">
-                    {filteredEvents.length}
-                  </span>
-                  Resultados
+                  {/* Contador – pegado a la derecha en md */}
+                  <div
+                    className="md:ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white"
+                    aria-live="polite"
+                  >
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/15 px-2 text-xs">
+                      {filteredEvents.length}
+                    </span>
+                    Resultados
+                  </div>
                 </div>
               </div>
             </div>
