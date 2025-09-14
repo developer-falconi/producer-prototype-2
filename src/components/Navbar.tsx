@@ -24,7 +24,7 @@ const Navbar = () => {
       to={`${item.path}${search}`}
       className={cn(
         "flex items-center space-x-2 px-3 py-2 rounded-lg transition",
-        isActive(item.path) ? "bg-blue-800 rounded-lg text-white" : "text-white hover:text-blue-400"
+        isActive(item.path) ? "bg-[#001B97] rounded-lg text-white" : "text-white hover:text-blue-400"
       )}
     >
       {item.icon}

@@ -150,7 +150,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     if (!mpPreferenceId) {
       nextButtonText = isGeneratingPreference ? 'Generando pago...' : 'Generar Link de Pago';
       nextButtonIcon = isGeneratingPreference ? <SmallSpinner /> : <ChevronRight className="w-4 h-4 ml-2" />;
-      nextButtonClass = 'bg-blue-700 hover:bg-blue-700/80';
+      nextButtonClass = 'bg-[#001B97] hover:bg-[#001B97]/80';
       nextButtonAction = handleGeneratePreference;
     } else {
       nextButtonText = 'Continuar';
@@ -167,7 +167,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     } else {
       nextButtonText = 'Confirmar Compra';
       nextButtonIcon = isSubmitting ? <SmallSpinner /> : <Check className="w-4 h-4 mr-2" />;
-      nextButtonClass = 'bg-blue-700 hover:bg-blue-700/80';
+      nextButtonClass = 'bg-[#001B97] hover:bg-[#001B97]/80';
       nextButtonAction = handleConfirm;
     }
   }

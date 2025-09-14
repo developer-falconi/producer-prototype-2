@@ -188,7 +188,7 @@ const Index = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-950">
         <p className="font-medium text-lg text-white mb-3">Error al cargar los datos del productor.</p>
         <Link to="https://app.produtik.com" target="_blank">
-          <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+          <div className="flex items-center gap-2 bg-[#001B97] hover:bg-[#001B97]/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
             Encontranos en Produtik <ExternalLink className="h-4 w-4" />
           </div>
         </Link>
