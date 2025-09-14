@@ -17,7 +17,8 @@ import { EventDto } from "@/lib/types";
 import { useProducer } from "@/context/ProducerContext";
 import { useTracking } from "@/hooks/use-tracking";
 import { useDebouncedValue } from "@/hooks/use-debounce";
-import Spinner from "@/components/Spinner"; // ⬅️ loader
+import Spinner from "@/components/Spinner";
+import { Helmet } from "react-helmet-async";
 
 const VALID_STATUS = new Set(["all", "active", "completed"]);
 
@@ -38,6 +39,34 @@ const Events = () => {
 
   const searchRef = useRef<HTMLInputElement>(null);
   const debouncedSearch = useDebouncedValue(searchTerm, 350);
+
+  const activeEvent = useMemo(() => {
+    const id = Number(searchParams.get("event") || "");
+    return Number.isFinite(id) ? events.find(e => e.id === id) || null : null;
+  }, [searchParams, events]);
+
+  const siteName = producer?.name || "Produtik";
+  const baseTitle = producer?.webDetails?.eventTitle || "Nuestros Eventos";
+  const baseSubtitle =
+    producer?.webDetails?.eventSubtitle ||
+    "Descubre todas las experiencias únicas que hemos creado y las que están por venir";
+
+  const title = activeEvent
+    ? `${activeEvent.name} — ${siteName}`
+    : `${baseTitle} — ${siteName}`;
+
+  const description = (() => {
+    const raw = activeEvent?.description || baseSubtitle;
+    return raw.length > 180 ? raw.slice(0, 177) + "…" : raw;
+  })();
+
+  const image = activeEvent?.flyer || producer.logo ||
+    "/og-default.jpg";
+
+  const iconHref = activeEvent?.flyer || producer.logo ||
+    "/favicon.svg";
+
+  const url = `${window.location.origin}${window.location.pathname}${window.location.search}`;
 
   const updateURLParams = (patch: Record<string, string | null | undefined>) => {
     setSearchParams((prev) => {
@@ -166,6 +195,46 @@ const Events = () => {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
+      <Helmet prioritizeSeoTags>
+        <title>{title}</title>
+        <link rel="icon" href={iconHref} />
+        <meta name="theme-color" content="#000000" />
+
+        <link rel="canonical" href={url} />
+
+        <meta name="description" content={description} />
+
+        {/* Open Graph */}
+        <meta property="og:type" content={activeEvent ? "event" : "website"} />
+        <meta property="og:site_name" content={siteName} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content={image} />
+        <meta property="og:url" content={url} />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={image} />
+
+        {activeEvent && (
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Event",
+              name: activeEvent.name,
+              startDate: activeEvent.startDate,
+              endDate: activeEvent.endDate,
+              image: [image],
+              description,
+              organizer: { "@type": "Organization", name: siteName },
+              url
+            })}
+          </script>
+        )}
+      </Helmet>
+
       {producer ? (
         <>
           {/* Header */}
@@ -227,17 +296,6 @@ const Events = () => {
                   >
                     <X className="w-4 h-4 mr-1" /> Limpiar
                   </Button>
-
-                  {/* Contador – pegado a la derecha en md */}
-                  <div
-                    className="md:ml-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white"
-                    aria-live="polite"
-                  >
-                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/15 px-2 text-xs">
-                      {filteredEvents.length}
-                    </span>
-                    Resultados
-                  </div>
                 </div>
               </div>
             </div>
@@ -301,11 +359,11 @@ const Events = () => {
           <Footer producer={producer} />
         </>
       ) : (
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex flex-col items-center justify-center">
           <p className="font-medium text-lg text-white mb-2">
             Error al cargar los datos del productor.
           </p>
-          <Link to="https://www.produtik.com" target="_blank">
+          <Link to="https://app.produtik.com" target="_blank">
             <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
               Encontranos en Produtik <ExternalLink className="h-4 w-4" />
             </div>

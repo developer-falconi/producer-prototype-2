@@ -129,8 +129,8 @@ const Index = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-950">
         <p className="font-medium text-lg text-white mb-3">Error al cargar los datos del productor.</p>
-        <Link to="https://www.produtik.com" target="_blank">
-          <div className="flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+        <Link to="https://app.produtik.com" target="_blank">
+          <div className="flex items-center gap-2 bg-blue-800 hover:bg-blue-800/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
             Encontranos en Produtik <ExternalLink className="h-4 w-4" />
           </div>
         </Link>
@@ -201,23 +201,23 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-neutral-950/80 via-neutral-950/50 to-neutral-950/90 z-[1]" />
 
           {eventsForHeroCarousel.length > 0 && (
-            <div className="relative z-[2] w-full md:w-1/2 max-w-[720px] mx-auto mb-10 md:mb-0">
+            <div className="relative z-[2] w-full md:w-1/2 max-w-[720px] mx-auto mb-2">
               <EventCarousel events={eventsForHeroCarousel} />
             </div>
           )}
 
           <div
             className={cn(
-              "relative z-[2] flex flex-col w-full items-center",
+              "relative z-[2] flex flex-col w-full items-center justify-center",
               eventsForHeroCarousel.length > 0 ? "md:w-1/2 md:items-start" : "max-w-4xl"
             )}
           >
             <motion.h1
               className={cn(
-                "font-extrabold mb-5 leading-tight drop-shadow-lg",
+                "font-extrabold mb-5 leading-tight drop-shadow-lg text-center w-full",
                 eventsForHeroCarousel.length > 0
-                  ? "text-3xl"
-                  : "text-4xl"
+                  ? "text-3xl lg:text-5xl"
+                  : "text-5xl"
               )}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -230,7 +230,7 @@ const Index = () => {
                   className={cn(
                     "block rounded-full mx-auto mb-4 object-cover ring-1 ring-white/15",
                     eventsForHeroCarousel.length > 0
-                      ? "h-20 w-20 md:h-24 md:w-24"
+                      ? "h-20 w-20 md:h-28 md:w-28"
                       : "h-24 w-24 md:h-28 md:w-28"
                   )}
                   loading="lazy"
@@ -241,7 +241,7 @@ const Index = () => {
             </motion.h1>
 
             <motion.p
-              className="text-base sm:text-lg md:text-xl text-neutral-200/90 mb-8 max-w-2xl drop-shadow"
+              className="text-base sm:text-lg md:text-xl text-neutral-200/90 mb-8 max-w-2xl drop-shadow w-full"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.3 }}
@@ -254,7 +254,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.4 }}
-              className="flex flex-wrap items-center gap-3 justify-center md:justify-start"
+              className="flex flex-wrap items-center gap-3 justify-center w-full"
             >
               <Link to={`/events${search}`} onClick={handleHeroCta}>
                 <button className="bg-white text-neutral-900 font-semibold py-3 px-7 rounded-full shadow-lg text-base md:text-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 inline-flex items-center">

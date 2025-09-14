@@ -45,7 +45,7 @@ const EventCarousel = ({ events }: { events: EventDto[] }) => {
                 <div
                   className={cn(
                     'relative aspect-[9/12]',
-                    'max-h-[60vh] md:max-h-[70vh] min-h-[50vh]',
+                    'max-h-[80vh] md:max-h-[80vh]',
                     'w-full max-w-full mx-auto',
                     'rounded-xl shadow-2xl overflow-hidden cursor-pointer',
                     isLive && 'border-4 border-red-700'
