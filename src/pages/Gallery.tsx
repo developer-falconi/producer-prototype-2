@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Play, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { fetchProducerGalleryData } from "@/lib/api";
 import { EventImageDto } from "@/lib/types";
 // tracking
 import { useTracking } from "@/hooks/use-tracking";
+import { Helmet } from "react-helmet-async";
 
 const Gallery = () => {
   const { producer } = useProducer();
@@ -109,6 +110,44 @@ const Gallery = () => {
     };
     tracking.ui(open ? "gallery_media_open" : "gallery_media_close", payload);
   };
+
+  const meta = useMemo(() => {
+    const site = producer?.name || "Produtik";
+    const titleBase = producer?.webDetails?.galleryTitle || `Galería ${site}`;
+    const subtitle = producer?.webDetails?.gallerySubtitle
+      || `Revive los mejores momentos de ${site}`;
+    const count = filteredContent.length;
+    const title = `${titleBase} — ${site}`;
+    const description = `${subtitle}${count ? ` | ${count} piezas` : ""}`;
+    const image = filteredContent[0]?.url || producer?.logo || "/og-default.jpg";
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+
+    const hasPart = filteredContent.slice(0, 12).map((it) => {
+      const common = {
+        name: it.name || it.event?.name || "Media",
+        description: it.event?.name ? `Evento: ${it.event.name}` : undefined,
+        url: it.url
+      };
+      return it.name === "video"
+        ? { "@type": "VideoObject", ...common, thumbnailUrl: it.url, embedUrl: it.url }
+        : { "@type": "ImageObject", ...common, contentUrl: it.url };
+    });
+
+    const ld = {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      name: titleBase,
+      description,
+      url,
+      mainEntity: {
+        "@type": "ImageGallery",
+        name: titleBase,
+        hasPart
+      }
+    };
+
+    return { site, title, description, image, url, ld };
+  }, [producer, filteredContent]);
 
   const renderMediaCard = (item: EventImageDto, index: number) => {
     if (item.name === "video") {
@@ -240,114 +279,136 @@ const Gallery = () => {
   }
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-      className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900"
-    >
-      <div className="container">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <motion.h1
-              variants={textVariants}
-              className="text-4xl lg:text-5xl font-bold text-white mb-4"
-            >
-              {producer.webDetails?.galleryTitle || `Galería ${producer.name}`}
-            </motion.h1>
-            <motion.p
-              variants={textVariants}
-              className="text-xl text-gray-200 max-w-2xl mx-auto"
-            >
-              {
-                producer.webDetails?.gallerySubtitle
-                || 'Revive los mejores momentos de nuestros eventos a través de imágenes, videos y experiencias únicas'
-              }
-            </motion.p>
-          </div>
+    <>
+      <Helmet prioritizeSeoTags>
+        <title>{meta.title}</title>
+        <meta name="description" content={meta.description} />
+        <link rel="canonical" href={meta.url} />
+        <meta name="theme-color" content="#000000" />
+        {/* OG */}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content={meta.site} />
+        <meta property="og:title" content={meta.title} />
+        <meta property="og:description" content={meta.description} />
+        <meta property="og:image" content={meta.image} />
+        <meta property="og:url" content={meta.url} />
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={meta.title} />
+        <meta name="twitter:description" content={meta.description} />
+        <meta name="twitter:image" content={meta.image} />
+        {/* LD+JSON */}
+        <script type="application/ld+json">{JSON.stringify(meta.ld)}</script>
+      </Helmet>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+        className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900"
+      >
+        <div className="container">
+          <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-12">
+              <motion.h1
+                variants={textVariants}
+                className="text-4xl lg:text-5xl font-bold text-white mb-4"
+              >
+                {producer.webDetails?.galleryTitle || `Galería ${producer.name}`}
+              </motion.h1>
+              <motion.p
+                variants={textVariants}
+                className="text-xl text-gray-200 max-w-2xl mx-auto"
+              >
+                {
+                  producer.webDetails?.gallerySubtitle
+                  || 'Revive los mejores momentos de nuestros eventos a través de imágenes, videos y experiencias únicas'
+                }
+              </motion.p>
+            </div>
 
-          {/* Category Filters (si los usan, ya trackea arriba con gallery_filter_selected) */}
-          {/* ... */}
+            {/* Category Filters (si los usan, ya trackea arriba con gallery_filter_selected) */}
+            {/* ... */}
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selectedCategory}
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            >
-              {filteredContent.length > 0 ? (
-                filteredContent.map((item, index) => (
-                  <motion.div key={item.id} variants={itemVariants}>
-                    {renderMediaCard(item, index)}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selectedCategory}
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              >
+                {filteredContent.length > 0 ? (
+                  filteredContent.map((item, index) => (
+                    <motion.div key={item.id} variants={itemVariants}>
+                      {renderMediaCard(item, index)}
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div
+                    key="no-content"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-center py-12 col-span-full"
+                  >
+                    <div className="text-gray-800 text-lg mb-4">No hay contenido disponible</div>
+                    <p className="text-gray-700">Selecciona otra categoría para ver más contenido</p>
                   </motion.div>
-                ))
-              ) : (
-                <motion.div
-                  key="no-content"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-center py-12 col-span-full"
-                >
-                  <div className="text-gray-800 text-lg mb-4">No hay contenido disponible</div>
-                  <p className="text-gray-700">Selecciona otra categoría para ver más contenido</p>
-                </motion.div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                )}
+              </motion.div>
+            </AnimatePresence>
 
-          {/* Call to Action */}
-          <motion.div variants={textVariants} className="text-center mt-8">
-            <motion.div
-              variants={itemVariants}
-              className="bg-gray-800/80 backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
-            >
-              <h3 className="text-2xl font-bold text-gray-100 mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
-              <p className="text-gray-200 mb-6">
-                Únete a nuestra comunidad y no te pierdas ningún evento exclusivo de {producer.name}
-              </p>
-              <div className="flex flex-wrap justify-center gap-4">
-                <motion.div variants={buttonVariants}>
-                  <Button
-                    asChild
-                    className="bg-gray-800 hover:bg-gray-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
-                  >
-                    <a
-                      href="/events"
-                      onClick={() => tracking.ui("gallery_cta_view_events_click")}
+            {/* Call to Action */}
+            <motion.div variants={textVariants} className="text-center mt-8">
+              <motion.div
+                variants={itemVariants}
+                className="bg-gray-800/80 backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
+              >
+                <h3 className="text-2xl font-bold text-gray-100 mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
+                <p className="text-gray-200 mb-6">
+                  Únete a nuestra comunidad y no te pierdas ningún evento exclusivo de {producer.name}
+                </p>
+                <div className="flex flex-wrap justify-center gap-4">
+                  <motion.div variants={buttonVariants}>
+                    <Button
+                      asChild
+                      className="bg-gray-800 hover:bg-gray-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
                     >
-                      Ver Próximos Eventos
-                    </a>
-                  </Button>
-                </motion.div>
-                <motion.div variants={buttonVariants}>
-                  <Button
-                    asChild
-                    className="bg-blue-800 hover:bg-blue-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
-                  >
-                    <a
-                      href={`https://instagram.com/${producer.instagram}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => tracking.ui("gallery_cta_follow_click", { handle: producer.instagram })}
+                      <a
+                        href="/events"
+                        onClick={() => tracking.ui("gallery_cta_view_events_click")}
+                      >
+                        Ver Próximos Eventos
+                      </a>
+                    </Button>
+                  </motion.div>
+                  <motion.div variants={buttonVariants}>
+                    <Button
+                      asChild
+                      className="bg-blue-800 hover:bg-blue-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
                     >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Síguenos
-                    </a>
-                  </Button>
-                </motion.div>
-              </div>
+                      <a
+                        href={`https://instagram.com/${producer.instagram}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => tracking.ui("gallery_cta_follow_click", { handle: producer.instagram })}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Síguenos
+                      </a>
+                    </Button>
+                  </motion.div>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
-      </div>
 
-      <Footer producer={producer} />
-    </motion.div>
+        <Footer producer={producer} />
+      </motion.div>
+    </>
   );
 };
 
