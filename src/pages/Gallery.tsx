@@ -312,7 +312,7 @@ const Gallery = () => {
             <div className="text-center mb-12">
               <motion.h1
                 variants={textVariants}
-                className="text-4xl lg:text-5xl font-bold text-white mb-4"
+                className="text-4xl lg:text-5xl font-bold text-white my-3"
               >
                 {producer.webDetails?.galleryTitle || `Galería ${producer.name}`}
               </motion.h1>
