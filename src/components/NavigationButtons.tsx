@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Check, Ticket } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,7 +27,7 @@ interface NavigationButtonsProps {
   onTrack: (action: string, payload?: Record<string, any>) => void;
 }
 
-export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
+const NavigationButtonsComponent: React.FC<NavigationButtonsProps> = ({
   currentStep,
   totalSteps,
   canProceed,
@@ -74,6 +74,47 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     }
   }, [loadingMpButton, currentStep, onTrack]);
 
+  const handlePrev = useCallback(() => {
+    onTrack?.('checkout_prev_clicked', { step: currentStep });
+    onPrevious();
+  }, [currentStep, onPrevious, onTrack]);
+
+  const handleGeneratePreference = useCallback(() => {
+    onTrack?.('mp_generate_preference_clicked', { step: currentStep });
+    onGeneratePreference();
+  }, [currentStep, onGeneratePreference, onTrack]);
+
+  const handleConfirm = useCallback(() => {
+    onTrack?.('checkout_confirm_clicked', { step: currentStep });
+    onComplete();
+  }, [currentStep, onComplete, onTrack]);
+
+  const handleNext = useCallback(() => {
+    if (isInitialStep) {
+      onTrack?.('checkout_cta_clicked', {
+        step: currentStep,
+        mode: eventStarted ? 'products' : 'tickets',
+      });
+    } else if (isPaymentMethodStep && isMercadoPagoSelected && !mpPreferenceId) {
+      onTrack?.('mp_generate_preference_attempt_from_next', { step: currentStep });
+    } else if (isConfirmationStep) {
+      onTrack?.('checkout_next_on_confirmation', { step: currentStep });
+    } else {
+      onTrack?.('checkout_next_clicked', { step: currentStep });
+    }
+    onNext();
+  }, [
+    isInitialStep,
+    isPaymentMethodStep,
+    isMercadoPagoSelected,
+    mpPreferenceId,
+    isConfirmationStep,
+    currentStep,
+    eventStarted,
+    onNext,
+    onTrack
+  ]);
+
   const walletNode = useMemo(() => {
     if (!mpPublicKey || !mpPreferenceId) return null;
     const handleStartPayment = () => {
@@ -91,77 +132,82 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     );
   }, [mpPublicKey, mpPreferenceId, onStartPayment, loadingMpButton, currentStep, onTrack]);
 
-  const handlePrev = () => {
-    onTrack?.('checkout_prev_clicked', { step: currentStep });
-    onPrevious();
-  };
+  const {
+    nextButtonText,
+    nextButtonIcon,
+    nextButtonClass,
+    nextButtonAction,
+    disableNextButton,
+    shouldRenderNextButton
+  } = useMemo(() => {
+    let text = 'Continuar';
+    let icon: React.ReactNode = <ChevronRight className="w-4 h-4 ml-2" />;
+    let klass = 'bg-green-700 hover:bg-green-700/80';
+    let action: () => void = handleNext;
 
-  const handleGeneratePreference = () => {
-    onTrack?.('mp_generate_preference_clicked', { step: currentStep });
-    onGeneratePreference();
-  };
+    let disabled =
+      !canProceed || isGeneratingPreference || isSubmitting || isLoading;
 
-  const handleConfirm = () => {
-    onTrack?.('checkout_confirm_clicked', { step: currentStep });
-    onComplete();
-  };
+    if (isConfirmationStep) disabled ||= !termsAccepted;
 
-  const handleNext = () => {
+    const hideNext =
+      isMercadoPagoSelected && isConfirmationStep && !!mpPreferenceId;
+
     if (isInitialStep) {
-      onTrack?.('checkout_cta_clicked', {
-        step: currentStep,
-        mode: eventStarted ? 'products' : 'tickets',
-      });
-    } else if (isPaymentMethodStep && isMercadoPagoSelected && !mpPreferenceId) {
-      onTrack?.('mp_generate_preference_attempt_from_next', { step: currentStep });
+      text = !eventStarted ? 'Comprar Tickets' : 'Comprar Productos';
+      icon = <Ticket className="w-4 h-4 mr-2" />;
+      klass = 'w-full bg-red-700 hover:bg-red-700/80';
+      action = handleNext;
+    } else if (isPaymentMethodStep && isMercadoPagoSelected) {
+      if (!mpPreferenceId) {
+        text = isGeneratingPreference ? 'Generando pago...' : 'Generar Link de Pago';
+        icon = isGeneratingPreference ? <SmallSpinner /> : <ChevronRight className="w-4 h-4 ml-2" />;
+        klass = 'bg-[#001B97] hover:bg-[#001B97]/80';
+        action = handleGeneratePreference;
+      } else {
+        text = 'Continuar';
+        icon = <ChevronRight className="w-4 h-4 ml-2" />;
+        klass = 'bg-green-700 hover:bg-green-700/80';
+        action = handleNext;
+      }
     } else if (isConfirmationStep) {
-      onTrack?.('checkout_next_on_confirmation', { step: currentStep });
-    } else {
-      onTrack?.('checkout_next_clicked', { step: currentStep });
+      if (isMercadoPagoSelected && mpPreferenceId) {
+        text = '';
+        icon = null;
+        klass = '';
+        action = () => { };
+      } else {
+        text = 'Confirmar Compra';
+        icon = isSubmitting ? <SmallSpinner /> : <Check className="w-4 h-4 mr-2" />;
+        klass = 'bg-[#001B97] hover:bg-[#001B97]/80';
+        action = handleConfirm;
+      }
     }
-    onNext();
-  };
 
-  let nextButtonText = "Continuar";
-  let nextButtonIcon: React.ReactNode = <ChevronRight className="w-4 h-4 ml-2" />;
-  let nextButtonClass = "bg-green-700 hover:bg-green-700/80";
-  let nextButtonAction = handleNext;
-  let disableNextButton = !canProceed || isGeneratingPreference || isSubmitting || isLoading;
-
-  if (isConfirmationStep) disableNextButton ||= !termsAccepted;
-
-  const shouldRenderNextButton = !(isMercadoPagoSelected && isConfirmationStep && mpPreferenceId);
-
-  if (isInitialStep) {
-    nextButtonText = !eventStarted ? 'Comprar Tickets' : 'Comprar Productos';
-    nextButtonIcon = <Ticket className="w-4 h-4 mr-2" />;
-    nextButtonClass = 'w-full bg-red-700 hover:bg-red-700/80';
-    nextButtonAction = handleNext;
-  } else if (isPaymentMethodStep && isMercadoPagoSelected) {
-    if (!mpPreferenceId) {
-      nextButtonText = isGeneratingPreference ? 'Generando pago...' : 'Generar Link de Pago';
-      nextButtonIcon = isGeneratingPreference ? <SmallSpinner /> : <ChevronRight className="w-4 h-4 ml-2" />;
-      nextButtonClass = 'bg-[#001B97] hover:bg-[#001B97]/80';
-      nextButtonAction = handleGeneratePreference;
-    } else {
-      nextButtonText = 'Continuar';
-      nextButtonIcon = <ChevronRight className="w-4 h-4 ml-2" />;
-      nextButtonClass = 'bg-green-700 hover:bg-green-700/80';
-      nextButtonAction = handleNext;
-    }
-  } else if (isConfirmationStep) {
-    if (isMercadoPagoSelected && mpPreferenceId) {
-      nextButtonText = '';
-      nextButtonIcon = null;
-      nextButtonClass = '';
-      nextButtonAction = () => { };
-    } else {
-      nextButtonText = 'Confirmar Compra';
-      nextButtonIcon = isSubmitting ? <SmallSpinner /> : <Check className="w-4 h-4 mr-2" />;
-      nextButtonClass = 'bg-[#001B97] hover:bg-[#001B97]/80';
-      nextButtonAction = handleConfirm;
-    }
-  }
+    return {
+      nextButtonText: text,
+      nextButtonIcon: icon,
+      nextButtonClass: klass,
+      nextButtonAction: action,
+      disableNextButton: disabled,
+      shouldRenderNextButton: !hideNext
+    };
+  }, [
+    canProceed,
+    isGeneratingPreference,
+    isSubmitting,
+    isLoading,
+    isConfirmationStep,
+    termsAccepted,
+    isMercadoPagoSelected,
+    mpPreferenceId,
+    isInitialStep,
+    eventStarted,
+    isPaymentMethodStep,
+    handleNext,
+    handleGeneratePreference,
+    handleConfirm
+  ]);
 
   return (
     <div
@@ -252,3 +298,5 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     </div>
   );
 };
+
+export const NavigationButtons = React.memo(NavigationButtonsComponent);

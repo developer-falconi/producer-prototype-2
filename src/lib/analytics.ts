@@ -237,6 +237,8 @@ export function setConsent(opts: {
   analytics_storage?: "granted" | "denied";
   functionality_storage?: "granted" | "denied";
   security_storage?: "granted" | "denied";
+  ad_user_data?: "granted" | "denied";
+  ad_personalization?: "granted" | "denied";
 }) {
   try {
     if (hasGA()) {
@@ -435,8 +437,9 @@ export function trackPageView(
 ) {
   const base = baseCommonParams(producer);
   const params = withChannel({
-    page_location: typeof window !== "undefined" ? window.location.href : undefined,
-    page_path: path, page_title: title,
+    page_location: window.location.href,
+    page_title: title,
+    page_referrer: document.referrer || undefined,
     ...base
   }, meta?.channel);
   gtag("page_view", params);
@@ -498,10 +501,11 @@ export function trackAddToCart(
   gtag("add_to_cart", withChannel({ event_id: eid, value, currency, items: [item], ...base }, channel));
   fbqTrack("AddToCart", withChannel({
     event_id: eid,
+    value,
+    currency,
     content_type: "product",
-    content_ids: [item.item_id],
-    content_name: item.item_name,
-    value, currency, quantity: item.quantity,
+    contents: [
+      { id: item.item_id, quantity: item.quantity, item_price: item.price }],
     ...base
   }, channel));
 }
@@ -700,4 +704,121 @@ export function trackLandingEntry(producer?: Producer, info?: EntryInfo) {
     entry_campaign: info?.campaign ?? undefined,
     ...base
   });
+}
+
+export function trackAddPaymentInfo(
+  event: EventDto,
+  items: Array<
+    | { prevent: Prevent; qty?: number }
+    | { combo: ComboEventDto; qty?: number }
+    | { product: ProductEventDto; qty?: number }
+  >,
+  options: {
+    paymentType: 'bank_transfer' | 'mercadopago' | 'cash';
+    coupon?: string | null;
+    value?: number;
+    producer?: Producer;
+    currency?: Currency;
+    channel?: Channel;
+  },
+  meta?: Meta
+) {
+  const eid = eventId("add_payment_info", event.id);
+  const currency = options.currency || "ARS";
+  const channel = resolveChannel(event, meta, options.channel);
+
+  const gaItems = items.map((it) => {
+    if ("prevent" in it) return toItemFromPrevent(event, it.prevent, it.qty || 1);
+    if ("combo" in it) return toItemFromCombo(event, it.combo, it.qty || 1);
+    return toItemFromProduct(event, it.product, it.qty || 1);
+  });
+
+  const gaValue = typeof options.value === "number"
+    ? options.value
+    : gaItems.reduce(
+      (acc, i) => acc + Number(i.price || 0) * Number(i.quantity || 0),
+      0
+    );
+
+  const base = baseCommonParams(options.producer, currency);
+
+  gtag("add_payment_info", withChannel({
+    event_id: eid,
+    value: gaValue,
+    currency,
+    payment_type: options.paymentType,
+    coupon: options.coupon || undefined,
+    items: gaItems,
+    ...base
+  }, channel));
+
+  fbqTrack("AddPaymentInfo", withChannel({
+    event_id: eid,
+    value: gaValue,
+    currency,
+    num_items: gaItems.reduce((a, i) => a + (Number(i.quantity) || 0), 0),
+    content_type: "product",
+    contents: gaItems.map(i => ({ id: i.item_id, quantity: i.quantity, item_price: i.price })),
+    coupon: options.coupon || undefined,
+    ...base
+  }, channel));
+}
+
+export function trackViewCart(
+  event: EventDto,
+  items: Array<
+    | { prevent: Prevent; qty?: number }
+    | { combo: ComboEventDto; qty?: number }
+    | { product: ProductEventDto; qty?: number }
+  >,
+  options?: {
+    coupon?: string | null;
+    value?: number;
+    producer?: Producer;
+    currency?: Currency;
+    channel?: Channel;
+  },
+  meta?: Meta
+) {
+  const eid = eventId("view_cart", event.id);
+  const currency = options?.currency || "ARS";
+  const channel = resolveChannel(event, meta, options?.channel);
+
+  const gaItems = items.map((it) => {
+    if ("prevent" in it) return toItemFromPrevent(event, it.prevent, it.qty || 1);
+    if ("combo" in it) return toItemFromCombo(event, it.combo, it.qty || 1);
+    return toItemFromProduct(event, it.product, it.qty || 1);
+  });
+
+  const value = typeof options?.value === "number"
+    ? options.value!
+    : gaItems.reduce(
+      (acc, i) => acc + Number(i.price || 0) * Number(i.quantity || 0),
+      0
+    );
+
+  const base = baseCommonParams(options?.producer, currency);
+
+  gtag("view_cart", withChannel({
+    event_id: eid,
+    value,
+    currency,
+    coupon: options?.coupon || undefined,
+    items: gaItems,
+    ...base
+  }, channel));
+
+  fbqTrackCustom("ViewCart", withChannel({
+    event_id: eid,
+    value,
+    currency,
+    content_type: "product",
+    contents: gaItems.map(i => ({
+      id: i.item_id,
+      quantity: i.quantity,
+      item_price: i.price
+    })),
+    coupon: options?.coupon || undefined,
+    ...base
+  }, channel));
 }

@@ -65,13 +65,10 @@ export default function InEventPurchaseFlow({
   const [purchaseCode, setPurchaseCode] = useState<number | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponEvent | null>(null);
 
-  const scrollableContentRef = useRef<HTMLDivElement>(null);
-
   const [scope, animate] = useAnimate();
   const [sheetRef, { height }] = useMeasure();
   const y = useMotionValue(0);
   const dragControls = useDragControls();
-  const [isAtTop, setIsAtTop] = useState(true);
 
   const mpPublicKey = useMemo(() => {
     return fullEventDetails?.oAuthMercadoPago?.mpPublicKey || null;
@@ -87,6 +84,7 @@ export default function InEventPurchaseFlow({
 
   const viewTrackedRef = useRef(false);
   const beginCheckoutTrackedRef = useRef(false);
+  const lastPaymentTrackedRef = useRef<null | 'cash' | 'mercadopago'>(null);
   const lastCartRef = useRef<{
     productQtys: Record<number, number>;
     comboQtys: Record<number, number>;
@@ -179,11 +177,11 @@ export default function InEventPurchaseFlow({
   }, [totals.grandTotal, purchaseData.total]);
 
   useEffect(() => {
-    if (isOpen && (fullEventDetails || event) && !viewTrackedRef.current) {
-      tracking.viewEvent(fullEventDetails || event);
+    if (isOpen && fullEventDetails && !viewTrackedRef.current) {
+      tracking.viewEvent(fullEventDetails);
       viewTrackedRef.current = true;
     }
-  }, [isOpen, fullEventDetails, event, tracking]);
+  }, [isOpen, fullEventDetails, tracking]);
 
   useEffect(() => {
     if (isOpen && !fullEventDetails) {
@@ -201,24 +199,6 @@ export default function InEventPurchaseFlow({
         }
       })();
     }
-    const handleScroll = () => {
-      if (scrollableContentRef.current) {
-        const top = scrollableContentRef.current.scrollTop || 0;
-        setIsAtTop(top <= 2);
-      }
-    };
-
-    const currentScrollRef = scrollableContentRef.current;
-    if (currentScrollRef) {
-      currentScrollRef.addEventListener('scroll', handleScroll);
-      handleScroll();
-    }
-
-    return () => {
-      if (currentScrollRef) {
-        currentScrollRef.removeEventListener('scroll', handleScroll);
-      }
-    };
   }, [isOpen, event.id, fullEventDetails]);
 
   useEffect(() => {
@@ -247,11 +227,30 @@ export default function InEventPurchaseFlow({
       viewTrackedRef.current = false;
       beginCheckoutTrackedRef.current = false;
       lastCartRef.current = { productQtys: {}, comboQtys: {} };
+      lastPaymentTrackedRef.current = null;
     }
   }, [isOpen]);
 
   useEffect(() => {
     if (step !== Step.Review) return;
+
+    const maybeGoToQR = (params?: Record<string, any>) => {
+      const txn =
+        params?.collection_id ||
+        params?.payment_id ||
+        params?.preference_id ||
+        mpPreferenceId ||
+        `mp_${(fullEventDetails || event).id}_${Date.now()}`;
+
+      tracking.purchase(fullEventDetails || event, {
+        transactionId: String(txn),
+        value: getCheckoutValue(),
+        items: buildTrackingItems(),
+        coupon: getCheckoutCoupon(),
+      });
+
+      setStep(Step.QR);
+    };
 
     const urlPaid = (() => {
       try {
@@ -260,22 +259,17 @@ export default function InEventPurchaseFlow({
       } catch { return false; }
     })();
 
-    const maybeGoToQR = () => {
-      if (purchaseData.paymentMethod === "mercadopago" && mpPreferenceId) {
-        setStep(Step.QR);
-      }
-    };
-
     if (urlPaid) maybeGoToQR();
 
     const handler = (ev: MessageEvent) => {
       if (ev?.data?.type === "MP_PAYMENT_APPROVED") {
-        maybeGoToQR();
+        const params = (ev.data && (ev.data.params || ev.data.payload)) || {};
+        maybeGoToQR(params);
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [step, purchaseData.paymentMethod, mpPreferenceId]);
+  }, [step, fullEventDetails, event, mpPreferenceId]);
 
   const handleCloseDrawer = async () => {
     await animate(scope.current, { opacity: [1, 0] }, { duration: 0.3 });
@@ -301,9 +295,7 @@ export default function InEventPurchaseFlow({
   };
 
   const handlePointerDown = (event: any) => {
-    if (isAtTop) {
-      dragControls.start(event);
-    }
+    dragControls.start(event);
   };
 
   useEffect(() => {
@@ -345,7 +337,7 @@ export default function InEventPurchaseFlow({
     return items;
   };
   const getCheckoutCoupon = (): string | null => (appliedCoupon?.id != null ? String(appliedCoupon.id) : null);
-  const getCheckoutValue = (): number => Number(totals.grandTotal || 0);
+  const getCheckoutValue = (): number => Number(totals.subtotal || 0);
 
   useEffect(() => {
     if (!fullEventDetails) return;
@@ -357,6 +349,30 @@ export default function InEventPurchaseFlow({
       beginCheckoutTrackedRef.current = true;
     }
   }, [step, fullEventDetails, purchaseData.products, purchaseData.combos, tracking]);
+
+  const handlePaymentSelected = (method: 'cash' | 'mercadopago') => {
+    updatePurchaseData({ paymentMethod: method });
+
+    if (!fullEventDetails) return;
+
+    if (lastPaymentTrackedRef.current !== method) {
+      lastPaymentTrackedRef.current = method;
+
+      const items = buildTrackingItems();
+
+      tracking.addPaymentInfo(
+        fullEventDetails,
+        items,
+        {
+          paymentType: method === 'cash' ? 'cash' : 'mercadopago',
+          value: Number(totals.subtotal || 0),
+          coupon: appliedCoupon?.id != null ? String(appliedCoupon.id) : null,
+        }
+      );
+
+      tracking.ui('payment_method_selected_live', { method });
+    }
+  };
 
   const generatePreference = async () => {
     if (!hasMP) {
@@ -495,11 +511,15 @@ export default function InEventPurchaseFlow({
           <PaymentStep
             hasMP={hasMP}
             subtotal={totals.subtotal}
-            onPaymentMethodSelected={(method) => updatePurchaseData({ paymentMethod: method })}
+            onPaymentMethodSelected={handlePaymentSelected}
           />
         );
       case Step.Review:
-        return <ReviewStep purchaseData={purchaseData} />;
+        return <ReviewStep
+          eventData={fullEventDetails}
+          purchaseData={purchaseData}
+          couponId={appliedCoupon?.id ? appliedCoupon.id : null}
+        />;
       case Step.QR:
         return (
           <QRStep
@@ -553,7 +573,7 @@ export default function InEventPurchaseFlow({
             onDragEnd={onDragEndSheet}
             onPointerDown={handlePointerDown}
             onClick={(e) => e.stopPropagation()}
-            style={{ cursor: isAtTop ? 'grab' : 'auto', y }}
+            style={{ cursor: 'auto', y }}
           >
             <div className="flex justify-center mt-1 cursor-grab">
               <button className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"></button>

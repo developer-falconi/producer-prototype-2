@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState, UIEvent } from 'react';
 import { cn, formatPrice } from '@/lib/utils';
 import { motion, Easing, Variants } from "framer-motion";
-import { EventDto, PurchaseData } from '@/lib/types';
+import { ComboEventDto, EventDto, Prevent, ProductEventDto, PurchaseData } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreditCard, Landmark, ShieldCheck, Zap, BadgeCheck, Paperclip, AlertCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useProducer } from '@/context/ProducerContext';
+import { useTracking } from '@/hooks/use-tracking';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -27,6 +29,8 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   onUpdatePaymentMethod,
   onUpdatePurchaseFile
 }) => {
+  const { producer } = useProducer();
+  const tracking = useTracking({ producer, channel: 'prevent' });
   const isMobile = useIsMobile();
 
   const [error, setError] = useState<string>();
@@ -102,7 +106,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   const hasMP = isMpConfiguredForEvent && purchaseData.total > 0;
   const hasBankTransfer = !!transferMethod;
   const isFree = purchaseData.total === 0;
-  
+
   useEffect(() => {
     if (!hasMP && !hasBankTransfer && !isFree) {
       setError("No hay métodos de pago activos asociados a este evento.");
@@ -154,12 +158,43 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     }
   }, [selected, onUpdatePaymentMethod, purchaseData.paymentMethod]);
 
-  const pick = (k: CardKey) => {
-    setSelected(k);
+  const pick = (k: 'bank_transfer' | 'mercadopago') => {
     onUpdatePaymentMethod(k);
-    const idx = cards.findIndex(c => c.key === k);
-    const el = trackRef.current?.children[idx] as HTMLElement | undefined;
-    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+
+    try {
+      if (!eventData) return;
+
+      const items: Array<{
+        prevent?: Prevent;
+        product?: ProductEventDto;
+        combo?: ComboEventDto;
+        qty?: number;
+      }> = [];
+
+      if (purchaseData.selectedPrevent && purchaseData.ticketQuantity > 0) {
+        items.push({ prevent: purchaseData.selectedPrevent, qty: purchaseData.ticketQuantity });
+      }
+      purchaseData.products.forEach(p => {
+        if (p.quantity > 0) items.push({ product: p.product, qty: p.quantity });
+      });
+      purchaseData.combos.forEach(c => {
+        if (c.quantity > 0) items.push({ combo: c.combo, qty: c.quantity });
+      });
+
+      const value = Number(purchaseData.total || 0);
+      const coupon =
+        purchaseData.coupon?.id != null
+          ? String(purchaseData.coupon.id)
+          : (purchaseData.promoter || null);
+
+      tracking.addPaymentInfo(eventData, items, {
+        paymentType: k,
+        value,
+        coupon,
+      });
+    } catch(err) {
+      console.log(err)
+    }
   };
 
   const onScroll = (e: UIEvent<HTMLDivElement>) => {

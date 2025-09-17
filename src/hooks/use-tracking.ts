@@ -23,6 +23,8 @@ import {
   readAttribution,
   classifyEntry,
   trackLandingEntry,
+  trackAddPaymentInfo,
+  trackViewCart,
 } from "@/lib/analytics";
 
 type Currency = "ARS" | "USD" | "UYU" | "BRL" | string;
@@ -221,6 +223,67 @@ export function useTracking(
         try {
           (window as any)?.gtag?.("event", action, extra);
         } catch { }
+      },
+
+      addPaymentInfo: (
+        event: EventDto,
+        items: Array<{
+          prevent?: Prevent;
+          combo?: ComboEventDto;
+          product?: ProductEventDto;
+          qty?: number;
+        }>,
+        opts: { paymentType: 'bank_transfer' | 'mercadopago' | 'cash'; coupon?: string | null; value?: number }
+      ) => {
+        const normalized = items.map((it) =>
+          it.prevent
+            ? { prevent: it.prevent, qty: it.qty }
+            : it.combo
+              ? { combo: it.combo, qty: it.qty }
+              : { product: it.product!, qty: it.qty }
+        );
+        trackAddPaymentInfo(
+          event,
+          normalized,
+          {
+            paymentType: opts.paymentType,
+            coupon: opts.coupon ?? null,
+            value: typeof opts.value === "number" ? opts.value : undefined,
+            producer,
+            currency,
+            channel,
+          }
+        );
+      },
+
+      viewCart: (
+        event: EventDto,
+        items: Array<{
+          prevent?: Prevent;
+          combo?: ComboEventDto;
+          product?: ProductEventDto;
+          qty?: number;
+        }>,
+        opts?: { coupon?: string | null; value?: number }
+      ) => {
+        const normalized = items.map((it) =>
+          it.prevent
+            ? { prevent: it.prevent, qty: it.qty }
+            : it.combo
+              ? { combo: it.combo, qty: it.qty }
+              : { product: it.product!, qty: it.qty }
+        );
+        trackViewCart(
+          event,
+          normalized,
+          {
+            coupon: opts?.coupon ?? null,
+            value: typeof opts?.value === "number" ? opts.value : undefined,
+            producer,
+            currency,
+            channel,
+          }
+        );
       },
 
       attribution

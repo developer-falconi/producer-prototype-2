@@ -2,14 +2,24 @@ import { formatPrice } from "@/lib/utils";
 import { Card } from "../ui/card";
 import { Separator } from "../ui/separator";
 import { User, Mail, CreditCard, ShoppingCart, AlertCircle, BadgePercent } from "lucide-react";
-import { InEventPurchaseData } from "@/lib/types";
+import { EventDto, InEventPurchaseData } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useProducer } from "@/context/ProducerContext";
+import { useTracking } from "@/hooks/use-tracking";
+import { useEffect } from "react";
 
 export default function ReviewStep({
+  eventData,
   purchaseData,
+  couponId,
 }: {
+  eventData: EventDto;
   purchaseData: InEventPurchaseData;
+  couponId?: number | null;
 }) {
+  const { producer } = useProducer();
+  const tracking = useTracking({ producer, channel: "live" });
+
   const { buyer, products, combos, total, paymentMethod } = purchaseData;
 
   const { subtotal, discountTotal } = calcTotals(products, combos);
@@ -31,6 +41,20 @@ export default function ReviewStep({
       line: Number(c.combo.price) * c.quantity,
     })),
   ].filter(i => i.qty > 0);
+
+  useEffect(() => {
+    if (!eventData) return;
+
+    const items = [
+      ...products.map(p => ({ product: p.product, qty: p.quantity })),
+      ...combos.map(c => ({ combo: c.combo, qty: c.quantity })),
+    ];
+
+    tracking.viewCart(eventData, items, {
+      value: Number(total || 0),
+      coupon: String(couponId) ?? undefined,
+    });
+  }, [eventData, products, combos, total, couponId, tracking]);
 
   return (
     <div

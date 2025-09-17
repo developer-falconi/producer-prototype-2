@@ -71,7 +71,10 @@ function MercadoPagoButton({
 
   return (
     <div className="w-full">
-      <div className="w-full rounded-lg bg-white/5 border border-white/10 p-0" aria-busy={loadingButton || !ready}>
+      <div
+        className="w-full rounded-lg bg-white/5 border border-white/10 p-0"
+        aria-busy={loadingButton || !ready}
+      >
         {ready && (
           <Wallet
             id="mp-wallet"

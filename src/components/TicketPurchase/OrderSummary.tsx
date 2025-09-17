@@ -1,6 +1,8 @@
+import { useProducer } from '@/context/ProducerContext';
+import { useTracking } from '@/hooks/use-tracking';
 import { CouponEvent, EventDto, PurchaseData } from '@/lib/types';
 import { formatPrice, paymentMethodLabels } from '@/lib/utils';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface OrderSummaryProps {
   eventData: EventDto;
@@ -58,6 +60,33 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   eventData,
   purchaseData,
 }) => {
+  const { producer } = useProducer();
+  const tracking = useTracking({ producer, channel: 'prevent' });
+
+  useEffect(() => {
+    if (!eventData) return;
+
+    const items: Array<{ prevent?: any; product?: any; combo?: any; qty?: number }> = [];
+
+    if (purchaseData.selectedPrevent && purchaseData.ticketQuantity > 0) {
+      items.push({ prevent: purchaseData.selectedPrevent, qty: purchaseData.ticketQuantity });
+    }
+    purchaseData.products.forEach(p => {
+      if (p.quantity > 0) items.push({ product: p.product, qty: p.quantity });
+    });
+    purchaseData.combos.forEach(c => {
+      if (c.quantity > 0) items.push({ combo: c.combo, qty: c.quantity });
+    });
+
+    const value = Number(purchaseData.total || 0);
+    const coupon =
+      purchaseData.coupon?.id != null
+        ? String(purchaseData.coupon.id)
+        : (purchaseData.promoter || null);
+
+    tracking.viewCart(eventData, items, { coupon, value });
+  }, [eventData, purchaseData, tracking]);
+
   const ticketPrice = purchaseData.selectedPrevent?.price || 0;
   const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
 
@@ -92,21 +121,16 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
     0
   );
 
-  // Subtotal antes de cupón
   const subtotalAllItems = subtotalTickets + totalProductsPrice + totalCombosPrice;
 
-  // Descuento por cupón
   const { discount, details: couponDetails, reason: couponReason } = calcCouponDiscount(
     subtotalAllItems,
     purchaseData.coupon ?? null
   );
 
-  // Subtotal neto luego del cupón
   const netSubtotal = Math.max(0, subtotalAllItems - discount);
 
-  // Comisión MP (sobre el neto)
-  const mercadoPagoFee =
-    purchaseData.paymentMethod === 'mercadopago' ? netSubtotal * 0.0824 : 0;
+  const mercadoPagoFee = purchaseData.paymentMethod === 'mercadopago' ? netSubtotal * 0.0824 : 0;
 
   const total = netSubtotal + mercadoPagoFee;
 
