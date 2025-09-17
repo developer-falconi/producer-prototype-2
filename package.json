@@ -62,7 +62,7 @@
     "react-router-dom": "^6.26.2",
     "react-use-measure": "^2.1.7",
     "recharts": "^2.12.7",
-    "sonner": "^1.5.0",
+    "sonner": "^1.7.4",
     "swiper": "^11.2.10",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",

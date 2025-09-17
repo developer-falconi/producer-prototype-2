@@ -8,7 +8,7 @@ import { ProgressBar } from './ProgressBar';
 import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
-import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
+import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue, AnimationDefinition } from "framer-motion";
 import { createPreference, fetchProducerEventDetailData, submitTicketForm } from '@/lib/api';
 import Spinner from '../Spinner';
 import { Button } from '../ui/button';
@@ -643,6 +643,16 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     }
   };
 
+  const handleAnimationComplete = (def: AnimationDefinition) => {
+    if (def === "animate") {
+      const el = document.getElementById("ticket-sheet");
+      if (el) {
+        el.style.willChange = "auto";
+        (el as HTMLElement).style.transform = "";
+      }
+    }
+  }
+
   const handleShare = useCallback(async () => {
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -779,6 +789,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             dragElastic={{ top: 0, bottom: 0.2 }}
             onDragEnd={onDragEndSheet}
             onPointerDown={handlePointerDown}
+            onAnimationComplete={handleAnimationComplete}
             onClick={(e) => e.stopPropagation()}
             style={{ cursor: isAtTop ? 'grab' : 'auto', y }}
           >
@@ -786,18 +797,20 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               <button className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"></button>
             </div>
 
-            <div className="absolute top-6 right-2 md:top-5 md:right-5 z-50">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full bg-black text-white border border-white/20 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition"
-                onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                title="Compartir evento"
-                aria-label="Compartir evento"
-              >
-                <Send className="h-5 w-5 text-white" />
-              </Button>
-            </div>
+            {currentStep === 0 && (
+              <div className="absolute top-6 right-2 md:top-5 md:right-5 z-50">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full bg-black text-white border border-white/20 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition"
+                  onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                  title="Compartir evento"
+                  aria-label="Compartir evento"
+                >
+                  <Send className="h-5 w-5 text-white" />
+                </Button>
+              </div>
+            )}
 
             <div
               ref={scrollableContentRef}

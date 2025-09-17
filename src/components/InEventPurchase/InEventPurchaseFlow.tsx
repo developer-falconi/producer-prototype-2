@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, PanInfo, useAnimate, useDragControls, useMotionValue } from "framer-motion";
+import { AnimatePresence, AnimationDefinition, motion, PanInfo, useAnimate, useDragControls, useMotionValue } from "framer-motion";
 import { ComboEventDto, CouponEvent, EventDto, InEventPurchaseData, InEventPurchasePayload, ProductEventDto, ProductTypeEnum } from "@/lib/types";
 import { createLiveEventPreference, fetchProducerEventDetailData, submitLiveEventPurchase } from "@/lib/api";
 import BuyerStep from "./BuyerStep";
@@ -147,6 +147,16 @@ export default function InEventPurchaseFlow({
     const grandTotal = productsTotal + combosTotal;
     return { subtotal: grandTotal, grandTotal };
   }, [purchaseData.products, purchaseData.combos]);
+
+  const handleAnimationComplete = (def: AnimationDefinition) => {
+    if (def === "animate") {
+      const el = document.getElementById("ticket-sheet");
+      if (el) {
+        el.style.willChange = "auto";
+        (el as HTMLElement).style.transform = "";
+      }
+    }
+  }
 
   const handleShare = useCallback(async () => {
     try {
@@ -552,6 +562,7 @@ export default function InEventPurchaseFlow({
             dragElastic={{ top: 0, bottom: 0.2 }}
             onDragEnd={onDragEndSheet}
             onPointerDown={handlePointerDown}
+            onAnimationComplete={handleAnimationComplete}
             onClick={(e) => e.stopPropagation()}
             style={{ cursor: isAtTop ? 'grab' : 'auto', y }}
           >
@@ -559,18 +570,22 @@ export default function InEventPurchaseFlow({
               <button className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"></button>
             </div>
 
-            <div className="absolute top-6 right-2 md:top-5 md:right-5 z-50">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full bg-black text-white border border-white/20 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition"
-                onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                title="Compartir evento"
-                aria-label="Compartir evento"
-              >
-                <Send className="h-5 w-5 text-white" />
-              </Button>
-            </div>
+            {
+              step === Step.Banner && (
+                <div className="absolute top-6 right-2 md:top-5 md:right-5 z-50">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full bg-black text-white border border-white/20 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition"
+                    onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                    title="Compartir evento"
+                    aria-label="Compartir evento"
+                  >
+                    <Send className="h-5 w-5 text-white" />
+                  </Button>
+                </div>
+              )
+            }
 
             <div className="flex-grow pt-1 relative overflow-y-auto">
               {loadingDetails ? (
