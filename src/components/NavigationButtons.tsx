@@ -54,28 +54,19 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [mountWallet, setMountWallet] = useState(false);
 
-  useEffect(() => {
-    const canMount =
-      isConfirmationStep &&
-      isMercadoPagoSelected &&
-      !!mpPreferenceId &&
-      !!mpPublicKey &&
-      termsAccepted;
+  const canShowWallet = useMemo(() => (
+    isConfirmationStep &&
+    isMercadoPagoSelected &&
+    !!mpPreferenceId &&
+    !!mpPublicKey
+  ), [isConfirmationStep, isMercadoPagoSelected, mpPreferenceId, mpPublicKey]);
 
-    if (canMount && !mountWallet) {
+  useEffect(() => {
+    if (canShowWallet && !mountWallet) {
       setMountWallet(true);
       onTrack?.('mp_wallet_mounted', { step: currentStep });
     }
-  }, [
-    isConfirmationStep,
-    isMercadoPagoSelected,
-    mpPreferenceId,
-    mpPublicKey,
-    termsAccepted,
-    mountWallet,
-    currentStep,
-    onTrack,
-  ]);
+  }, [canShowWallet, mountWallet, currentStep, onTrack]);
 
   useEffect(() => {
     if (!loadingMpButton) {
@@ -213,12 +204,15 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
           "w-full"
         )}
       >
-        {isConfirmationStep && isMercadoPagoSelected && mountWallet && (
+        {canShowWallet && (
           <div className="relative w-full">
             {!termsAccepted && (
               <div className="absolute inset-0 z-20 rounded-lg bg-black/40 pointer-events-auto" />
             )}
-            <div className={cn("relative", !termsAccepted && "pointer-events-none")} aria-disabled={!termsAccepted}>
+            <div
+              className={cn("relative", !termsAccepted && "pointer-events-none")}
+              aria-disabled={!termsAccepted}
+            >
               {walletNode}
             </div>
           </div>
