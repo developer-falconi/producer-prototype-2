@@ -559,18 +559,20 @@ export default function InEventPurchaseFlow({
               <button className="h-2 w-14 cursor-grab touch-none rounded-full bg-gray-300 active:cursor-grabbing"></button>
             </div>
 
-            <div className="absolute top-6 right-2 md:top-5 md:right-5 z-50">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full bg-black text-white border border-white/20 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition"
-                onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                title="Compartir evento"
-                aria-label="Compartir evento"
-              >
-                <Send className="h-5 w-5 text-white" />
-              </Button>
-            </div>
+            {step === Step.Banner && (
+              <div className="absolute top-6 right-2 md:top-5 md:right-5 z-50">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full bg-black text-white border border-white/20 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition"
+                  onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                  title="Compartir evento"
+                  aria-label="Compartir evento"
+                >
+                  <Send className="h-5 w-5 text-white" />
+                </Button>
+              </div>
+            )}
 
             <div className="flex-grow pt-1 relative overflow-y-auto">
               {loadingDetails ? (
