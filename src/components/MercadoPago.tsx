@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { initMercadoPago, Wallet } from "@mercadopago/sdk-react";
+import { Wallet, initMercadoPago } from "@mercadopago/sdk-react";
+import { MpLocale } from "@/lib/types";
 
 type Props = {
   mpPublicKey: string;
@@ -7,7 +8,7 @@ type Props = {
   loadingButton: boolean;
   setLoadingButton: (b: boolean) => void;
   onStartPayment: () => void | Promise<void>;
-  locale?: "es-AR" | "es-CL" | "es-CO" | "es-MX" | "es-VE" | "es-UY" | "es-PE" | "pt-BR" | "en-US";
+  locale?: MpLocale;
 };
 
 function MercadoPagoButton({
@@ -18,61 +19,65 @@ function MercadoPagoButton({
   onStartPayment,
   locale = "es-AR",
 }: Props) {
-  const [ready, setReady] = useState(false);
-  const lastInitKeyRef = useRef<string | null>(null);
-
+  const [sdkReady, setSdkReady] = useState(false);
+  const lastKeyRef = useRef<string | null>(null);
   const clickTsRef = useRef<number | null>(null);
   const firedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
+
     (async () => {
       setLoadingButton(true);
-      if (!mpPublicKey) { setLoadingButton(false); return; }
 
-      if (lastInitKeyRef.current !== mpPublicKey) {
-        try { initMercadoPago(mpPublicKey, { locale }); } catch { }
-        lastInitKeyRef.current = mpPublicKey;
+      if (!mpPublicKey) {
+        setLoadingButton(false);
+        return;
       }
 
-      if (!cancelled) { setReady(true); setLoadingButton(false); }
+      const effectiveLocale = locale ?? "es-AR";
+
+      if (lastKeyRef.current !== mpPublicKey) {
+        try {
+          initMercadoPago(mpPublicKey, { locale: effectiveLocale });
+          if (cancelled) return;
+          lastKeyRef.current = mpPublicKey;
+          setSdkReady(true);
+        } catch (err) {
+          console.error("Error inicializando MercadoPago SDK:", err);
+        } finally {
+          if (!cancelled) {
+            setLoadingButton(false);
+          }
+        }
+      } else {
+        setSdkReady(true);
+        setLoadingButton(false);
+      }
     })();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [mpPublicKey, locale, setLoadingButton]);
 
-  useEffect(() => {
-    const handleNavStart = () => {
-      if (firedRef.current) return;
-      const ts = clickTsRef.current;
-      if (!ts) return;
-      if (Date.now() - ts > 15000) return;
+  const canRenderWallet = sdkReady && !!mpPublicKey && !!preferenceId && typeof window !== "undefined";
 
-      firedRef.current = true;
-      onStartPayment();
-    };
+  const initialization = useMemo(() => ({
+    preferenceId,
+    redirectMode: "self"
+  } as const), [preferenceId]);
 
-    window.addEventListener("pagehide", handleNavStart);
-    window.addEventListener("unload", handleNavStart);
-    return () => {
-      window.removeEventListener("pagehide", handleNavStart);
-      window.removeEventListener("unload", handleNavStart);
-    };
-  }, [onStartPayment]);
-
-  const initialization = useMemo(
-    () => ({ preferenceId, redirectMode: "self" } as const),
-    [preferenceId]
-  );
-
-  const customization = useMemo(
-    () => ({ theme: "dark", texts: { valueProp: "smart_option" }, customStyle: { hideValueProp: true } } as const),
-    []
-  );
+  const customization = useMemo(() => ({
+    theme: "dark",
+    texts: { valueProp: "smart_option" },
+    customStyle: { hideValueProp: true }
+  } as const), []);
 
   return (
     <div className="w-full">
-      <div className="w-full rounded-lg bg-white/5 border border-white/10 p-0" aria-busy={loadingButton || !ready}>
-        {ready && (
+      <div className="w-full rounded-lg bg-white/5 border border-white/10 p-0" aria-busy={loadingButton || !sdkReady}>
+        {canRenderWallet && (
           <Wallet
             id="mp-wallet"
             key={preferenceId}
@@ -89,7 +94,7 @@ function MercadoPagoButton({
         )}
       </div>
 
-      {(loadingButton || !ready) && (
+      {(loadingButton || !sdkReady) && (
         <div className="mt-2 text-center text-sm text-zinc-300">Cargando botón de Mercado Pago…</div>
       )}
     </div>

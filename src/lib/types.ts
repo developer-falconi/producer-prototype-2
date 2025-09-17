@@ -377,6 +377,9 @@ export interface CouponEvent {
   totalDiscountAmount: string;
 }
 
+export type MpLocale =
+  | "es-AR" | "es-CL" | "es-CO" | "es-MX" | "es-VE" | "es-UY" | "es-PE"
+  | "pt-BR" | "en-US";
 
 export type ApiResponse<T> =
   | { success: true; data: T; message?: string, status?: string }
