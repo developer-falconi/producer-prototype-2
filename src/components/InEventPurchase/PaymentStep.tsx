@@ -49,7 +49,6 @@ export default function PaymentStep({
   const pick = (m: "mercadopago" | "cash") => {
     setSelected(m);
     onPaymentMethodSelected(m);
-    // Snap visual al card elegido
     const i = idxOf(m);
     if (trackRef.current) {
       const el = trackRef.current.children[i] as HTMLElement | undefined;

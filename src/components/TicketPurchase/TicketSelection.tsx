@@ -4,6 +4,8 @@ import { EventDto, PurchaseData, Prevent, PreventStatusEnum, PreventPromoTypeEnu
 import { Button } from '../ui/button';
 import { motion, Easing } from 'framer-motion';
 import { CountdownPrevent } from '../CountdownPrevent';
+import { useProducer } from '@/context/ProducerContext';
+import { useTracking } from '@/hooks/use-tracking';
 
 interface TicketSelectionProps {
   eventData: EventDto;
@@ -16,6 +18,8 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
   purchaseData,
   onUpdatePurchase
 }) => {
+  const { producer } = useProducer();
+  const tracking = useTracking({ producer, channel: 'prevent' });
   const allAvailablePrevents = useMemo(() => eventData.prevents || [], [eventData.prevents]);
 
   const sortedPrevents = useMemo(() => {
@@ -121,6 +125,10 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
 
     const newMax = computeMaxTickets(prevent);
     const newQty = defaultQtyForPrevent(prevent, newMax);
+
+    if (eventData) {
+      tracking.selectFromList("Prevents", eventData);
+    }
 
     setLocalSelectedPrevent(prevent);
     onUpdatePurchase({ selectedPrevent: prevent, ticketQuantity: newQty });
