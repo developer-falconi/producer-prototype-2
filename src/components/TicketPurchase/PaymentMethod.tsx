@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState, UIEvent } from 'react';
-import { cn, formatPrice } from '@/lib/utils';
+import { cn, formatPrice, getFeeBreakdown, toNum } from '@/lib/utils';
 import { motion, Easing, Variants } from "framer-motion";
-import { ComboEventDto, EventDto, Prevent, ProductEventDto, PurchaseData } from '@/lib/types';
+import { EventDto, PurchaseData } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CreditCard, Landmark, ShieldCheck, Zap, BadgeCheck, Paperclip, AlertCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useProducer } from '@/context/ProducerContext';
-import { useTracking } from '@/hooks/use-tracking';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -29,8 +27,6 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   onUpdatePaymentMethod,
   onUpdatePurchaseFile
 }) => {
-  const { producer } = useProducer();
-  const tracking = useTracking({ producer, channel: 'prevent' });
   const isMobile = useIsMobile();
 
   const [error, setError] = useState<string>();
@@ -88,15 +84,19 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     return subtotalTickets + totalProductsPrice + totalCombosPrice;
   };
 
-  const subtotal = useMemo(() => calculateSubtotal(), [
+  const base = useMemo(() => {
+    const fallbackSubtotal = calculateSubtotal();
+    return toNum(purchaseData.total ?? fallbackSubtotal);
+  }, [
+    purchaseData.total,
+    (purchaseData as any).totalWithDiscount,
     purchaseData.selectedPrevent,
     purchaseData.ticketQuantity,
     purchaseData.products,
-    purchaseData.combos,
+    purchaseData.combos
   ]);
 
-  const mpFeeRate = 0.0824;
-  const mpFee = subtotal * mpFeeRate;
+  const subtotal = base;
 
   const transferMethod = useMemo(
     () => eventData.payments?.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'transferenciabancaria'),
@@ -105,7 +105,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
 
   const hasMP = isMpConfiguredForEvent && purchaseData.total > 0;
   const hasBankTransfer = !!transferMethod;
-  const isFree = purchaseData.total === 0;
+  const isFree = base <= 0;
 
   useEffect(() => {
     if (!hasMP && !hasBankTransfer && !isFree) {
@@ -158,43 +158,12 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     }
   }, [selected, onUpdatePaymentMethod, purchaseData.paymentMethod]);
 
-  const pick = (k: 'bank_transfer' | 'mercadopago') => {
+  const pick = (k: CardKey) => {
+    setSelected(k);
     onUpdatePaymentMethod(k);
-
-    try {
-      if (!eventData) return;
-
-      const items: Array<{
-        prevent?: Prevent;
-        product?: ProductEventDto;
-        combo?: ComboEventDto;
-        qty?: number;
-      }> = [];
-
-      if (purchaseData.selectedPrevent && purchaseData.ticketQuantity > 0) {
-        items.push({ prevent: purchaseData.selectedPrevent, qty: purchaseData.ticketQuantity });
-      }
-      purchaseData.products.forEach(p => {
-        if (p.quantity > 0) items.push({ product: p.product, qty: p.quantity });
-      });
-      purchaseData.combos.forEach(c => {
-        if (c.quantity > 0) items.push({ combo: c.combo, qty: c.quantity });
-      });
-
-      const value = Number(purchaseData.total || 0);
-      const coupon =
-        purchaseData.coupon?.id != null
-          ? String(purchaseData.coupon.id)
-          : (purchaseData.promoter || null);
-
-      tracking.addPaymentInfo(eventData, items, {
-        paymentType: k,
-        value,
-        coupon,
-      });
-    } catch(err) {
-      console.log(err)
-    }
+    const idx = cards.findIndex(c => c.key === k);
+    const el = trackRef.current?.children[idx] as HTMLElement | undefined;
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   };
 
   const onScroll = (e: UIEvent<HTMLDivElement>) => {
@@ -205,7 +174,13 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     setPage(Math.max(0, Math.min(cards.length - 1, approxIndex)));
   };
 
-  const totalDisplay = selected === 'mercadopago' ? subtotal + mpFee : subtotal;
+  const { clientFeePortion } = useMemo(() => {
+    const breakdown = getFeeBreakdown(eventData?.fee ?? null, base);
+    return breakdown;
+  }, [eventData?.fee, base]);
+
+  const serviceCharge = clientFeePortion;
+  const totalDisplay = subtotal + serviceCharge;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -318,10 +293,10 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
             <span className="text-sm font-bold text-white">{formatPrice(subtotal)}</span>
           </div>
 
-          {selected === 'mercadopago' && (
+          {serviceCharge > 0 && (
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-red-400">Comisión MP (8.24%)</span>
-              <span className="font-semibold text-red-400">+ {formatPrice(mpFee)}</span>
+              <span className="text-red-400">Cargo por servicio</span>
+              <span className="font-semibold text-red-400">+ {formatPrice(serviceCharge)}</span>
             </div>
           )}
 

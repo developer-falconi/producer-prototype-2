@@ -208,7 +208,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
                     </span>
                   )}
                   {prevent.featured && (
-                    <span className="rounded-full bg-sky-600/20 text-sky-300 border border-sky-400/20 text-[11px] px-2 py-0.5 font-semibold shadow-sm">
+                    <span className="rounded-full bg-sky-600 text-white border border-sky-400/20 text-[11px] px-2 py-0.5 font-semibold shadow-sm">
                       Destacada
                     </span>
                   )}

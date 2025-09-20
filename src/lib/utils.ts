@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { PreventStatusEnum } from "./types";
+import { EventFeeDto, PreventStatusEnum } from "./types";
 import * as qrcode from 'qrcode';
 
 export function cn(...inputs: ClassValue[]) {
@@ -111,3 +111,22 @@ export const toNum = (v: string | number | null | undefined) => {
   const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? n : 0;
 };
+
+const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+export function getFeeBreakdown(eventFee: EventFeeDto | null | undefined, baseAmount: number) {
+  const rate = clamp01(Number(eventFee?.platformFeeShare ?? 0.15));
+  const clientShare = clamp01(Number(eventFee?.clientFeeShare ?? 1));
+  const platformFeeAmount = round2(baseAmount * rate);
+  const clientFeePortion = round2(platformFeeAmount * clientShare);
+  const producerFeePortion = round2(platformFeeAmount - clientFeePortion);
+  const finalPrice = round2(baseAmount + clientFeePortion);
+
+  return {
+    platformFeeAmount,
+    clientFeePortion,
+    producerFeePortion,
+    finalPrice
+  };
+}
