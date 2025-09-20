@@ -23,6 +23,7 @@ import { Send } from 'lucide-react';
 
 const DRAG_CLOSE_PX = 100;
 const DRAG_CLOSE_VELOCITY = 800;
+const TOUCH_PULL_CLOSE_PX = 100;
 
 const steps = [
   'Seleccionar Entradas',
@@ -62,6 +63,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const [fullEventDetails, setFullEventDetails] = useState<EventDto | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<{ status: 'success' | 'error', message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
   const [mpGeneratingPreference, setMpGeneratingPreference] = useState<boolean>(false);
@@ -73,7 +75,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const scrollableContentRef = useRef<HTMLDivElement>(null);
 
   const [scope, animate] = useAnimate();
-  const [sheetRef, { height }] = useMeasure();
+  const [setSheetMeasureRef, { height }] = useMeasure();
+  const sheetElRef = useRef<HTMLDivElement | null>(null);
   const y = useMotionValue(0);
   const dragControls = useDragControls();
 
@@ -386,7 +389,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return computeCouponDiscount(currentSubtotal, appliedCoupon);
   }, [appliedCoupon, currentSubtotal]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const total = currentSubtotal;
     const totalWithDiscount = Math.max(0, currentSubtotal - currentDiscount);
 
@@ -786,6 +789,122 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const isConfirmationStep = dynamicSteps[currentStep - 1] === 'Confirmación';
   const isPaymentMethodStep = dynamicSteps[currentStep - 1] === 'Método de Pago';
 
+  const setSheetRef = useCallback((node: HTMLDivElement | null) => {
+    setSheetMeasureRef(node);
+    sheetElRef.current = node;
+  }, [setSheetMeasureRef]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const isPhone = typeof window !== 'undefined'
+      ? (window.matchMedia && window.matchMedia('(max-width: 768px)').matches)
+      : false;
+
+    if (!isPhone) return;
+
+    const sheet = sheetElRef?.current as HTMLElement | null;
+    if (!sheet) return;
+
+    const getScrollableAncestor = (start: Element | null): HTMLElement | null => {
+      let el: Element | null = start;
+      while (el && el !== sheet) {
+        const style = window.getComputedStyle(el as HTMLElement);
+        const oy = style.overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && (el as HTMLElement).scrollHeight > (el as HTMLElement).clientHeight) {
+          return el as HTMLElement;
+        }
+        el = el.parentElement;
+      }
+      return scrollableContentRef.current;
+    };
+
+    let startY = 0;
+    let startX = 0;
+    let startedAtTop = false;
+    let closingTriggered = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (!isOpen) return;
+      const t = e.touches[0];
+      startY = t.clientY;
+      startX = t.clientX;
+      closingTriggered = false;
+
+      const target = e.target as Element | null;
+      const scrollable = getScrollableAncestor(target);
+      const st = scrollable ? scrollable.scrollTop : 0;
+      startedAtTop = (st <= 0);
+    };
+
+    const handleTouchMove = async (e: TouchEvent) => {
+      if (!isOpen || closingTriggered === true) return;
+
+      const t = e.touches[0];
+      const dy = t.clientY - startY;
+      const dx = t.clientX - startX;
+
+      const isMostlyVertical = Math.abs(dy) > Math.abs(dx) * 1.2;
+
+      if (startedAtTop && isMostlyVertical && dy > TOUCH_PULL_CLOSE_PX) {
+        closingTriggered = true;
+        try { e.preventDefault(); } catch { }
+        await handleCloseDrawer();
+      }
+    };
+
+    const handleTouchEnd = () => {
+      startY = 0;
+      startX = 0;
+      startedAtTop = false;
+      closingTriggered = false;
+    };
+
+    sheet.addEventListener('touchstart', handleTouchStart, { passive: true });
+    sheet.addEventListener('touchmove', handleTouchMove, { passive: false });
+    sheet.addEventListener('touchend', handleTouchEnd, { passive: true });
+    sheet.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+    return () => {
+      sheet.removeEventListener('touchstart', handleTouchStart as any);
+      sheet.removeEventListener('touchmove', handleTouchMove as any);
+      sheet.removeEventListener('touchend', handleTouchEnd as any);
+      sheet.removeEventListener('touchcancel', handleTouchEnd as any);
+    };
+  }, [isOpen, sheetElRef, handleCloseDrawer]);
+
+  useEffect(() => {
+    if (!isClosing) return;
+
+    let cancelled = false;
+
+    (async () => {
+      await animate(scope.current, { opacity: [1, 0] }, { duration: 0.3 });
+
+      const yStart = typeof y.get() === "number" ? y.get() : 0;
+      await animate("#ticket-sheet", { y: [yStart, height] }, {
+        ease: "easeInOut",
+        duration: 0.3
+      });
+
+      if (cancelled) return;
+
+      setCurrentStep(0);
+      setFullEventDetails(null);
+      setErrorDetails(null);
+      viewTrackedRef.current = false;
+      beginCheckoutTrackedRef.current = false;
+      lastCartRef.current = { preventQty: 0, productQtys: {}, comboQtys: {} };
+
+      handleReset();
+      onClose();
+
+      setIsClosing(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [isClosing, animate, scope, y, height, handleReset, onClose]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -806,7 +925,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
           <motion.div
             id="ticket-sheet"
-            ref={sheetRef}
+            ref={setSheetRef}
             className="relative mx-auto w-full max-w-lg md:max-w-4xl h-[85vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden touch-none"
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
