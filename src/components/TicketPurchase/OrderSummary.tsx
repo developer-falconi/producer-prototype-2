@@ -1,7 +1,7 @@
 import { useProducer } from '@/context/ProducerContext';
 import { useTracking } from '@/hooks/use-tracking';
 import { CouponEvent, EventDto, PurchaseData } from '@/lib/types';
-import { formatPrice, paymentMethodLabels } from '@/lib/utils';
+import { formatPrice, paymentMethodLabels, getFeeBreakdown, toNum } from '@/lib/utils';
 import React, { useEffect } from 'react';
 
 interface OrderSummaryProps {
@@ -63,30 +63,6 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   const { producer } = useProducer();
   const tracking = useTracking({ producer, channel: 'prevent' });
 
-  useEffect(() => {
-    if (!eventData) return;
-
-    const items: Array<{ prevent?: any; product?: any; combo?: any; qty?: number }> = [];
-
-    if (purchaseData.selectedPrevent && purchaseData.ticketQuantity > 0) {
-      items.push({ prevent: purchaseData.selectedPrevent, qty: purchaseData.ticketQuantity });
-    }
-    purchaseData.products.forEach(p => {
-      if (p.quantity > 0) items.push({ product: p.product, qty: p.quantity });
-    });
-    purchaseData.combos.forEach(c => {
-      if (c.quantity > 0) items.push({ combo: c.combo, qty: c.quantity });
-    });
-
-    const value = Number(purchaseData.total || 0);
-    const coupon =
-      purchaseData.coupon?.id != null
-        ? String(purchaseData.coupon.id)
-        : (purchaseData.promoter || null);
-
-    tracking.viewCart(eventData, items, { coupon, value });
-  }, [eventData, purchaseData, tracking]);
-
   const ticketPrice = purchaseData.selectedPrevent?.price || 0;
   const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
 
@@ -128,11 +104,32 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
     purchaseData.coupon ?? null
   );
 
-  const netSubtotal = Math.max(0, subtotalAllItems - discount);
+  const baseNet = Math.max(0, subtotalAllItems - discount);
+  const { clientFeePortion, finalPrice } = getFeeBreakdown(eventData?.fee ?? null, toNum(baseNet));
+  const total = finalPrice;
 
-  const mercadoPagoFee = purchaseData.paymentMethod === 'mercadopago' ? netSubtotal * 0.0824 : 0;
+  useEffect(() => {
+    if (!eventData) return;
 
-  const total = netSubtotal + mercadoPagoFee;
+    const items: Array<{ prevent?: any; product?: any; combo?: any; qty?: number }> = [];
+
+    if (purchaseData.selectedPrevent && purchaseData.ticketQuantity > 0) {
+      items.push({ prevent: purchaseData.selectedPrevent, qty: purchaseData.ticketQuantity });
+    }
+    purchaseData.products.forEach(p => {
+      if (p.quantity > 0) items.push({ product: p.product, qty: p.quantity });
+    });
+    purchaseData.combos.forEach(c => {
+      if (c.quantity > 0) items.push({ combo: c.combo, qty: c.quantity });
+    });
+
+    const baseForTracking = Number(toNum(baseNet));
+    const coupon = purchaseData.coupon?.id != null
+      ? String(purchaseData.coupon.id)
+      : (purchaseData.promoter || null);
+
+    tracking.viewCart(eventData, items, { coupon, value: baseForTracking });
+  }, [eventData, purchaseData, tracking, baseNet]);
 
   return (
     <div className="space-y-4 p-8">
@@ -162,7 +159,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
         </div>
       </div>
 
-      {/* --- Selected Products Section --- */}
+      {/* --- Productos Seleccionados --- */}
       {productsSummary.length > 0 && (
         <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
           <h3 className="text-xl font-semibold text-white mb-4 border-b border-gray-600 pb-3">Productos Seleccionados</h3>
@@ -177,7 +174,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
         </div>
       )}
 
-      {/* --- Selected Combos Section --- */}
+      {/* --- Combos Seleccionados --- */}
       {combosSummary.length > 0 && (
         <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
           <h3 className="text-xl font-semibold text-white mb-4 border-b border-gray-600 pb-3">Combos Seleccionados</h3>
@@ -192,7 +189,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
         </div>
       )}
 
-      {/* --- Price Summary Section --- */}
+      {/* --- Resumen de Precios con política de fee --- */}
       <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
         <h3 className="text-xl font-semibold text-white mb-4 border-b border-gray-600 pb-3">Resumen de Precios</h3>
         <div className="space-y-3 text-sm text-gray-300">
@@ -263,15 +260,11 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
                 </div>
               )}
 
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Subtotal neto:</span>
-                <span className="font-medium text-white text-right">{formatPrice(netSubtotal)}</span>
-              </div>
-
-              {mercadoPagoFee > 0 && (
+              {/* Comisión de plataforma y reparto */}
+              {baseNet > 0 && (
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-400">Comisión Mercado Pago:</span>
-                  <span className="text-red-400 text-right">{formatPrice(mercadoPagoFee)}</span>
+                  <span className="text-emerald-300">Cargo por servicio:</span>
+                  <span className="text-emerald-300 text-right">+ {formatPrice(clientFeePortion)}</span>
                 </div>
               )}
 

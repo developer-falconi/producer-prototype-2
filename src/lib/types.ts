@@ -66,11 +66,28 @@ export interface EventDto {
   combos?: ComboEventDto[];
   artists: EventArtistDto[];
   payments: EventPaymentDto[];
+  fee: EventFeeDto;
 }
 
 export enum PreventPromoTypeEnum {
   NONE = "NONE",
   X_FOR_Y = "X_FOR_Y",
+}
+
+export interface EventFeeDto {
+  applyOn: ApplyOnFeeEnum;
+  clientFeeShare: string
+  createdAt: string;
+  deletedAt: string;
+  id: number;
+  platformFeeShare: string;
+  producerFeeShare: string;
+  updatedAt: string;
+}
+
+export enum ApplyOnFeeEnum {
+  SUBTOTAL = 'SUBTOTAL',
+  LIST_PRICE = 'LIST_PRICE'
 }
 
 export interface Prevent {
