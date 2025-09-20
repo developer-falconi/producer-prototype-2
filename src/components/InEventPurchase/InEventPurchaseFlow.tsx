@@ -21,6 +21,7 @@ import { toast } from "sonner";
 
 const DRAG_CLOSE_PX = 100;
 const DRAG_CLOSE_VELOCITY = 800;
+const TOUCH_PULL_CLOSE_PX = 100;
 
 const Step = {
   Banner: 0,
@@ -57,6 +58,8 @@ export default function InEventPurchaseFlow({
   const [error, setError] = useState<string | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const scrollableContentRef = useRef<HTMLDivElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
 
   const [mpPreferenceId, setMpPreferenceId] = useState<string | null>(null);
   const [isGeneratingPreference, setIsGeneratingPreference] = useState(false);
@@ -66,7 +69,8 @@ export default function InEventPurchaseFlow({
   const [appliedCoupon, setAppliedCoupon] = useState<CouponEvent | null>(null);
 
   const [scope, animate] = useAnimate();
-  const [sheetRef, { height }] = useMeasure();
+  const [setSheetMeasureRef, { height }] = useMeasure();
+  const sheetElRef = useRef<HTMLDivElement | null>(null);
   const y = useMotionValue(0);
   const dragControls = useDragControls();
 
@@ -540,6 +544,125 @@ export default function InEventPurchaseFlow({
     }
   };
 
+  const setSheetRef = useCallback((node: HTMLDivElement | null) => {
+    setSheetMeasureRef(node);
+    sheetElRef.current = node;
+  }, [setSheetMeasureRef]);
+
+  // --- Nuevo: cierre por “pull-down” en móvil cuando el contenido está scrolleado arriba del todo
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const isPhone = typeof window !== 'undefined'
+      ? (window.matchMedia && window.matchMedia('(max-width: 768px)').matches)
+      : false;
+
+    if (!isPhone) return;
+
+    const sheet = sheetElRef?.current as HTMLElement | null;
+    if (!sheet) return;
+
+    const getScrollableAncestor = (start: Element | null): HTMLElement | null => {
+      let el: Element | null = start;
+      while (el && el !== sheet) {
+        const style = window.getComputedStyle(el as HTMLElement);
+        const oy = style.overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && (el as HTMLElement).scrollHeight > (el as HTMLElement).clientHeight) {
+          return el as HTMLElement;
+        }
+        el = el.parentElement;
+      }
+      return scrollableContentRef.current;
+    };
+
+    let startY = 0;
+    let startX = 0;
+    let startedAtTop = false;
+    let closingTriggered = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (!isOpen) return;
+      const t = e.touches[0];
+      startY = t.clientY;
+      startX = t.clientX;
+      closingTriggered = false;
+
+      const target = e.target as Element | null;
+      const scrollable = getScrollableAncestor(target);
+      const st = scrollable ? scrollable.scrollTop : 0;
+      startedAtTop = (st <= 0);
+    };
+
+    const handleTouchMove = async (e: TouchEvent) => {
+      if (!isOpen || closingTriggered === true) return;
+
+      const t = e.touches[0];
+      const dy = t.clientY - startY;
+      const dx = t.clientX - startX;
+
+      const isMostlyVertical = Math.abs(dy) > Math.abs(dx) * 1.2;
+
+      if (startedAtTop && isMostlyVertical && dy > TOUCH_PULL_CLOSE_PX) {
+        closingTriggered = true;
+        try { e.preventDefault(); } catch { }
+        await handleCloseDrawer();
+      }
+    };
+
+    const handleTouchEnd = () => {
+      startY = 0;
+      startX = 0;
+      startedAtTop = false;
+      closingTriggered = false;
+    };
+
+    sheet.addEventListener('touchstart', handleTouchStart, { passive: true });
+    sheet.addEventListener('touchmove', handleTouchMove, { passive: false });
+    sheet.addEventListener('touchend', handleTouchEnd, { passive: true });
+    sheet.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+    return () => {
+      sheet.removeEventListener('touchstart', handleTouchStart as any);
+      sheet.removeEventListener('touchmove', handleTouchMove as any);
+      sheet.removeEventListener('touchend', handleTouchEnd as any);
+      sheet.removeEventListener('touchcancel', handleTouchEnd as any);
+    };
+  }, [isOpen, sheetElRef, handleCloseDrawer]);
+
+  // --- Nuevo: efecto de cierre programático equivalente a la función de cierre (si necesitás dispararlo con estado)
+  useEffect(() => {
+    if (!isClosing) return;
+
+    let cancelled = false;
+
+    (async () => {
+      await animate(scope.current, { opacity: [1, 0] }, { duration: 0.3 });
+
+      const yStart = typeof y.get() === "number" ? y.get() : 0;
+      await animate("#ticket-sheet", { y: [yStart, height] }, {
+        ease: "easeInOut",
+        duration: 0.3
+      });
+
+      if (cancelled) return;
+
+      // Reseteos mínimos para este flujo
+      setStep(Step.Banner);
+      setFullEventDetails(null);
+      setError(null);
+      viewTrackedRef.current = false;
+      beginCheckoutTrackedRef.current = false;
+      lastCartRef.current = { productQtys: {}, comboQtys: {} };
+      lastPaymentTrackedRef.current = null;
+
+      onClose();
+
+      setIsClosing(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [isClosing, animate, scope, y, height, onClose]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -559,7 +682,7 @@ export default function InEventPurchaseFlow({
           />
           <motion.div
             id="ticket-sheet"
-            ref={sheetRef}
+            ref={setSheetRef}
             className="relative mx-auto w-full max-w-lg md:max-w-4xl h-[85vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden touch-none"
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
@@ -594,7 +717,11 @@ export default function InEventPurchaseFlow({
               </div>
             )}
 
-            <div className="flex-grow pt-1 relative overflow-y-auto">
+            <div
+              ref={scrollableContentRef}
+              className="flex-grow pt-1 relative"
+              style={{ overflowY: 'auto' }}
+            >
               {loadingDetails ? (
                 <Spinner textColor="text-white" borderColor="border-transparent border-t-white" />
               ) : (
