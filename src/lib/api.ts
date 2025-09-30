@@ -1,4 +1,4 @@
-import { ApiResponse, Client, ClientTypeEnum, EventDto, EventImageDto, InEventPurchasePayload, Participant, PreferenceData, Producer, Voucher } from "./types";
+import { ApiResponse, Client, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, Participant, PreferenceData, Producer, Voucher } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
 
@@ -155,7 +155,7 @@ export async function createLiveEventPreference(
       total: data.total,
       coupon: data.coupon
     }
-    
+
     const response = await fetch(`${API_URL}/mercadopago/create/live?event=${eventId}`, {
       method: "POST",
       headers: {
@@ -185,4 +185,19 @@ export async function validateCoupon(eventId: number, code: string) {
     console.error("Error fetching producer data:", error);
     throw error;
   }
+}
+
+export async function getCourtesyInvite(token: string): Promise<ApiResponse<CourtesyDto>> {
+  const res = await fetch(`${API_URL}/courtesy/invite?token=${encodeURIComponent(token)}`);
+  if (!res.ok) throw new Error("No se pudo cargar la cortesía");
+  return await res.json();
+}
+
+export async function claimCourtesyInvite(token: string, eventId: number, payload) {
+  const res = await fetch(`${API_URL}/courtesy/claim?token=${encodeURIComponent(token)}&event=${eventId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return await res.json();
 }

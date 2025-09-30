@@ -9,6 +9,7 @@ import { ProducerProvider } from "./context/ProducerContext";
 import Navbar from "./components/Navbar";
 import { Toaster } from "sonner";
 import { HelmetProvider } from "react-helmet-async";
+import CourtesyClaim from "./pages/CourtesyClaim";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/events" element={<Events />} />
               <Route path="/gallery" element={<Gallery />} />
+              <Route path="/courtesy/:token" element={<CourtesyClaim />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

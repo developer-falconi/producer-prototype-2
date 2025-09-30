@@ -394,6 +394,16 @@ export interface CouponEvent {
   totalDiscountAmount: string;
 }
 
+export interface CourtesyDto {
+  eventId: number;
+  eventName: string;
+  flyerUrl: string;
+  remainingClaims: number;
+  expiresAt: Date | null;
+  revoked: boolean;
+  valid: boolean;
+}
+
 export type MpLocale = "es-AR" | "es-CL" | "es-CO" | "es-MX" | "es-VE" | "es-UY" | "es-PE" | "pt-BR" | "en-US";
 
 export type ApiResponse<T> =
