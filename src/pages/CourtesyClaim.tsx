@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
@@ -31,6 +31,7 @@ type ClaimVariables = ClaimForm & { token: string };
 
 export default function CourtesyClaim() {
   const { token = "" } = useParams<{ token: string }>();
+  const [formSubmitted, setFormSubmitted] = useState(false);
 
   const { data: res, isLoading, isError } = useQuery({
     queryKey: ["courtesy-invite", token],
@@ -56,6 +57,7 @@ export default function CourtesyClaim() {
     register,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<ClaimForm>({
     resolver: zodResolver(ClaimSchema),
@@ -70,8 +72,15 @@ export default function CourtesyClaim() {
       gender: vars.gender,
       docNumber: vars.docNumber,
     }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("¡Cortesía confirmada! Te enviamos el mail con tus entradas.");
+
+      const res = await getCourtesyInvite(token);
+      if (res?.data?.remainingClaims <= 0) {
+        setFormSubmitted(true);
+      } else {
+        reset();
+      }
     },
     onError: (err) => {
       toast.error(err?.message || "No se pudo reclamar la cortesía.");
@@ -104,6 +113,18 @@ export default function CourtesyClaim() {
               <p className="text-red-400 mb-4">No se pudo cargar la cortesía.</p>
               <Link to="/" className="underline text-neutral-200">Volver al inicio</Link>
             </div>
+          ) : formSubmitted ? (
+            <motion.div
+              className="rounded-3xl bg-green-950/30 border border-green-600/40 text-green-200 p-6 md:p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+            >
+              <header className="mb-6 text-center">
+                <h1 className="text-2xl font-bold">¡Cortesía reclamada!</h1>
+                <p>Ya no hay más cortesías disponibles para este evento.</p>
+              </header>
+            </motion.div>
           ) : (
             <motion.div
               className="rounded-3xl bg-black/30 border border-white/10 p-6 md:p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"

@@ -22,8 +22,8 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
   }
 
   const TimeBox = ({ value, label }: { value: number | string; label: string }) => (
-    <div className="flex flex-col items-center justify-center p-2 w-14 h-14">
-      <span className="text-white text-2xl font-extrabold leading-none">
+    <div className="flex flex-col items-center justify-center p-1 w-14 h-14">
+      <span className="text-white text-lg font-extrabold leading-none">
         {String(value).padStart(2, '0')}
       </span>
       <span className="text-white text-xs uppercase mt-1">
@@ -33,14 +33,14 @@ const CountdownTimer: React.FC<CountdownTimerProps> = ({ targetDate }) => {
   );
 
   return (
-    <div className="bg-black/50 backdrop-blur-sm p-1 rounded-lg">
+    <div className="bg-black/50 backdrop-blur-sm rounded-lg">
       <div className="flex justify-center gap-1">
         <TimeBox value={timeRemaining.days} label="Días" />
-        <span className="text-xl font-bold mt-1">:</span>
+        <span className="text-lg font-bold mt-1">:</span>
         <TimeBox value={timeRemaining.hours} label="Hrs" />
-        <span className="text-xl font-bold mt-1">:</span>
+        <span className="text-lg font-bold mt-1">:</span>
         <TimeBox value={timeRemaining.minutes} label="Min" />
-        <span className="text-xl font-bold mt-1">:</span>
+        <span className="text-lg font-bold mt-1">:</span>
         <TimeBox value={timeRemaining.seconds} label="Seg" />
       </div>
     </div>
