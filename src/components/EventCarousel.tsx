@@ -45,8 +45,8 @@ const EventCarousel = ({ events }: { events: EventDto[] }) => {
                 <div
                   className={cn(
                     'relative aspect-[9/12]',
-                    'max-h-[80vh] md:max-h-[80vh]',
-                    'w-full max-w-full mx-auto',
+                    'max-h-[70vh] md:max-h-[70vh]',
+                    'w-[80%] max-w-[80%] mx-auto',
                     'rounded-xl shadow-2xl overflow-hidden cursor-pointer',
                     isLive && 'border-4 border-red-700'
                   )}
@@ -63,7 +63,7 @@ const EventCarousel = ({ events }: { events: EventDto[] }) => {
                     width={150}
                     height={300}
                   />
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 p-4 z-20">
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20">
                     <CountdownTimer targetDate={event.startDate} />
                   </div>
                 </div>

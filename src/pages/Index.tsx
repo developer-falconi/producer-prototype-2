@@ -313,7 +313,7 @@ const Index = () => {
                     alt={`Logo de ${producer.name}`}
                     className={cn(
                       "block rounded-full mx-auto mb-4 object-cover ring-1 ring-white/15",
-                      eventsForHeroCarousel.length > 0 ? "h-20 w-20 md:h-28 md:w-28" : "h-24 w-24 md:h-28 md:w-28"
+                      eventsForHeroCarousel.length > 0 ? "h-20 w-20 md:h-48 md:w-48" : "h-24 w-24 md:h-64 md:w-64"
                     )}
                     loading="lazy"
                     decoding="async"

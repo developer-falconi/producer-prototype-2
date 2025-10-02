@@ -199,5 +199,6 @@ export async function claimCourtesyInvite(token: string, eventId: number, payloa
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  if (!res.ok) throw new Error("No se pudo reclamar la cortesía");
   return await res.json();
 }
