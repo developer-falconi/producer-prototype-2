@@ -6,12 +6,15 @@ import { Autoplay, EffectCoverflow, Navigation, Pagination } from 'swiper/module
 import { cn } from "@/lib/utils";
 import CountdownTimer from "./CountdownTimer";
 import { Radio } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const EventCarousel = ({ events }: { events: EventDto[] }) => {
   if (!events || events.length === 0) return null;
 
   const [searchParams] = useSearchParams();
   const loopEnabled = events.length > 3;
+
+  const isMobile = useIsMobile();
 
   return (
     <div className="relative w-full h-full flex items-center justify-center overflow-hidden md:w-1/2 mx-auto">
@@ -45,8 +48,10 @@ const EventCarousel = ({ events }: { events: EventDto[] }) => {
                 <div
                   className={cn(
                     'relative aspect-[9/12]',
-                    'max-h-[70vh] md:max-h-[70vh]',
-                    'w-[80%] max-w-[80%] mx-auto',
+                    isMobile
+                      ? 'max-h-[70vh] md:max-h-[70vh] w-[80%] max-w-[80%]'
+                      : 'max-h-[90vh] md:max-h-[90vh] w-full max-w-full',
+                    'mx-auto',
                     'rounded-xl shadow-2xl overflow-hidden cursor-pointer',
                     isLive && 'border-4 border-red-700'
                   )}
@@ -63,7 +68,7 @@ const EventCarousel = ({ events }: { events: EventDto[] }) => {
                     width={150}
                     height={300}
                   />
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-20">
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 pb-2 z-20">
                     <CountdownTimer targetDate={event.startDate} />
                   </div>
                 </div>
