@@ -135,6 +135,40 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
     <div className="space-y-4 p-8">
       <h2 className="text-2xl font-bold text-gray-300 mb-6 text-center">Resumen de tu Compra</h2>
 
+      {purchaseData.paymentMethod === 'bank_transfer' && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mb-6 rounded-lg border border-amber-500/40 bg-amber-900/30 p-4 text-amber-100 shadow-lg"
+        >
+          <div className="flex items-start gap-3">
+            <svg
+              className="h-5 w-5 flex-shrink-0 mt-0.5"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm.75 6.75a.75.75 0 1 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5Zm0 7.5a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div>
+              <p className="font-semibold text-amber-200">
+                Importante sobre tu pago por transferencia
+              </p>
+              <p className="mt-1 text-sm">
+                Al hacer click en <span className="font-semibold">“Confirmar Compra”</span>, tu pedido será
+                <span className="font-semibold"> enviado para validación manual de la transferencia</span>.
+                Te notificaremos por email cuando se apruebe y se generen tus entradas.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700">
         <h3 className="text-xl font-semibold text-white mb-4 border-b border-gray-600 pb-3">Detalles Generales</h3>
         <div className="space-y-3 text-sm text-gray-300">
@@ -276,14 +310,6 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
           )}
         </div>
       </div>
-
-      {purchaseData.paymentMethod === 'bank_transfer' && (
-        <div className="mt-8 text-center">
-          <p className="text-gray-400 text-sm">
-            Al hacer click en "Confirmar Compra", tu pedido será enviado para validación manual de la transferencia.
-          </p>
-        </div>
-      )}
     </div>
   );
 };

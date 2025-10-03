@@ -5,7 +5,7 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem } from '@/lib/types';
+import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, Voucher } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -61,6 +61,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   });
 
   const [fullEventDetails, setFullEventDetails] = useState<EventDto | null>(null);
+  const [submissionData, setSubmissionData] = useState<Voucher>(null);
   const [submissionStatus, setSubmissionStatus] = useState<{ status: 'success' | 'error', message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -574,6 +575,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.selectedPrevent!.id, purchaseData.total);
       if (result.success) {
         setSubmissionStatus({ status: 'success', message: result['message'] || "¡Compra Exitosa! 🎉" });
+        setSubmissionData(result.data);
 
         if (purchaseData.paymentMethod === 'bank_transfer' && (fullEventDetails || initialEvent)) {
           const evt = fullEventDetails || initialEvent;
@@ -760,6 +762,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             purchaseData={purchaseData}
             total={purchaseData.total}
             status={submissionStatus}
+            voucher={submissionData}
             onResetAndClose={handleCloseDrawer}
           />
         );
@@ -976,7 +979,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                 </div>
               ) : (
                 <>
-                  {currentStep > 0 && currentStep <= dynamicSteps.length && (
+                  {currentStep > 0 && currentStep <= dynamicSteps.length - 1 && (
                     <ProgressBar currentStep={currentStep} steps={dynamicSteps} />
                   )}
                   <div className="animate-fade-in overflow-hidden">
