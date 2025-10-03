@@ -12,13 +12,14 @@ import {
   ShoppingCart,
   Boxes,
 } from "lucide-react";
-import { PurchaseData } from "@/lib/types";
+import { PurchaseData, Voucher } from "@/lib/types";
 import { cn, formatPrice } from "@/lib/utils";
 
 interface PurchaseStatusProps {
   purchaseData: PurchaseData;
   total: number;
   status: { status: "success" | "error"; message: string } | null;
+  voucher: Voucher | null;
   onResetAndClose: () => void;
 }
 
@@ -26,14 +27,12 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
   purchaseData,
   total,
   status,
+  voucher,
   onResetAndClose,
 }) => {
   const isSuccess = status?.status === "success";
 
   const title = isSuccess ? "¡Pedido cargado con éxito!" : "No pudimos completar tu compra";
-  const helper = isSuccess
-    ? "Te enviaremos un email con tus accesos y/o productos cuando el pago esté confirmado."
-    : status?.message || "Hubo un problema al procesar tu compra. Probá de nuevo o contactá soporte.";
 
   const ticketsCount = purchaseData.ticketQuantity ?? 0;
   const prodCount = purchaseData.products?.length ?? 0;
@@ -43,11 +42,6 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
   const email = purchaseData.email;
 
   const [copied, setCopied] = useState(false);
-  const [canShare, setCanShare] = useState(false);
-
-  useEffect(() => {
-    setCanShare(typeof navigator !== "undefined" && !!(navigator as any).share);
-  }, []);
 
   const shareText = useMemo(() => {
     const parts = [
@@ -68,17 +62,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
     } catch { }
   };
 
-  const shareSummary = async () => {
-    try {
-      if (!canShare) return;
-      await (navigator as any).share({
-        title: "Resumen de compra",
-        text: shareText,
-      });
-    } catch { }
-  };
-
-  const method = (purchaseData as any).paymentMethod as "mercadopago" | "bank_transfer" | "free" | undefined;
+  const method = purchaseData.paymentMethod as "mercadopago" | "bank_transfer" | "free" | undefined;
   const isMP = method === "mercadopago";
   const isTransfer = method === "bank_transfer";
   const isFree = method === "free" || total === 0;
@@ -136,53 +120,36 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.18 }}
       >
-        <span className="text-sm text-zinc-300">Total:</span>
-        <span className="font-mono text-sm font-semibold text-white">{totalText}</span>
+        <span className="text-sm text-zinc-300">Id de compra:</span>
+        <span className="font-mono text-sm font-semibold text-white">{voucher.id}</span>
         {isSuccess && (
-          <>
-            <button
-              onClick={copySummary}
-              className={cn(
-                "ml-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] border",
-                "hover:brightness-110",
-                isSuccess
-                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
-                  : "bg-rose-500/15 text-rose-300 border-rose-400/30"
-              )}
-              aria-label="Copiar resumen"
-            >
-              {copied ? <Sparkles className="h-3.5 w-3.5" /> : <ClipboardCopy className="h-3.5 w-3.5" />}
-              {copied ? "Copiado" : "Copiar"}
-            </button>
-            {canShare && (
-              <button
-                onClick={shareSummary}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] border",
-                  "hover:brightness-110",
-                  isSuccess
-                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
-                    : "bg-rose-500/15 text-rose-300 border-rose-400/30"
-                )}
-                aria-label="Compartir resumen"
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                Compartir
-              </button>
+          <button
+            onClick={copySummary}
+            className={cn(
+              "ml-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] border",
+              "hover:brightness-110",
+              isSuccess
+                ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
+                : "bg-rose-500/15 text-rose-300 border-rose-400/30"
             )}
-          </>
+            aria-label="Copiar resumen"
+          >
+            {copied ? <Sparkles className="h-3.5 w-3.5" /> : <ClipboardCopy className="h-3.5 w-3.5" />}
+            {copied ? "Copiado" : "Copiar"}
+          </button>
         )}
       </motion.div>
 
-      {/* Mensaje guía */}
-      <motion.p
-        className="mt-4 max-w-md text-sm text-zinc-300 whitespace-pre-line"
+      {/* Pill resumen / acciones */}
+      <motion.div
+        className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2"
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.24 }}
+        transition={{ delay: 0.18 }}
       >
-        {helper}
-      </motion.p>
+        <span className="text-sm text-zinc-300">Total:</span>
+        <span className="font-mono text-sm font-semibold text-white">{totalText}</span>
+      </motion.div>
 
       {/* Tarjeta con resumen + próximos pasos */}
       {
@@ -216,29 +183,62 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
             </ul>
 
             <div className="mt-4 border-t border-white/10 pt-3">
-              <h4 className="text-sm font-semibold text-white">¿Qué sigue?</h4>
-              <ul className="mt-2 list-disc pl-5 space-y-1 text-[13px] text-zinc-400">
-                {isFree ? (
-                  <>
-                    <li>Tu compra es liberada. Te enviamos los accesos por email.</li>
-                    <li>Revisá spam/promociones si no lo ves en tu bandeja.</li>
-                  </>
-                ) : isMP ? (
-                  <>
-                    <li>Pagás con Mercado Pago. La acreditación es automática.</li>
-                    <li>Vas a recibir un email con los QR/indicaciones al instante.</li>
-                  </>
-                ) : isTransfer ? (
-                  <>
-                    <li>Transferí el importe a la cuenta indicada y subí el comprobante.</li>
-                    <li>Validamos el pago y te enviamos los QR por email.</li>
-                  </>
-                ) : (
-                  <>
-                    <li>Seguimos el estado de tu pago y te avisamos por email.</li>
-                  </>
-                )}
-              </ul>
+              <h4 className="text-sm font-semibold text-white mb-3">¿Qué sigue?</h4>
+
+              {isFree && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-900/30 p-4 text-emerald-100 shadow-lg"
+                >
+                  <p className="font-semibold text-emerald-200">✅ Compra liberada</p>
+                  <p className="mt-1 text-sm">
+                    Recibirás los accesos por email en breve. Revisá tu carpeta de{" "}
+                    <span className="font-semibold">spam/promociones</span> si no lo ves en tu bandeja.
+                  </p>
+                </div>
+              )}
+
+              {isMP && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="mb-4 rounded-lg border border-sky-500/40 bg-sky-900/30 p-4 text-sky-100 shadow-lg"
+                >
+                  <p className="font-semibold text-sky-200">💳 Pago con Mercado Pago</p>
+                  <p className="mt-1 text-sm">
+                    La acreditación es <span className="font-semibold">automática</span>. Recibirás tus QR e
+                    indicaciones al instante en tu email.
+                  </p>
+                </div>
+              )}
+
+              {isTransfer && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="mb-4 rounded-lg border border-amber-500/40 bg-amber-900/30 p-4 text-amber-100 shadow-lg"
+                >
+                  <p className="font-semibold text-amber-200">⚠️ Pago por transferencia</p>
+                  <p className="mt-1 text-sm">
+                    Tu pedido fue enviado para <span className="font-semibold">validación manual</span>. Te
+                    notificaremos por email cuando se apruebe y se generen tus entradas o productos.
+                  </p>
+                </div>
+              )}
+
+              {!isFree && !isMP && !isTransfer && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="rounded-lg border border-gray-500/40 bg-gray-800/50 p-4 text-gray-200 shadow-lg"
+                >
+                  <p className="font-semibold text-gray-300">📩 Seguimiento del pago</p>
+                  <p className="mt-1 text-sm">
+                    Estamos siguiendo el estado de tu pago y te avisaremos por email cuando se confirme.
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
         )
