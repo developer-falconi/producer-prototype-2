@@ -24,7 +24,7 @@ const Navbar = () => {
       to={`${item.path}${search}`}
       className={cn(
         "flex items-center space-x-2 px-3 py-2 rounded-lg transition",
-        isActive(item.path) ? "bg-[#001B97] rounded-lg text-white" : "text-white hover:text-blue-400"
+        isActive(item.path) ? "bg-[#951f1f] rounded-lg text-[#f2e5d4]" : "text-black hover:text-[#951f1f]"
       )}
     >
       {item.icon}
@@ -36,7 +36,7 @@ const Navbar = () => {
 
   return (
     <nav className={cn(
-      "fixed inset-x-0 z-40 bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60",
+      "fixed inset-x-0 z-40 bg-stone-300 backdrop-blur supports-[backdrop-filter]:bg-stone-300",
       isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
     )}>
 
@@ -50,9 +50,9 @@ const Navbar = () => {
             <>
               <Link
                 to={`/${search}`}
-                className="flex items-center gap-2 font-medium text-white hover:scale-105 transition"
+                className="flex items-center gap-2 font-medium text-[#951f1f] hover:scale-105 transition"
               >
-                <Avatar>
+                <Avatar className="w-16 h-16">
                   <AvatarImage src={producer?.logo} alt={producer?.name || 'logo'} />
                   <AvatarFallback>{producer?.name}</AvatarFallback>
                 </Avatar>

@@ -3,22 +3,19 @@ import { Play, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useProducer } from "@/context/ProducerContext";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import Spinner from "@/components/Spinner";
-import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { fetchProducerGalleryData } from "@/lib/api";
 import { EventImageDto } from "@/lib/types";
-// tracking
 import { useTracking } from "@/hooks/use-tracking";
 import { Helmet } from "react-helmet-async";
 
 const Gallery = () => {
   const { producer } = useProducer();
-  const tracking = useTracking({ producer }); // page_view se dispara acá
+  const tracking = useTracking({ producer });
   const [mediaContent, setMediaContent] = useState<EventImageDto[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -259,15 +256,15 @@ const Gallery = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
-        <Spinner />
+      <div className="min-h-screen flex items-center justify-center bg-[#f2e5d4] text-[#951f1f]">
+        <Spinner textColor="text-[#951f1f]" borderColor="border-t-[#951f1f]" />
       </div>
     );
   }
 
   if (!producer) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f2e5d4] text-[#951f1f]">
         <p className="font-medium text-lg text-black mb-2">Error al cargar los datos del productor.</p>
         <Link to='https://www.produtik.com' target="_blank">
           <div className="flex items-center gap-2 bg-[#001B97] hover:bg-[#001B97]/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
@@ -304,7 +301,7 @@ const Gallery = () => {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900"
+        className="relative min-h-screen bg-[#f2e5d4] text-[#951f1f]"
       >
         <div className="container">
           <div className="max-w-7xl mx-auto">
@@ -312,13 +309,13 @@ const Gallery = () => {
             <div className="text-center mb-12">
               <motion.h1
                 variants={textVariants}
-                className="text-4xl lg:text-5xl font-bold text-white my-3"
+                className="text-4xl lg:text-5xl font-bold text-[#951f1f] my-3"
               >
                 {producer.webDetails?.galleryTitle || `Galería ${producer.name}`}
               </motion.h1>
               <motion.p
                 variants={textVariants}
-                className="text-xl text-gray-200 max-w-2xl mx-auto"
+                className="text-xl text-[#951f1f] max-w-2xl mx-auto"
               >
                 {
                   producer.webDetails?.gallerySubtitle
@@ -353,8 +350,8 @@ const Gallery = () => {
                     exit={{ opacity: 0 }}
                     className="text-center py-12 col-span-full"
                   >
-                    <div className="text-gray-800 text-lg mb-4">No hay contenido disponible</div>
-                    <p className="text-gray-700">Selecciona otra categoría para ver más contenido</p>
+                    <div className="text-black text-lg mb-4">No hay contenido disponible</div>
+                    <p className="text-black">Selecciona otra categoría para ver más contenido</p>
                   </motion.div>
                 )}
               </motion.div>
@@ -364,7 +361,7 @@ const Gallery = () => {
             <motion.div variants={textVariants} className="text-center mt-8">
               <motion.div
                 variants={itemVariants}
-                className="bg-slate-950 backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
+                className="bg-[#951f1f] backdrop-blur-lg border border-white/10 rounded-lg p-6 w-full mx-auto"
               >
                 <h3 className="text-2xl font-bold text-gray-100 mb-4">¿Quieres ser parte de la próxima experiencia?</h3>
                 <p className="text-gray-200 mb-6">
@@ -374,7 +371,7 @@ const Gallery = () => {
                   <motion.div variants={buttonVariants}>
                     <Button
                       asChild
-                      className="bg-gray-800 hover:bg-gray-800/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
+                      className="bg-[#951f1f] text-[#f2e5d4] ring-1 ring-[#f2e5d4]/20 hover:bg-[#951f1f] px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
                     >
                       <a
                         href="/events"
@@ -387,7 +384,7 @@ const Gallery = () => {
                   <motion.div variants={buttonVariants}>
                     <Button
                       asChild
-                      className="bg-[#001B97] hover:bg-[#001B97]/80 text-white px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
+                      className="bg-[#f2e5d4] hover:bg-[#f2e5d4]/80 text-[#951f1f] px-8 py-3 rounded-full transition-all duration-300 hover:scale-105"
                     >
                       <a
                         href={`https://instagram.com/${producer.instagram}`}

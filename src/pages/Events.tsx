@@ -184,8 +184,8 @@ const Events = () => {
 
   if (loading || loadingProducer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
-        <Spinner />
+      <div className="min-h-screen flex items-center justify-center bg-[#f2e5d4] text-[#951f1f]">
+        <Spinner textColor="text-[#951f1f]" borderColor="border-t-[#951f1f]" />
         <span className="sr-only">Cargando eventos…</span>
       </div>
     )
@@ -232,33 +232,33 @@ const Events = () => {
           </script>
         )}
       </Helmet>
-      <div className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
+      <div className="relative min-h-screen bg-[#f2e5d4] text-[#951f1f]">
         {producer ? (
           <>
             {/* Header */}
             <header className="container max-w-7xl mx-auto p-6 text-center">
-              <h1 className="text-4xl lg:text-5xl font-bold text-white my-3">
+              <h1 className="text-4xl lg:text-5xl font-bold my-3">
                 {producer?.webDetails?.eventTitle || "Nuestros Eventos"}
               </h1>
-              <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
+              <p className="text-lg md:text-xl max-w-2xl mx-auto">
                 {producer?.webDetails?.eventSubtitle ||
                   "Descubre todas las experiencias únicas que hemos creado y las que están por venir"}
               </p>
             </header>
 
             {/* Filtros sticky */}
-            <div className="border-y border-white/10 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/35">
+            <div className="border-y border-white/10 bg-stone-300 backdrop-blur">
               <div className="max-w-7xl mx-auto px-4">
                 <div className="flex flex-col md:flex-row md:flex-nowrap md:items-center gap-3 py-3">
                   {/* Buscar – ocupa 1/2 en md */}
-                  <div className="relative w-full md:basis-1/2 md:flex-shrink-0">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60 w-5 h-5" />
+                  <div className="relative w-full md:basis-1/2 md:flex-shrink-0 text-[#951f1f]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" />
                     <Input
                       ref={searchRef}
                       placeholder="Buscar eventos..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 bg-white/10 border-white/15 text-white placeholder:text-white/60"
+                      className="pl-10 bg-white/10 border-white/15 text-[#951f1f] placeholder-[#951f1f] focus:ring-0 focus:border-white"
                       aria-label="Buscar eventos"
                     />
                   </div>
@@ -271,7 +271,7 @@ const Events = () => {
                         value={statusFilter}
                         onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
                       >
-                        <SelectTrigger className="w-full md:w-48 bg-white/10 border-white/15 text-white">
+                        <SelectTrigger className="w-full md:w-48 bg-white/10 border-white/15 text-[#951f1f]">
                           <Filter className="w-4 h-4 mr-2" />
                           <SelectValue placeholder="Estado" />
                         </SelectTrigger>
@@ -288,7 +288,7 @@ const Events = () => {
                       variant="ghost"
                       size="sm"
                       onClick={clearFilters}
-                      className="text-white/80 hover:text-white hover:bg-white/10"
+                      className="text-[#951f1f] hover:text-white hover:bg-white/10"
                       title="Limpiar filtros"
                       aria-label="Limpiar filtros"
                     >
@@ -338,12 +338,12 @@ const Events = () => {
                   {filteredEvents.length === 0 && (
                     <div className="text-center py-16">
                       <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
-                        <Search className="h-6 w-6 text-white/80" />
+                        <Search className="h-6 w-6 text-[#951f1f]" />
                       </div>
-                      <div className="text-white text-lg mb-2">
+                      <div className="text-[#951f1f] text-lg mb-2">
                         No se encontraron eventos
                       </div>
-                      <p className="text-white/70 mb-6">
+                      <p className="text-[#951f1f] mb-6">
                         Intenta ajustar la búsqueda o cambiar el estado
                       </p>
                       <Button onClick={clearFilters} className="bg-white text-black hover:bg-white/90">

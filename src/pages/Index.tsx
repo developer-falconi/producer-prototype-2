@@ -300,7 +300,7 @@ const Index = () => {
             >
               <motion.h1
                 className={cn(
-                  "font-extrabold mb-5 leading-tight drop-shadow-lg text-center w-full",
+                  "font-extrabold mb-5 leading-tight drop-shadow-lg text-center w-full text-[#951f1f]",
                   eventsForHeroCarousel.length > 0 ? "text-3xl lg:text-5xl" : "text-5xl"
                 )}
                 initial={{ opacity: 0, y: 16 }}
@@ -323,7 +323,7 @@ const Index = () => {
               </motion.h1>
 
               <motion.p
-                className="text-base sm:text-lg md:text-xl text-neutral-200/90 mb-8 max-w-2xl drop-shadow w-full"
+                className="text-base sm:text-lg md:text-xl text-neutral-200/90 mb-8 mx-auto max-w-2xl drop-shadow w-full"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.45, delay: 0.3 }}
@@ -338,7 +338,7 @@ const Index = () => {
                 className="flex flex-wrap items-center gap-3 justify-center w-full"
               >
                 <Link to={`/events${search}`} onClick={handleHeroCta}>
-                  <button className="bg-[#001B97] text-white font-semibold py-3 px-7 rounded-full shadow-lg text-base md:text-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 inline-flex items-center">
+                  <button className="bg-[#f2e5d4] text-[#951f1f] font-semibold py-3 px-7 rounded-full shadow-lg text-base md:text-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 inline-flex items-center">
                     Ver todos los eventos <ArrowRight className="ml-2 h-5 w-5" />
                   </button>
                 </Link>
@@ -348,7 +348,7 @@ const Index = () => {
 
           {/* ESTADÍSTICAS */}
           <section
-            className="relative isolate py-12 bg-gradient-to-br from-[#001B97] via-slate-950 to-black text-white"
+            className="relative isolate py-12 bg-[#f2e5d4]"
             ref={statsSectionRef}
             aria-labelledby="stats-heading"
           >
@@ -358,7 +358,7 @@ const Index = () => {
             </h2>
 
             <div className="max-w-7xl mx-auto px-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 text-[#951f1f]">
                 {[
                   { icon: Users, num: actualTickets, label: "Entradas vendidas" },
                   { icon: Award, num: actualEvents, label: "Eventos exitosos" },
@@ -381,7 +381,7 @@ const Index = () => {
                           style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.25), transparent)" }}
                         />
                         <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full ring-1 ring-white/10 bg-white/10 grid place-items-center">
-                          <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" aria-hidden="true" />
+                          <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-[#951f1f]" aria-hidden="true" />
                         </div>
                       </div>
                     </div>
@@ -391,7 +391,7 @@ const Index = () => {
                       {label === "Satisfacción del cliente" && "%"}
                     </div>
 
-                    <p className="mt-1 text-neutral-300 text-sm sm:text-base">{label}</p>
+                    <p className="mt-1 text-[#951f1f] text-sm sm:text-base">{label}</p>
                   </motion.article>
                 ))}
               </div>
@@ -399,7 +399,7 @@ const Index = () => {
           </section>
 
           {/* MISIÓN */}
-          <section className="relative py-12 bg-gradient-to-br from-black via-slate-950 to-[#001B97] text-white overflow-hidden">
+          <section className="relative py-12 bg-[#f2e5d4] text-[#951f1f] overflow-hidden">
             <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(700px_260px_at_50%_0%,rgba(34,211,238,0.14),transparent)]" />
 
             <motion.div
@@ -422,7 +422,7 @@ const Index = () => {
                 <div className="mx-auto mt-4 sm:mt-5 h-px w-24 bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
                 <motion.p
-                  className="mt-4 sm:mt-6 text-base sm:text-lg text-neutral-300 leading-relaxed"
+                  className="mt-4 sm:mt-6 text-base sm:text-lg text-[#951f1f] leading-relaxed"
                   variants={{ hidden: {}, visible: {} }}
                 >
                   {producer.webDetails?.mission ??
