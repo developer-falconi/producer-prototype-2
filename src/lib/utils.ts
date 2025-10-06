@@ -115,7 +115,15 @@ export const toNum = (v: string | number | null | undefined) => {
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
-export function getFeeBreakdown(eventFee: EventFeeDto | null | undefined, baseAmount: number) {
+function pctStrToNum(v?: string | number | null) {
+  const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function getFeeBreakdown(
+  eventFee: EventFeeDto | null | undefined,
+  baseAmount: number
+) {
   const rate = clamp01(Number(eventFee?.platformFeeShare ?? 0.15));
   const clientShare = clamp01(Number(eventFee?.clientFeeShare ?? 1));
   const platformFeeAmount = round2(baseAmount * rate);
@@ -123,10 +131,23 @@ export function getFeeBreakdown(eventFee: EventFeeDto | null | undefined, baseAm
   const producerFeePortion = round2(platformFeeAmount - clientFeePortion);
   const finalPrice = round2(baseAmount + clientFeePortion);
 
+  const mpRate = clamp01(pctStrToNum(eventFee?.mpCommissionShare));
+  const transferRate = clamp01(pctStrToNum(eventFee?.transferCommissionShare));
+  const commissionsEnabled = mpRate > 0 || transferRate > 0;
+
+  const commissionBase = baseAmount;
+
+  const mpCommissionAmount = commissionsEnabled ? round2(commissionBase * mpRate) : 0;
+  const transferCommissionAmount = commissionsEnabled ? round2(commissionBase * transferRate) : 0;
+
   return {
     platformFeeAmount,
     clientFeePortion,
     producerFeePortion,
-    finalPrice
+    finalPrice,
+    commissionsEnabled,
+    commissionBase,
+    mpCommissionAmount,
+    transferCommissionAmount,
   };
 }

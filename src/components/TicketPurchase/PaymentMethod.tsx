@@ -89,7 +89,6 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     return toNum(purchaseData.total ?? fallbackSubtotal);
   }, [
     purchaseData.total,
-    (purchaseData as any).totalWithDiscount,
     purchaseData.selectedPrevent,
     purchaseData.ticketQuantity,
     purchaseData.products,
@@ -174,12 +173,20 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     setPage(Math.max(0, Math.min(cards.length - 1, approxIndex)));
   };
 
-  const { clientFeePortion } = useMemo(() => {
-    const breakdown = getFeeBreakdown(eventData?.fee ?? null, base);
-    return breakdown;
-  }, [eventData?.fee, base]);
+  const {
+    clientFeePortion, commissionsEnabled,
+    mpCommissionAmount, transferCommissionAmount,
+  } = useMemo(() => getFeeBreakdown(eventData?.fee ?? null, base), [eventData?.fee, base]);
 
-  const serviceCharge = clientFeePortion;
+  const paymentCommission = commissionsEnabled
+    ? (selected === 'mercadopago'
+      ? mpCommissionAmount
+      : selected === 'bank_transfer'
+        ? transferCommissionAmount
+        : 0)
+    : 0;
+
+  const serviceCharge = commissionsEnabled ? paymentCommission : clientFeePortion;
   const totalDisplay = subtotal + serviceCharge;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
