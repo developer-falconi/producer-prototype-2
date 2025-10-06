@@ -2,8 +2,8 @@ name: Build Vite Project
 
 on:
   push:
-    branches-ignore:
-      - main
+    branches:
+      - development
 
 permissions:
   contents: write
@@ -11,7 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: ${{ github.ref != 'refs/heads/main' }}
 
     steps:
       - name: Checkout repository
