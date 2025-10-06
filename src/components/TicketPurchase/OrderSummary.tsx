@@ -105,8 +105,23 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   );
 
   const baseNet = Math.max(0, subtotalAllItems - discount);
-  const { clientFeePortion, finalPrice } = getFeeBreakdown(eventData?.fee ?? null, toNum(baseNet));
-  const total = finalPrice;
+  const {
+    clientFeePortion,
+    finalPrice,
+    commissionsEnabled,
+    mpCommissionAmount,
+    transferCommissionAmount,
+  } = getFeeBreakdown(eventData?.fee ?? null, toNum(baseNet));
+
+  const paymentCommission = commissionsEnabled
+    ? (purchaseData.paymentMethod === 'mercadopago'
+      ? mpCommissionAmount
+      : purchaseData.paymentMethod === 'bank_transfer'
+        ? transferCommissionAmount
+        : 0)
+    : 0;
+
+  const total = commissionsEnabled ? toNum(baseNet) + paymentCommission : finalPrice;
 
   useEffect(() => {
     if (!eventData) return;
@@ -294,12 +309,25 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
                 </div>
               )}
 
-              {/* Comisión de plataforma y reparto */}
+              {/* Comisión / Cargo (según política) */}
               {baseNet > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="text-emerald-300">Cargo por servicio:</span>
-                  <span className="text-emerald-300 text-right">+ {formatPrice(clientFeePortion)}</span>
-                </div>
+                commissionsEnabled ? (
+                  paymentCommission > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className={purchaseData.paymentMethod === 'mercadopago' ? "text-indigo-300" : "text-emerald-300"}>
+                        Comisión método ({purchaseData.paymentMethod === 'mercadopago' ? 'Mercado Pago' : 'Transferencia'})
+                      </span>
+                      <span className={purchaseData.paymentMethod === 'mercadopago' ? "text-indigo-300 text-right" : "text-emerald-300 text-right"}>
+                        + {formatPrice(paymentCommission)}
+                      </span>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <span className="text-emerald-300">Cargo por servicio:</span>
+                    <span className="text-emerald-300 text-right">+ {formatPrice(clientFeePortion)}</span>
+                  </div>
+                )
               )}
 
               <div className="flex justify-between items-center text-xl font-bold pt-3 border-t border-gray-600 mt-4">

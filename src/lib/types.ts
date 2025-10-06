@@ -82,6 +82,8 @@ export interface EventFeeDto {
   id: number;
   platformFeeShare: string;
   producerFeeShare: string;
+  transferCommissionShare: string;
+  mpCommissionShare: string;
   updatedAt: string;
 }
 
