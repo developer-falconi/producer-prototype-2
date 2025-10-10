@@ -1,10 +1,11 @@
 import React from 'react';
 import { Easing, motion } from 'framer-motion';
-import { ArtistGenderEnum, EventDto } from '@/lib/types';
+import { EventDto } from '@/lib/types';
 import { formatDate, formatTime } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Calendar } from 'lucide-react';
 import { EventArtistsDisplay } from '../EventArtistsDisplay';
+import { EventMap } from '../EventMap';
 
 interface EventInfoProps {
   event: EventDto;
@@ -98,6 +99,13 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
           {event.description}
         </motion.p>
       </motion.div>
+      <EventMap
+        lat={null}
+        lng={null}
+        address={event.location}
+        placeName={event.name}
+        className="p-6"
+      />
     </motion.div>
   );
 };
