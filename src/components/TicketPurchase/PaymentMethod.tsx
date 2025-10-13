@@ -21,6 +21,8 @@ interface PaymentMethodProps {
   onUpdatePurchaseFile: (file: File) => void;
 }
 
+type CardKey = 'mercadopago' | 'bank_transfer' | 'free';
+
 export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   eventData,
   purchaseData,
@@ -28,59 +30,35 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
   onUpdatePurchaseFile
 }) => {
   const isMobile = useIsMobile();
-
   const [error, setError] = useState<string>();
-  const [isMpConfiguredForEvent, setIsMpConfiguredForEvent] = useState<boolean>(false);
 
   const activePaymentMethods = useMemo(() => {
-    return eventData.payments?.filter(pe => pe.paymentMethod.active) || [];
+    return eventData.payments?.filter(pe => pe.paymentMethod) || [];
   }, [eventData.payments]);
 
-  const defaultPaymentMethod: 'mercadopago' | 'bank_transfer' | 'free' = useMemo(() => {
-    if (activePaymentMethods.length === 0) {
-      return null;
-    }
-
-    if (purchaseData.total === 0) {
-      return 'free';
-    }
-
-    const mercadopagoMethod = activePaymentMethods.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'mercadopago');
-    const mpEnabled = !!eventData.oAuthMercadoPago?.mpPublicKey;
-
-    if (mercadopagoMethod && mpEnabled) {
-      setIsMpConfiguredForEvent(true);
-      return 'mercadopago';
-    }
-
-    const transferMethod = activePaymentMethods?.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'transferenciabancaria');
-    const hasTransferDetails = transferMethod?.accountAlias?.length > 0 && transferMethod?.accountBank?.length > 0 && transferMethod?.accountFullName?.length > 0
-
-    if (transferMethod && hasTransferDetails) {
-      return 'bank_transfer';
-    }
-
-    return null;
-  }, [activePaymentMethods, purchaseData.total]);
-
-  const [selected, setSelected] = useState<'mercadopago' | 'bank_transfer' | 'free'>(defaultPaymentMethod);
+  const normalize = (s?: string) => (s ?? '').toLowerCase().replace(/\s/g, '');
+  const mpMethod = useMemo(
+    () => activePaymentMethods.find(pe => normalize(pe.paymentMethod.name) === 'mercadopago'),
+    [activePaymentMethods]
+  );
+  const transferMethod = useMemo(
+    () => activePaymentMethods.find(pe => normalize(pe.paymentMethod.name) === 'transferenciabancaria'),
+    [activePaymentMethods]
+  );
 
   const calculateSubtotal = () => {
     const ticketPrice = purchaseData.selectedPrevent?.price || 0;
     const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
-
     const totalProductsPrice = purchaseData.products.reduce((sum, item) => {
       const priceNum = parseFloat(item.product.price.toString());
       const discountNum = parseFloat(item.product.discountPercentage.toString());
       const effectivePrice = priceNum * (1 - discountNum / 100);
       return sum + effectivePrice * item.quantity;
     }, 0);
-
     const totalCombosPrice = purchaseData.combos.reduce((sum, item) => {
       const priceNum = parseFloat(item.combo.price.toString());
       return sum + priceNum * item.quantity;
     }, 0);
-
     return subtotalTickets + totalProductsPrice + totalCombosPrice;
   };
 
@@ -97,14 +75,26 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
 
   const subtotal = base;
 
-  const transferMethod = useMemo(
-    () => eventData.payments?.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'transferenciabancaria'),
-    [eventData.payments]
-  );
+  const mpEnabled = !!eventData.oAuthMercadoPago?.mpPublicKey;
+  const hasMP = !!mpMethod && mpEnabled && base > 0;
 
-  const hasMP = isMpConfiguredForEvent && purchaseData.total > 0;
-  const hasBankTransfer = !!transferMethod;
+  const hasTransferDetails =
+    !!transferMethod &&
+    !!transferMethod.accountAlias?.length &&
+    !!transferMethod.accountBank?.length &&
+    !!transferMethod.accountFullName?.length;
+
+  const hasBankTransfer = hasTransferDetails;
   const isFree = base <= 0;
+
+  const recommendedKey: CardKey | null = useMemo(() => {
+    if (isFree) return 'free';
+    if (hasBankTransfer) return 'bank_transfer';
+    if (hasMP) return 'mercadopago';
+    return null;
+  }, [isFree, hasBankTransfer, hasMP]);
+
+  const [selected, setSelected] = useState<CardKey | null>(recommendedKey);
 
   useEffect(() => {
     if (!hasMP && !hasBankTransfer && !isFree) {
@@ -114,48 +104,20 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     }
   }, [hasMP, hasBankTransfer, isFree]);
 
-  type CardKey = 'mercadopago' | 'bank_transfer' | 'free';
-  const cards = useMemo(() => {
-    if (isFree) {
-      return [{
-        key: 'free' as const,
-        title: 'Entrada Liberada',
-        desc: 'Sin comisiones ni costo adicional.',
-        accent: 'from-emerald-600 to-emerald-900',
-        badge: 'Sin cargo',
-        Icon: BadgeCheck,
-      }];
+  useEffect(() => {
+    if (recommendedKey && selected !== recommendedKey) {
+      setSelected(recommendedKey);
     }
-
-    const base = transferMethod ? [{
-      key: 'bank_transfer' as const,
-      title: 'Transferencia Bancaria',
-      desc: 'Sin comisiones • Acreditación manual',
-      accent: 'from-emerald-600 to-emerald-900',
-      badge: null,
-      Icon: Landmark,
-    }] : [];
-
-    return hasMP
-      ? [{
-        key: 'mercadopago' as const,
-        title: 'Mercado Pago',
-        desc: 'Tarjeta o saldo en tu cuenta MP. Acreditación instantánea.',
-        accent: 'from-blue-600 to-blue-900',
-        badge: 'Recomendado',
-        Icon: CreditCard,
-      }, ...base]
-      : base;
-  }, [hasMP, isFree, transferMethod]);
-
-  const trackRef = useRef<HTMLDivElement | null>(null);
-  const [page, setPage] = useState(0);
+  }, [recommendedKey]);
 
   useEffect(() => {
-    if (selected !== purchaseData.paymentMethod) {
+    if (selected && selected !== purchaseData.paymentMethod) {
       onUpdatePaymentMethod(selected);
     }
   }, [selected, onUpdatePaymentMethod, purchaseData.paymentMethod]);
+
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [page, setPage] = useState(0);
 
   const pick = (k: CardKey) => {
     setSelected(k);
@@ -194,6 +156,54 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     if (file) onUpdatePurchaseFile(file);
   };
 
+  const cards: Array<{
+    key: CardKey;
+    title: string;
+    desc: string;
+    accent: string;
+    badge?: string;
+    Icon: any;
+  }> = useMemo(() => {
+    if (isFree) {
+      return [{
+        key: 'free',
+        title: 'Entrada Liberada',
+        desc: 'Sin comisiones ni costo adicional.',
+        accent: 'from-emerald-600 to-emerald-900',
+        badge: 'Recomendado',
+        Icon: BadgeCheck,
+      }];
+    }
+
+    const arr: Array<{
+      key: CardKey; title: string; desc: string; accent: string; badge?: string; Icon: any;
+    }> = [];
+
+    if (hasBankTransfer) {
+      arr.push({
+        key: 'bank_transfer',
+        title: 'Transferencia Bancaria',
+        desc: 'Sin comisiones • Acreditación manual',
+        accent: 'from-emerald-600 to-emerald-900',
+        badge: recommendedKey === 'bank_transfer' ? 'Recomendado' : undefined,
+        Icon: Landmark,
+      });
+    }
+
+    if (hasMP) {
+      arr.push({
+        key: 'mercadopago',
+        title: 'Mercado Pago',
+        desc: 'Tarjeta o saldo en tu cuenta MP. Acreditación instantánea.',
+        accent: 'from-blue-600 to-blue-900',
+        badge: recommendedKey === 'mercadopago' ? 'Recomendado' : undefined,
+        Icon: CreditCard,
+      });
+    }
+
+    return arr;
+  }, [isFree, hasBankTransfer, hasMP, recommendedKey]);
+
   return (
     <motion.div
       className="space-y-5 p-6 md:p-8"
@@ -209,7 +219,6 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
         </p>
       </header>
 
-      {/* Carousel de métodos */}
       <div className="relative w-full overflow-hidden">
         <div
           ref={trackRef}
@@ -227,7 +236,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
                 key={c.key}
                 role="button"
                 tabIndex={0}
-                aria-pressed={active}
+                aria-pressed={!!active}
                 onClick={() => pick(c.key)}
                 onKeyDown={(e) => e.key === "Enter" && pick(c.key)}
                 className={cn(
@@ -292,7 +301,6 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
         )}
       </div>
 
-      {/* Resumen */}
       {selected && (
         <div className={cn("relative rounded-xl p-4", "border border-white/10 bg-white/[0.03]")}>
           <div className="flex items-center justify-between">
@@ -314,7 +322,6 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
         </div>
       )}
 
-      {/* Detalles transferencia + comprobante */}
       {selected === 'bank_transfer' && purchaseData.total > 0 && (
         <div className="space-y-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
           <div className="text-white">
