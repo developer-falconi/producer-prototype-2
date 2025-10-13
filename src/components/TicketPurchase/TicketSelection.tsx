@@ -68,13 +68,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
     return maxByStock;
   };
 
-  const defaultQtyForPrevent = (prevent: Prevent, max: number) => {
-    if (!prevent) return 0;
-    const pack = toNum(prevent.promoPackSize);
-    const hasBundle = prevent.promoType === PreventPromoTypeEnum.X_FOR_Y && pack > 0;
-    const desired = hasBundle ? pack : 1;
-    return Math.max(0, Math.min(desired, max));
-  };
+  const defaultQtyForPrevent = (prevent: Prevent, max: number) => Math.min(max, 1);
 
   useEffect(() => {
     if (initialSelected?.id !== localSelectedPrevent?.id) {
