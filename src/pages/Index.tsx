@@ -197,8 +197,8 @@ const Index = () => {
   }
 
   const fallbackVideoUrl = "/fallbackvideo.mp4";
-  const actualTickets = producer?.totalClients || producer?.webDetails?.totalTickets || 0;
-  const actualEvents = producer?.totalEvents || producer?.webDetails?.totalEvents || 0;
+  const actualTickets = (producer?.totalClients ?? 0) + (producer?.webDetails?.totalTickets ?? 0);
+  const actualEvents = (producer?.totalEvents ?? 0) + (producer?.webDetails?.totalEvents ?? 0);
 
   return (
     <>
@@ -387,6 +387,7 @@ const Index = () => {
                     </div>
 
                     <div className="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">
+                      {label !== "Satisfacción del cliente" && "+"}
                       {statsInView ? <CountingNumber number={Number(num)} /> : 0}
                       {label === "Satisfacción del cliente" && "%"}
                     </div>
