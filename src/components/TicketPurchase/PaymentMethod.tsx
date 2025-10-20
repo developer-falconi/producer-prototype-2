@@ -146,7 +146,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
 
   const serviceCharge = solved.breakdown.pClientAmount;
   const totalDisplay = solved.priceToBuyer;
-console.log(solved)
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) onUpdatePurchaseFile(file);
