@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { EventFeeDto, PreventStatusEnum } from "./types";
+import { EventFeeDto, PreventStatusEnum, SettlementEnum } from "./types";
 import * as qrcode from 'qrcode';
 
 export function cn(...inputs: ClassValue[]) {
@@ -114,40 +114,108 @@ export const toNum = (v: string | number | null | undefined) => {
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+const roundTo = (n: number, step: number) => {
+  const k = Math.round(n / step);
+  return round2(k * step);
+};
 
 function pctStrToNum(v?: string | number | null) {
   const n = typeof v === "string" ? parseFloat(v) : typeof v === "number" ? v : 0;
   return Number.isFinite(n) ? n : 0;
 }
 
-export function getFeeBreakdown(
-  eventFee: EventFeeDto | null | undefined,
-  baseAmount: number
-) {
-  const rate = clamp01(Number(eventFee?.platformFeeShare ?? 0.15));
-  const clientShare = clamp01(Number(eventFee?.clientFeeShare ?? 1));
-  const platformFeeAmount = round2(baseAmount * rate);
-  const clientFeePortion = round2(platformFeeAmount * clientShare);
-  const producerFeePortion = round2(platformFeeAmount - clientFeePortion);
-  const finalPrice = round2(baseAmount + clientFeePortion);
+function normalizeSplit(alpha: number, beta: number): [number, number] {
+  let a = clamp01(alpha), b = clamp01(beta);
+  const sum = a + b;
+  if (sum === 0) return [1, 0];
+  if (Math.abs(sum - 1) < 1e-6) return [a, b];
+  return [a / sum, b / sum];
+}
 
-  const mpRate = clamp01(pctStrToNum(eventFee?.mpCommissionShare));
-  const transferRate = clamp01(pctStrToNum(eventFee?.transferCommissionShare));
-  const commissionsEnabled = mpRate > 0 || transferRate > 0;
+export type SettlementMode = SettlementEnum.PRODUCER | 'PLATFORM';
 
-  const commissionBase = baseAmount;
+export function solveFeesFront(params: {
+  baseAmount: number;
+  eventFee: EventFeeDto | null | undefined;
+  roundPriceStep?: number;
+  roundApplicationFeeStep?: number;
+  ensureExactNetTarget?: boolean;
+  paymentMethod?: 'mercadopago' | 'bank_transfer' | 'free';
+}) {
+  const B = round2(params.baseAmount);
 
-  const mpCommissionAmount = commissionsEnabled ? round2(commissionBase * mpRate) : 0;
-  const transferCommissionAmount = commissionsEnabled ? round2(commissionBase * transferRate) : 0;
+  // --- Base de política ---
+  let p = clamp01(Number(params.eventFee?.platformFeeShare ?? 0.15));
+  let alpha = clamp01(Number(params.eventFee?.clientFeeShare ?? 1));
+  let beta  = clamp01(Number(params.eventFee?.producerFeeShare ?? 0));
+  [alpha, beta] = normalizeSplit(alpha, beta);
+
+  // --- Overrides por método (se transforman en platformFeeShare SOLO para ese método) ---
+  const method = params.paymentMethod ?? 'mercadopago';
+  const mpOverrideP = Number(pctStrToNum(params.eventFee?.mpCommissionShare));
+  const xferOverrideP = Number(pctStrToNum(params.eventFee?.transferCommissionShare));
+  if (method === 'mercadopago' && mpOverrideP > 0) {
+    p = clamp01(mpOverrideP);
+  } else if (method === 'bank_transfer' && xferOverrideP > 0) {
+    p = clamp01(xferOverrideP);
+  }
+
+  const p_client = round2(p * alpha);
+  const p_prod   = round2(p * beta);
+
+  // --- Costo del procesador (NO usamos los overrides como r_mp) ---
+  const mpSettlementRate = Number(pctStrToNum(params.eventFee?.mpSettlement?.mpFeeRateWithIva));
+  let r_mp = 0;
+  if (method === 'mercadopago') {
+    r_mp = clamp01(mpSettlementRate > 0 ? mpSettlementRate : 0);
+  } else if (method === 'bank_transfer') {
+    r_mp = 0;
+  } else {
+    r_mp = 0;
+  }
+
+  // Precio al comprador
+  let P = round2(B * (1 + p_client));
+  if (params.roundPriceStep && params.roundPriceStep > 0) P = roundTo(P, params.roundPriceStep);
+
+  const MP = round2(P * r_mp);
+
+  // Neto objetivo productor
+  const s = 1.00;
+  const N_target = round2((s - p_prod) * B);
+
+  const settlementMode = String(params.eventFee?.settlementMode || SettlementEnum.PRODUCER).toUpperCase() as SettlementMode;
+
+  // Marketplace fee para cerrar neto
+  let A = settlementMode === SettlementEnum.PRODUCER ? Math.max(0, round2((P - MP) - N_target)) : 0;
+  const stepA = params.roundApplicationFeeStep ?? 0.01;
+  if (stepA > 0) A = roundTo(A, stepA);
+
+  if (settlementMode === SettlementEnum.PRODUCER && params.ensureExactNetTarget) {
+    const net = round2(P - MP - A);
+    const diff = round2(N_target - net);
+    if (Math.abs(diff) >= 0.01) A = round2(A - diff);
+  }
+
+  const netToProducer = settlementMode === SettlementEnum.PRODUCER ? round2(P - MP - A) : N_target;
+  const platformRevenue = settlementMode === SettlementEnum.PRODUCER ? A : round2((P - MP) - N_target);
 
   return {
-    platformFeeAmount,
-    clientFeePortion,
-    producerFeePortion,
-    finalPrice,
-    commissionsEnabled,
-    commissionBase,
-    mpCommissionAmount,
-    transferCommissionAmount,
+    priceToBuyer: P,
+    applicationFee: A,
+    mpFee: MP,
+    netToProducer,
+    platformRevenue,
+    breakdown: {
+      base: B,
+      pClientAmount: round2(p_client * B),
+      pProducerAmount: round2(p_prod * B),
+      surcharge: round2(P - B),
+      r_mp,
+      p,
+      alpha,
+      beta,
+    },
+    settlementMode,
   };
 }
