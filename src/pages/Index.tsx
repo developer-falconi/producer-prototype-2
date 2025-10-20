@@ -197,13 +197,8 @@ const Index = () => {
   }
 
   const fallbackVideoUrl = "/fallbackvideo.mp4";
-<<<<<<< HEAD
-  const actualTickets = producer?.webDetails?.totalTickets || 0;
-  const actualEvents = producer?.webDetails?.totalEvents || 0;
-=======
   const actualTickets = (producer?.totalClients ?? 0) + (producer?.webDetails?.totalTickets ?? 0);
   const actualEvents = (producer?.totalEvents ?? 0) + (producer?.webDetails?.totalEvents ?? 0);
->>>>>>> 01f65513f2fab1a6d1c0173a33c53b12fe242521
 
   return (
     <>
