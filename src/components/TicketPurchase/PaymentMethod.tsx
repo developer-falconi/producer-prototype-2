@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, UIEvent } from 'react';
-import { cn, formatPrice, getFeeBreakdown, toNum } from '@/lib/utils';
+import { cn, formatPrice, solveFeesFront, toNum } from '@/lib/utils';
 import { motion, Easing, Variants } from "framer-motion";
 import { EventDto, PurchaseData } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -173,22 +173,18 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     setPage(Math.max(0, Math.min(cards.length - 1, approxIndex)));
   };
 
-  const {
-    clientFeePortion, commissionsEnabled,
-    mpCommissionAmount, transferCommissionAmount,
-  } = useMemo(() => getFeeBreakdown(eventData?.fee ?? null, base), [eventData?.fee, base]);
+  const solved = useMemo(() => solveFeesFront({
+    baseAmount: base,
+    eventFee: eventData?.fee ?? null,
+    roundPriceStep: 0.01,
+    roundApplicationFeeStep: 0.01,
+    ensureExactNetTarget: true,
+    paymentMethod: selected,
+  }), [base, eventData?.fee, selected]);
 
-  const paymentCommission = commissionsEnabled
-    ? (selected === 'mercadopago'
-      ? mpCommissionAmount
-      : selected === 'bank_transfer'
-        ? transferCommissionAmount
-        : 0)
-    : 0;
-
-  const serviceCharge = commissionsEnabled ? paymentCommission : clientFeePortion;
-  const totalDisplay = subtotal + serviceCharge;
-
+  const serviceCharge = solved.breakdown.pClientAmount;
+  const totalDisplay = solved.priceToBuyer;
+console.log(solved)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) onUpdatePurchaseFile(file);

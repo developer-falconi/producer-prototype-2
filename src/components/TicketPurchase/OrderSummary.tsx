@@ -1,8 +1,8 @@
 import { useProducer } from '@/context/ProducerContext';
 import { useTracking } from '@/hooks/use-tracking';
 import { CouponEvent, EventDto, PurchaseData } from '@/lib/types';
-import { formatPrice, paymentMethodLabels, getFeeBreakdown, toNum } from '@/lib/utils';
-import React, { useEffect } from 'react';
+import { formatPrice, paymentMethodLabels, solveFeesFront, toNum } from '@/lib/utils';
+import React, { useEffect, useMemo } from 'react';
 
 interface OrderSummaryProps {
   eventData: EventDto;
@@ -105,23 +105,18 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
   );
 
   const baseNet = Math.max(0, subtotalAllItems - discount);
-  const {
-    clientFeePortion,
-    finalPrice,
-    commissionsEnabled,
-    mpCommissionAmount,
-    transferCommissionAmount,
-  } = getFeeBreakdown(eventData?.fee ?? null, toNum(baseNet));
 
-  const paymentCommission = commissionsEnabled
-    ? (purchaseData.paymentMethod === 'mercadopago'
-      ? mpCommissionAmount
-      : purchaseData.paymentMethod === 'bank_transfer'
-        ? transferCommissionAmount
-        : 0)
-    : 0;
+  const solved = useMemo(() => solveFeesFront({
+    baseAmount: toNum(baseNet),
+    eventFee: eventData?.fee ?? null,
+    roundPriceStep: 0.01,
+    roundApplicationFeeStep: 0.01,
+    ensureExactNetTarget: true,
+    paymentMethod: purchaseData.paymentMethod ?? 'mercadopago',
+  }), [baseNet, eventData?.fee, purchaseData.paymentMethod]);
 
-  const total = commissionsEnabled ? toNum(baseNet) + paymentCommission : finalPrice;
+  const total = solved.priceToBuyer;
+  const clientFeePortion = solved.breakdown.pClientAmount;
 
   useEffect(() => {
     if (!eventData) return;
@@ -310,24 +305,11 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({
               )}
 
               {/* Comisión / Cargo (según política) */}
-              {baseNet > 0 && (
-                commissionsEnabled ? (
-                  paymentCommission > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className={purchaseData.paymentMethod === 'mercadopago' ? "text-indigo-300" : "text-emerald-300"}>
-                        Comisión método ({purchaseData.paymentMethod === 'mercadopago' ? 'Mercado Pago' : 'Transferencia'})
-                      </span>
-                      <span className={purchaseData.paymentMethod === 'mercadopago' ? "text-indigo-300 text-right" : "text-emerald-300 text-right"}>
-                        + {formatPrice(paymentCommission)}
-                      </span>
-                    </div>
-                  )
-                ) : (
-                  <div className="flex justify-between items-center">
-                    <span className="text-emerald-300">Cargo por servicio:</span>
-                    <span className="text-emerald-300 text-right">+ {formatPrice(clientFeePortion)}</span>
-                  </div>
-                )
+              {baseNet > 0 && clientFeePortion > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-emerald-300">Cargo por servicio</span>
+                  <span className="text-emerald-300 text-right">+ {formatPrice(clientFeePortion)}</span>
+                </div>
               )}
 
               <div className="flex justify-between items-center text-xl font-bold pt-3 border-t border-gray-600 mt-4">

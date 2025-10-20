@@ -74,6 +74,11 @@ export enum PreventPromoTypeEnum {
   X_FOR_Y = "X_FOR_Y",
 }
 
+export enum SettlementEnum {
+  PRODUCER = 'PRODUCER',
+  PLATFORM = 'PLATFORM'
+}
+
 export interface EventFeeDto {
   applyOn: ApplyOnFeeEnum;
   clientFeeShare: string
@@ -84,8 +89,22 @@ export interface EventFeeDto {
   producerFeeShare: string;
   transferCommissionShare: string;
   mpCommissionShare: string;
+  settlementMode: SettlementEnum;
+  mpSettlement: MpSettlementDto;
   updatedAt: string;
 }
+
+export type SettlementWindow = 'INSTANT' | 'D10' | 'D18' | 'D35';
+
+export type MpSettlementDto = {
+  id: number;
+  country: string;
+  settlementWindow: SettlementWindow;
+  mpFeeRate: string;
+  ivaRate: string;
+  mpFeeRateWithIva: string;
+  active: boolean;
+};
 
 export enum ApplyOnFeeEnum {
   SUBTOTAL = 'SUBTOTAL',
