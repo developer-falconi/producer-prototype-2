@@ -175,6 +175,15 @@ const Index = () => {
     return { siteName, title, description, url, ogImage, favicon, orgLd, siteLd, eventsLd };
   }, [producer, eventsForHeroCarousel, location.pathname, location.search]);
 
+  const heroVideoUrl = useMemo(() => {
+    const fallback = "/fallbackvideo.mp4";
+    if (!producer) return fallback;
+
+    return isMobile
+      ? (producer.videoMobile || producer.videoDesktop || fallback)
+      : (producer.videoDesktop || producer.videoMobile || fallback);
+  }, [producer, isMobile]);
+
   if (loadingProducer) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-950">
@@ -196,7 +205,6 @@ const Index = () => {
     );
   }
 
-  const fallbackVideoUrl = "/fallbackvideo.mp4";
   const actualTickets = (producer?.totalClients ?? 0) + (producer?.webDetails?.totalTickets ?? 0);
   const actualEvents = (producer?.totalEvents ?? 0) + (producer?.webDetails?.totalEvents ?? 0);
 
@@ -227,6 +235,7 @@ const Index = () => {
         <script type="application/ld+json">{JSON.stringify(meta.orgLd)}</script>
         <script type="application/ld+json">{JSON.stringify(meta.siteLd)}</script>
         {meta.eventsLd && <script type="application/ld+json">{JSON.stringify(meta.eventsLd)}</script>}
+        {heroVideoUrl && <link rel="preload" as="video" href={heroVideoUrl} />}
       </Helmet>
 
       <div className="flex flex-col min-h-screen bg-neutral-950 text-white font-sans antialiased">
@@ -270,11 +279,12 @@ const Index = () => {
           >
             {!prefersReducedMotion && (
               <video
+                key={heroVideoUrl}
                 className={cn(
                   "absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-700",
                   videoStarted ? "opacity-100" : "opacity-0"
                 )}
-                src={fallbackVideoUrl}
+                src={heroVideoUrl}
                 autoPlay
                 loop
                 muted
@@ -282,6 +292,7 @@ const Index = () => {
                 preload="auto"
                 onPlaying={() => setVideoStarted(true)}
                 aria-hidden="true"
+                poster={eventsForHeroCarousel[0]?.flyer || producer.logo}
               />
             )}
             <div className="absolute inset-0 bg-slate-950/20 z-[1]" />

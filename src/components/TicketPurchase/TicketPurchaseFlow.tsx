@@ -656,19 +656,19 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const handleShare = useCallback(async () => {
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const id = fullEventDetails?.id ?? initialEvent.id;
-      const url = `${origin}/events?event=${id}${purchaseData.promoter ? `&promoter=${encodeURIComponent(purchaseData.promoter)}` : ""
-        }`;
-      const title = fullEventDetails?.name ?? initialEvent.name;
+      const ev = fullEventDetails ?? initialEvent;
+      const slugOrId = ev.key?.trim()?.length ? ev.key!.trim() : String(ev.id);
+      const url = `${origin}/events?event=${slugOrId}${purchaseData.promoter ? `&promoter=${encodeURIComponent(purchaseData.promoter)}` : ""}`;
+      const title = ev.name;
       const text = `Mirá este evento: ${title}`;
 
       if (navigator.share) {
         await navigator.share({ title, text, url });
-        tracking.ui("share_event_native", { event_id: id, success: true });
+        tracking.ui("share_event_native", { event_id: ev.id, success: true });
       } else {
         await navigator.clipboard.writeText(url);
         toast.success("Link copiado al portapapeles");
-        tracking.ui("share_event_copy", { event_id: id });
+        tracking.ui("share_event_copy", { event_id: ev.id });
       }
     } catch (e: any) {
       if (String(e?.name) !== "AbortError") {
@@ -676,7 +676,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         tracking.ui("share_event_error", { message: String(e?.message || e) });
       }
     }
-  }, [fullEventDetails, initialEvent.id, initialEvent.name, purchaseData.promoter, tracking]);
+  }, [fullEventDetails, initialEvent, purchaseData.promoter, tracking]);
 
   const handleCouponApplied = useCallback((coupon: CouponEvent) => {
     const minOrder = coupon.minOrderAmount != null ? toNum(coupon.minOrderAmount) : null;
