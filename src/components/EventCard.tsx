@@ -1,7 +1,7 @@
-import { CircleDollarSign, Radio } from "lucide-react";
+import { Calendar, CircleDollarSign, Radio } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatEventDate, formatEventPrice } from "@/lib/utils";
-import { EventDto, Prevent, PreventStatusEnum } from "@/lib/types";
+import { EventDto, EventStatus, Prevent, PreventStatusEnum } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { SetURLSearchParams } from "react-router-dom";
 import { TicketPurchaseFlow } from "./TicketPurchase/TicketPurchaseFlow";
@@ -42,10 +42,19 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
     ACTIVE: "bg-green-800",
     COMPLETED: "bg-blue-800",
     INACTIVE: "bg-orange-800",
-    CANCELLED: "bg-red-800"
+    CANCELLED: "bg-red-800",
+    UPCOMING: "bg-violet-700",
   };
 
   const statusColor = statusColors[event?.status] || "bg-gray-500";
+
+  const getFirstPreventDate = (preventasList: Prevent[] | undefined) => {
+    if (!preventasList || preventasList.length === 0) return null;
+    const sorted = [...preventasList].sort(
+      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    );
+    return sorted[0]?.startDate ? new Date(sorted[0].startDate) : null;
+  };
 
   const handleCardClick = () => {
     try {
@@ -56,7 +65,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
 
     setIsEventDetailsOpen(true);
     setSearchParams((prev) => {
-      prev.set("event", String(event.id));
+      const slugOrId = (event.key?.trim()?.length ? event.key!.trim() : String(event.id));
+      prev.set("event", slugOrId);
       return prev;
     });
   };
@@ -99,6 +109,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
     ? 'Liberada'
     : (displayPrice ? formatEventPrice(displayPrice) : '-');
 
+  const firstPreventDate = getFirstPreventDate(event.prevents);
+  const isUpcoming = event.status === EventStatus.UPCOMING;
   const isLive = new Date() >= new Date(event.startDate) && new Date() < new Date(event.endDate);
 
   return (
@@ -114,6 +126,29 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
         <CardContent className="p-0 relative min-h-[500px]">
           {isLive && (
             <Radio className="absolute top-2 right-2 bg-red-700 text-white h-7 w-7 text-xs font-bold p-1 rounded-full z-30 animate-pulse" />
+          )}
+
+          {isUpcoming && (
+            <div className="absolute top-3 left-3 z-30">
+              <div
+                className={cn(
+                  "flex flex-col items-start text-white rounded-lg px-3 py-2 shadow-lg shadow-black/20",
+                  statusColor
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wide">
+                    Próximamente
+                  </span>
+                </div>
+                {firstPreventDate && (
+                  <span className="text-[11px] mt-0.5 font-medium opacity-90">
+                    A la venta: {formatEventDate(firstPreventDate.toISOString())}
+                  </span>
+                )}
+              </div>
+            </div>
           )}
 
           <img

@@ -114,42 +114,43 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
       </motion.h2>
 
       {/* Pill resumen / acciones */}
-      <motion.div
-        className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2"
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.18 }}
-      >
-        <span className="text-sm text-zinc-300">Id de compra:</span>
-        <span className="font-mono text-sm font-semibold text-white">{voucher.id}</span>
-        {isSuccess && (
-          <button
-            onClick={copySummary}
-            className={cn(
-              "ml-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] border",
-              "hover:brightness-110",
-              isSuccess
-                ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
-                : "bg-rose-500/15 text-rose-300 border-rose-400/30"
-            )}
-            aria-label="Copiar resumen"
+      {isSuccess && (
+        <>
+          <motion.div
+            className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
           >
-            {copied ? <Sparkles className="h-3.5 w-3.5" /> : <ClipboardCopy className="h-3.5 w-3.5" />}
-            {copied ? "Copiado" : "Copiar"}
-          </button>
-        )}
-      </motion.div>
+            <span className="text-sm text-zinc-300">Id de compra:</span>
+            <span className="font-mono text-sm font-semibold text-white">{voucher?.id}</span>
+            <button
+              onClick={copySummary}
+              className={cn(
+                "ml-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] border",
+                "hover:brightness-110",
+                isSuccess
+                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
+                  : "bg-rose-500/15 text-rose-300 border-rose-400/30"
+              )}
+              aria-label="Copiar resumen"
+            >
+              {copied ? <Sparkles className="h-3.5 w-3.5" /> : <ClipboardCopy className="h-3.5 w-3.5" />}
+              {copied ? "Copiado" : "Copiar"}
+            </button>
+          </motion.div>
 
-      {/* Pill resumen / acciones */}
-      <motion.div
-        className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2"
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.18 }}
-      >
-        <span className="text-sm text-zinc-300">Total:</span>
-        <span className="font-mono text-sm font-semibold text-white">{totalText}</span>
-      </motion.div>
+          <motion.div
+            className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+          >
+            <span className="text-sm text-zinc-300">Total:</span>
+            <span className="font-mono text-sm font-semibold text-white">{totalText}</span>
+          </motion.div>
+        </>
+      )}
 
       {/* Tarjeta con resumen + próximos pasos */}
       {
