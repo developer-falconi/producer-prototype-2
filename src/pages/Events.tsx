@@ -272,12 +272,7 @@ const Events = () => {
           </script>
         )}
       </Helmet>
-<<<<<<< HEAD
       <div className="relative min-h-screen bg-[#f2e5d4] text-[#951f1f]">
-=======
-
-      <div className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
->>>>>>> c06e0c2bdf9c1a99e6d0e06f20399ca4cecdb7ce
         {producer ? (
           <>
             {/* Header */}
