@@ -20,7 +20,22 @@ import { useDebouncedValue } from "@/hooks/use-debounce";
 import Spinner from "@/components/Spinner";
 import { Helmet } from "react-helmet-async";
 
-const VALID_STATUS = new Set(["all", "active", "completed"]);
+const VALID_STATUS = new Set(["all", "active", "completed", "upcoming"]);
+
+const absolutize = (u?: string | null) => {
+  if (!u) return "";
+  if (/^https?:\/\//i.test(u)) return u;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return origin + (u.startsWith("/") ? u : `/${u}`);
+};
+
+const buildShareUrl = (active: EventDto | null, promoterKey: string | null) => {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const slugOrId = active?.key?.trim()?.length ? active.key!.trim() : (active?.id != null ? String(active.id) : "");
+  const promoter = promoterKey ? `&promoter=${encodeURIComponent(promoterKey)}` : "";
+  const base = `${origin}${window.location.pathname}`;
+  return slugOrId ? `${base}?event=${slugOrId}${promoter}` : `${origin}${window.location.pathname}${window.location.search}`;
+};
 
 const Events = () => {
   const { producer, loadingProducer } = useProducer();
@@ -40,8 +55,16 @@ const Events = () => {
   const debouncedSearch = useDebouncedValue(searchTerm, 350);
 
   const activeEvent = useMemo(() => {
-    const id = Number(searchParams.get("event") || "");
-    return Number.isFinite(id) ? events.find(e => e.id === id) || null : null;
+    const param = searchParams.get("event") || "";
+    if (!param) return null;
+
+    const maybeId = Number(param);
+    if (Number.isFinite(maybeId)) {
+      return events.find(e => e.id === maybeId) || null;
+    }
+
+    const normalized = param.trim().toLowerCase();
+    return events.find(e => (e.key || "").toLowerCase() === normalized) || null;
   }, [searchParams, events]);
 
   const siteName = producer?.name || "Produtik";
@@ -49,22 +72,18 @@ const Events = () => {
   const baseSubtitle = producer?.webDetails?.eventSubtitle ||
     "Descubre todas las experiencias únicas que hemos creado y las que están por venir";
 
-  const title = activeEvent
-    ? `${activeEvent.name} — ${siteName}`
-    : `${baseTitle} — ${siteName}`;
+  const title = activeEvent ? `${activeEvent.name} — ${siteName}` : `${baseTitle} — ${siteName}`;
 
   const description = (() => {
-    const raw = activeEvent?.description || baseSubtitle;
+    const raw = (activeEvent?.description || baseSubtitle || "").toString();
     return raw.length > 180 ? raw.slice(0, 177) + "…" : raw;
   })();
 
-  const image = activeEvent?.flyer || producer?.logo ||
-    "/og-default.jpg";
+  const rawImage = activeEvent?.flyer || producer?.logo || "/og-default.jpg";
+  const image = absolutize(rawImage);
+  const iconHref = absolutize(activeEvent?.flyer || producer?.logo || "/favicon.svg");
 
-  const iconHref = activeEvent?.flyer || producer?.logo ||
-    "/favicon.svg";
-
-  const url = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+  const shareUrl = buildShareUrl(activeEvent, promoterKey);
 
   const updateURLParams = (patch: Record<string, string | null | undefined>) => {
     setSearchParams((prev) => {
@@ -96,10 +115,9 @@ const Events = () => {
   }, []);
 
   useEffect(() => {
-    const eventIdParam = searchParams.get("event");
-    setInitialOpenEventId(eventIdParam ? Number(eventIdParam) : null);
-
+    const param = searchParams.get("event") || null;
     const promoterKeyParam = searchParams.get("promoter");
+
     setPromoterKey(promoterKeyParam || null);
 
     const qParam = searchParams.get("q") ?? "";
@@ -110,7 +128,23 @@ const Events = () => {
       ? (statusParam as typeof statusFilter)
       : "all";
     if (normalized !== statusFilter) setStatusFilter(normalized);
-  }, [searchParams]);
+
+    if (!param) {
+      setInitialOpenEventId(null);
+      return;
+    }
+
+    const maybeId = Number(param);
+    if (Number.isFinite(maybeId)) {
+      setInitialOpenEventId(maybeId);
+      return;
+    }
+
+    const normalizedKey = param.trim().toLowerCase();
+    const match = events.find(e => (e.key || "").toLowerCase() === normalizedKey);
+    setInitialOpenEventId(match ? match.id : null);
+  }, [searchParams, events]);
+
 
   useEffect(() => {
     const currentQ = searchParams.get("q") ?? "";
@@ -198,7 +232,7 @@ const Events = () => {
         <link rel="icon" href={iconHref} />
         <meta name="theme-color" content="#000000" />
 
-        <link rel="canonical" href={url} />
+        <link rel="canonical" href={shareUrl} />
 
         <meta name="description" content={description} />
 
@@ -208,13 +242,19 @@ const Events = () => {
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
         <meta property="og:image" content={image} />
-        <meta property="og:url" content={url} />
+        <meta property="og:image:secure_url" content={image} />
+        <meta property="og:image:alt" content={activeEvent ? activeEvent.name : siteName} />
+        {/* Tamaños típicos para previews grandes */}
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url" content={shareUrl} />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         <meta name="twitter:image" content={image} />
+        <meta name="twitter:image:alt" content={activeEvent ? activeEvent.name : siteName} />
 
         {activeEvent && (
           <script type="application/ld+json">
@@ -227,12 +267,17 @@ const Events = () => {
               image: [image],
               description,
               organizer: { "@type": "Organization", name: siteName },
-              url
+              url: shareUrl
             })}
           </script>
         )}
       </Helmet>
+<<<<<<< HEAD
       <div className="relative min-h-screen bg-[#f2e5d4] text-[#951f1f]">
+=======
+
+      <div className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
+>>>>>>> c06e0c2bdf9c1a99e6d0e06f20399ca4cecdb7ce
         {producer ? (
           <>
             {/* Header */}
@@ -278,6 +323,7 @@ const Events = () => {
                         <SelectContent className="bg-slate-900 border-slate-700 text-white">
                           <SelectItem value="all" className="cursor-pointer">Todos</SelectItem>
                           <SelectItem value="active" className="cursor-pointer">Activos</SelectItem>
+                          <SelectItem value="upcoming" className="cursor-pointer">Próximos</SelectItem>
                           <SelectItem value="completed" className="cursor-pointer">Finalizados</SelectItem>
                         </SelectContent>
                       </Select>
