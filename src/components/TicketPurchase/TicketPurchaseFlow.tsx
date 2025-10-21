@@ -48,6 +48,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
   const [purchaseData, setPurchaseData] = useState<PurchaseData>({
     selectedPrevent: null,
+    ticketLines: [],
     ticketQuantity: 0,
     clients: [],
     products: [],
@@ -263,18 +264,19 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   }, [isOpen]);
 
   useEffect(() => {
-    const ticketPrice = purchaseData.selectedPrevent?.price || 0;
-    const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
+    const subtotalTickets = (purchaseData.ticketLines ?? []).reduce(
+      (sum, l) => sum + toNum(l.prevent.price) * l.quantity, 0
+    );
 
     const totalProductsPrice = purchaseData.products.reduce((sum, item) => {
-      const priceNum = parseFloat(item.product.price.toString());
-      const discountNum = parseFloat(item.product.discountPercentage.toString());
+      const priceNum = toNum(item.product.price);
+      const discountNum = toNum(item.product.discountPercentage);
       const effectivePrice = priceNum * (1 - discountNum / 100);
       return sum + effectivePrice * item.quantity;
     }, 0);
 
     const totalCombosPrice = purchaseData.combos.reduce((sum, item) => {
-      const priceNum = parseFloat(item.combo.price.toString());
+      const priceNum = toNum(item.combo.price);
       return sum + priceNum * item.quantity;
     }, 0);
 
@@ -282,7 +284,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
     let discount = 0;
     if (appliedCoupon) {
-      const minOrder = appliedCoupon.minOrderAmount != null ? Number(appliedCoupon.minOrderAmount) : null;
+      const minOrder = appliedCoupon.minOrderAmount != null ? toNum(appliedCoupon.minOrderAmount) : null;
       if (minOrder == null || subtotalAllItems >= minOrder) {
         discount = computeCouponDiscount(subtotalAllItems, appliedCoupon);
       }
@@ -296,8 +298,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       totalWithDiscount: appliedCoupon ? finalTotal : null,
     }));
   }, [
-    purchaseData.selectedPrevent,
-    purchaseData.ticketQuantity,
+    purchaseData.ticketLines,
     purchaseData.products,
     purchaseData.combos,
     appliedCoupon,
@@ -307,12 +308,20 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     setPurchaseData(prevPurchaseData => {
       const newPurchaseData = { ...prevPurchaseData, ...data };
 
-      if (data.ticketQuantity !== undefined && data.ticketQuantity !== prevPurchaseData.ticketQuantity) {
-        const newClients = Array.from({ length: data.ticketQuantity }, (_, i) =>
-          prevPurchaseData.clients[i] || { fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }
+      if (data.ticketLines) {
+        const totalQty = (data.ticketLines ?? []).reduce((acc, l) => acc + l.quantity, 0);
+        newPurchaseData.ticketQuantity = totalQty;
+      }
+
+      const effectiveQty = newPurchaseData.ticketQuantity;
+      if (effectiveQty !== prevPurchaseData.ticketQuantity || data.ticketLines) {
+        const base = prevPurchaseData.clients || [];
+        const newClients = Array.from({ length: effectiveQty }, (_, i) =>
+          base[i] || { fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }
         );
         newPurchaseData.clients = newClients;
       }
+
       return newPurchaseData;
     });
   }, []);
@@ -342,8 +351,9 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   }, []);
 
   const currentSubtotal = useMemo(() => {
-    const ticketPrice = toNum(purchaseData.selectedPrevent?.price);
-    const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
+    const subtotalTickets = (purchaseData.ticketLines ?? []).reduce(
+      (sum, l) => sum + toNum(l.prevent.price) * l.quantity, 0
+    );
 
     const productsSum = purchaseData.products.reduce((s, i) => {
       const p = toNum(i.product.price);
@@ -357,8 +367,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
     return subtotalTickets + productsSum + combosSum;
   }, [
-    purchaseData.selectedPrevent,
-    purchaseData.ticketQuantity,
+    purchaseData.ticketLines,
     purchaseData.products,
     purchaseData.combos,
   ]);
@@ -489,9 +498,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
     switch (currentStepName) {
       case 'Seleccionar Entradas':
-        return purchaseData.selectedPrevent !== null && purchaseData.ticketQuantity > 0;
+        const totalQty = (purchaseData.ticketLines ?? []).reduce((acc, l) => acc + l.quantity, 0);
+        return totalQty > 0;
       case 'Datos de Asistentes':
-        if (purchaseData.ticketQuantity === 0) return false;
+        if ((purchaseData.ticketLines ?? []).reduce((a, l) => a + l.quantity, 0) === 0) return false;
         return purchaseData.clients.every(client => client.isCompleted);
       case 'Información de Contacto':
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -527,6 +537,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const handleReset = useCallback(() => {
     setPurchaseData({
       selectedPrevent: null,
+      ticketLines: [],
       ticketQuantity: 0,
       clients: [],
       products: [],
@@ -555,6 +566,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       comboId: c.combo.id,
       quantity: c.quantity
     }));
+    const updatedTickets = purchaseData.ticketLines.map(t => ({
+      preventId: t.prevent.id,
+      quantity: t.quantity
+    }))
 
     setIsSubmitting(true);
     setSubmissionStatus(null);
@@ -565,6 +580,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       submitData.append('products', JSON.stringify(updatedProducts));
       submitData.append('combos', JSON.stringify(updatedCombos));
       submitData.append('total', JSON.stringify(purchaseData.total));
+      submitData.append('ticketLines', JSON.stringify(updatedTickets));
 
       if (purchaseData.promoter) submitData.append('coupon', purchaseData.promoter);
       if (purchaseData.coupon) submitData.append('coupon', String(purchaseData.coupon.id));
@@ -572,7 +588,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         submitData.append('comprobante', purchaseData.comprobante);
       }
 
-      const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.selectedPrevent!.id, purchaseData.total);
+      const result = await submitTicketForm(submitData, initialEvent.id, purchaseData.total);
       if (result.success) {
         setSubmissionStatus({ status: 'success', message: result['message'] || "¡Compra Exitosa! 🎉" });
         setSubmissionData(result.data);

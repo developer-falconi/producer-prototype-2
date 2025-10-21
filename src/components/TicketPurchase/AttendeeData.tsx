@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,7 +28,7 @@ const itemVariants = {
   },
 };
 
-const clientSchema = z.object({
+const clientSchemaRequired = z.object({
   fullName: z.string().min(6, "El nombre completo es obligatorio."),
   docNumber: z.string().regex(/^[0-9]+$/, "Solo números.").min(6, "El documento es obligatorio."),
   phone: z.string().regex(/^[0-9]+$/, "Solo números.").min(6, "El teléfono es obligatorio."),
@@ -36,6 +36,18 @@ const clientSchema = z.object({
     errorMap: () => ({ message: "El género es obligatorio." }),
   }),
 });
+
+const clientSchemaOptional = z.object({
+  fullName: z.string().optional().or(z.literal('')),
+  docNumber: z.string().optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  gender: z
+    .enum([GenderEnum.HOMBRE, GenderEnum.MUJER, GenderEnum.OTRO])
+    .optional()
+    .or(z.literal('') as unknown as z.ZodEnum<[GenderEnum.HOMBRE, GenderEnum.MUJER, GenderEnum.OTRO]>),
+});
+
+type ClientForm = z.infer<typeof clientSchemaRequired>;
 
 interface AttendeeDataProps {
   purchaseData: PurchaseData;
@@ -48,57 +60,117 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
+
   const [completedClients, setCompletedClients] = useState<boolean[]>(
-    new Array(purchaseData.clients.length).fill(false)
+    () => purchaseData.clients.map(c => !!c.isCompleted)
   );
 
-  const form = useForm<z.infer<typeof clientSchema>>({
-    resolver: zodResolver(clientSchema),
-    defaultValues: purchaseData.clients[activeIndex] as z.infer<typeof clientSchema>,
+  useEffect(() => {
+    setCompletedClients(purchaseData.clients.map(c => !!c.isCompleted));
+  }, [purchaseData.clients.length]);
+
+  const isFirstRequired = activeIndex === 0;
+
+  const resolver = useMemo(
+    () => zodResolver(isFirstRequired ? clientSchemaRequired : clientSchemaOptional),
+    [isFirstRequired]
+  );
+
+  const form = useForm<ClientForm>({
+    resolver,
+    defaultValues: purchaseData.clients[activeIndex] as ClientForm,
     mode: 'onChange',
+    values: purchaseData.clients[activeIndex] as ClientForm
   });
 
-  const { reset, control, watch, handleSubmit, formState: { isValid, errors } } = form;
+  const { reset, control, watch, handleSubmit, formState: { isValid, isDirty, errors } } = form;
 
-  const watchFullName = watch('fullName');
-  const watchDocNumber = watch('docNumber');
-  const watchGender = watch('gender');
+  const watchFullName = watch('fullName' as any);
+  const watchDocNumber = watch('docNumber' as any);
+  const watchGender = watch('gender' as any);
 
   useEffect(() => {
     if (purchaseData.clients[activeIndex]) {
-      reset(purchaseData.clients[activeIndex] as z.infer<typeof clientSchema>);
+      reset(purchaseData.clients[activeIndex] as ClientForm);
     }
   }, [activeIndex, purchaseData.clients, reset]);
 
-  const handleInputChange = (index: number, field: keyof TicketInfo, value: string) => {
-    onUpdateClient(index, field, value);
+  const setCompleted = (idx: number, completed = true) => {
+    onUpdateClient(idx, 'isCompleted', completed as unknown as string);
+    setCompletedClients(prev => {
+      const next = [...prev];
+      next[idx] = completed;
+      return next;
+    });
   };
 
-  const handleCompleteClick = (index: number) => {
-    onUpdateClient(activeIndex, 'isCompleted', true);
-    const next = [...completedClients];
-    next[index] = true;
-    setCompletedClients(next);
-
-    const nextUncompleted = purchaseData.clients.findIndex((_, i) => i > index && !next[i]);
+  const goToNextCard = (fromIndex: number) => {
+    const nextUncompleted = purchaseData.clients.findIndex((_, i) => i > fromIndex && !completedClients[i]);
     if (nextUncompleted !== -1) setActiveIndex(nextUncompleted);
-    else if (index < purchaseData.clients.length - 1) setActiveIndex(index + 1);
+    else if (fromIndex < purchaseData.clients.length - 1) setActiveIndex(fromIndex + 1);
     else {
       setShowCompletionMessage(true);
       setActiveIndex(-1);
     }
   };
 
-  const healthMessages = [
-    "Participar en eventos sociales mejora el estado de ánimo y reduce el estrés.",
-    "Fortalecer vínculos sociales está asociado a mayor bienestar y longevidad.",
-    "Quienes asisten a eventos con frecuencia reducen el impacto de la soledad.",
-    "Bailar y moverse en fiestas mejora la circulación y la salud cardiovascular.",
-    "Compartir con otros eleva la serotonina y favorece un mejor descanso.",
-  ];
+  const handleInputChange = (index: number, field: keyof TicketInfo, value: string) => {
+    onUpdateClient(index, field, value);
+  };
 
-  const getCompletionMessage = () =>
-    healthMessages[Math.floor(Math.random() * healthMessages.length)];
+  const nextPendingIndex = (from = 0) => {
+    const idx = purchaseData.clients.findIndex((_, i) => i > from && !completedClients[i]);
+    if (idx !== -1) return idx;
+    return purchaseData.clients.length > 1 ? 1 : -1;
+  };
+
+  const openNextPending = () => {
+    const idx = nextPendingIndex(0);
+    if (idx === -1) {
+      setShowCompletionMessage(true);
+      setActiveIndex(-1);
+    } else {
+      setActiveIndex(idx);
+    }
+  };
+
+  const handleCompleteClick = (index: number) => {
+    setCompleted(index, true);
+    if (index === 0) {
+      setActiveIndex(-1);
+      return;
+    }
+    goToNextCard(index);
+  };
+
+  const handleSkipClick = (index: number) => {
+    if (index === 0) return;
+    setCompleted(index, true);
+    goToNextCard(index);
+  };
+
+  const firstCompleted = completedClients[0] === true;
+  const canMarkOthers = purchaseData.clients.length > 1 && firstCompleted;
+  const hasMoreClients = purchaseData.clients.length > 1;
+  const hasPendingOthers = completedClients.slice(1).some(c => !c);
+
+  const markOthersCompleted = () => {
+    const total = purchaseData.clients.length;
+    if (total <= 1) return;
+
+    for (let i = 1; i < total; i++) {
+      onUpdateClient(i, 'isCompleted', true as unknown as string);
+    }
+
+    setCompletedClients(prev => {
+      const next = [...prev];
+      for (let i = 1; i < total; i++) next[i] = true;
+      return next;
+    });
+
+    setShowCompletionMessage(true);
+    setActiveIndex(-1);
+  };
 
   return (
     <div className="space-y-6 p-6 md:p-8">
@@ -116,19 +188,73 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
         </span>
       </motion.div>
 
-      <AnimatePresence>
-        {showCompletionMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.45, ease: 'easeOut' }}
-            className="p-4 rounded-xl border border-emerald-400/20 bg-emerald-600/15 text-emerald-300 text-center font-semibold shadow"
-          >
-            {getCompletionMessage()}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {purchaseData.clients.length > 1 && (
+        <div
+          className={cn(
+            "rounded-xl border border-white/10 bg-white/5",
+            "p-3 sm:p-4",
+            "flex flex-col gap-3 sm:gap-4"
+          )}
+        >
+          <p className="text-xs sm:text-sm text-zinc-300">
+            El primer asistente (comprador) es obligatorio. Para los demás, podés:
+            <span className="block sm:inline"> completar sus datos ahora,</span>{" "}
+            <span className="block sm:inline">o marcarlos como “completados” sin datos.</span>
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            {/* Completar el resto */}
+            <div className="flex-1">
+              <Button
+                size="sm"
+                onClick={openNextPending}
+                disabled={!(firstCompleted && hasMoreClients && hasPendingOthers)}
+                className={cn(
+                  "w-full rounded-lg font-semibold",
+                  firstCompleted && hasMoreClients && hasPendingOthers
+                    ? "bg-blue-700 hover:bg-blue-700/90 text-white"
+                    : "bg-zinc-700/60 text-zinc-300 cursor-not-allowed"
+                )}
+                aria-label="Completar datos de los demás asistentes"
+                title="Completar datos de los demás asistentes"
+              >
+                Completar el resto
+              </Button>
+              <p className="mt-1 text-[11px] text-zinc-400">
+                {firstCompleted
+                  ? (hasPendingOthers
+                    ? "Abrí el siguiente asistente pendiente."
+                    : "Ya no quedan asistentes pendientes.")
+                  : "Primero completá los datos del comprador para habilitar."}
+              </p>
+            </div>
+
+            {/* Marcar restantes como completados */}
+            <div className="flex-1">
+              <Button
+                size="sm"
+                onClick={markOthersCompleted}
+                disabled={!canMarkOthers}
+                className={cn(
+                  "w-full rounded-lg font-semibold",
+                  canMarkOthers
+                    ? "bg-emerald-700 hover:bg-emerald-700/90 text-white"
+                    : "bg-zinc-700/60 text-zinc-300 cursor-not-allowed"
+                )}
+                aria-label="Marcar restantes como completados"
+                title="Marcar restantes como completados"
+              >
+                Marcar restantes como completados
+              </Button>
+              <p className="mt-1 text-[11px] text-zinc-400">
+                {canMarkOthers
+                  ? "Marcá todos los restantes sin completar datos."
+                  : "Se habilita luego de completar correctamente al comprador."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {purchaseData.clients.map((client, index) => {
@@ -154,7 +280,6 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                     : "transition hover:-translate-y-0.5 hover:border-white/20"
                 )}
               >
-
                 <button
                   type="button"
                   onClick={() => setActiveIndex(index)}
@@ -163,29 +288,40 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                     "border-b border-white/10"
                   )}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span
-                      className={cn(
-                        "inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold",
-                        isExplicitlyCompleted
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/20"
-                          : "bg-white/10 text-white/90 border border-white/15"
-                      )}
-                    >
-                      {index + 1}
-                    </span>
-                    <span className={cn(
-                      "truncate font-medium",
-                      isActive ? "text-white" : "text-zinc-200"
-                    )}>
-                      Entrada {index + 1}
-                    </span>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 min-w-0 w-full">
+                    <div className="flex items-center justify-start sm:justify-center gap-2 sm:gap-3 w-full sm:w-auto">
+                      <span
+                        className={cn(
+                          "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
+                          isExplicitlyCompleted
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/20"
+                            : "bg-white/10 text-white/90 border border-white/15"
+                        )}
+                      >
+                        {index + 1}
+                      </span>
+                      <span
+                        className={cn(
+                          "truncate font-medium text-center sm:text-left",
+                          isActive ? "text-white" : "text-zinc-200"
+                        )}
+                      >
+                        Entrada {index + 1}
+                        {index === 0 && (
+                          <span className="block sm:inline sm:ml-2 text-[10px] text-amber-300">
+                            (obligatoria)
+                          </span>
+                        )}
+                      </span>
+                    </div>
                   </div>
 
                   {isExplicitlyCompleted && !isActive ? (
                     <span className="flex items-center gap-2 text-xs text-emerald-300">
                       <CheckCircle2 className="h-4 w-4" />
-                      {client.fullName} · {client.docNumber}
+                      {client.fullName && client.docNumber
+                        ? `${client.fullName} · ${client.docNumber}`
+                        : 'Completada sin datos'}
                     </span>
                   ) : null}
                 </button>
@@ -204,10 +340,10 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                         <form onSubmit={handleSubmit(() => handleCompleteClick(index))} className="space-y-4">
                           <FormField
                             control={control}
-                            name="fullName"
+                            name={'fullName' as any}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-zinc-300 text-sm">Nombre completo</FormLabel>
+                                <FormLabel className="text-zinc-300 text-sm">Nombre completo{index === 0 && ' *'}</FormLabel>
                                 <FormControl>
                                   <Input
                                     {...field}
@@ -233,7 +369,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                           />
 
                           <AnimatePresence>
-                            {watchFullName && !errors.fullName && (
+                            {(watchFullName || index > 0) && !errors.fullName && (
                               <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -242,10 +378,10 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                               >
                                 <FormField
                                   control={control}
-                                  name="docNumber"
+                                  name={'docNumber' as any}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel className="text-zinc-300 text-sm">Documento</FormLabel>
+                                      <FormLabel className="text-zinc-300 text-sm">Documento{index === 0 && ' *'}</FormLabel>
                                       <FormControl>
                                         <Input
                                           {...field}
@@ -276,7 +412,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                           </AnimatePresence>
 
                           <AnimatePresence>
-                            {watchDocNumber && !errors.docNumber && (
+                            {(watchDocNumber || index > 0) && !errors.docNumber && (
                               <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -285,12 +421,12 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                               >
                                 <FormField
                                   control={control}
-                                  name="gender"
+                                  name={'gender' as any}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel className="text-zinc-300 text-sm">Género</FormLabel>
+                                      <FormLabel className="text-zinc-300 text-sm">Género{index === 0 && ' *'}</FormLabel>
                                       <Select
-                                        value={field.value}
+                                        value={field.value as any}
                                         onValueChange={(value) => {
                                           field.onChange(value);
                                           onUpdateClient(index, "gender", value as GenderEnum);
@@ -338,7 +474,6 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                                             {GenderEnum.HOMBRE}
                                           </SelectItem>
 
-
                                           <SelectItem
                                             value={GenderEnum.MUJER}
                                             className={cn(
@@ -375,7 +510,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                           </AnimatePresence>
 
                           <AnimatePresence>
-                            {watchGender && !errors.gender && (
+                            {(watchGender || index > 0) && !errors.gender && (
                               <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -384,10 +519,10 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                               >
                                 <FormField
                                   control={control}
-                                  name="phone"
+                                  name={'phone' as any}
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel className="text-zinc-300 text-sm">Teléfono</FormLabel>
+                                      <FormLabel className="text-zinc-300 text-sm">Teléfono{index === 0 && ' *'}</FormLabel>
                                       <FormControl>
                                         <Input
                                           {...field}
@@ -417,10 +552,27 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                             )}
                           </AnimatePresence>
 
-                          <div className="flex items-center justify-end pt-2">
+                          <div className="flex items-center justify-between pt-2">
+                            {index > 0 ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => handleSkipClick(index)}
+                                className="rounded-lg"
+                              >
+                                Omitir
+                              </Button>
+                            ) : <span />}
+
                             <Button
                               type="submit"
-                              disabled={!isValid || isExplicitlyCompleted}
+                              disabled={
+                                !isValid ||
+                                !watchFullName.trim() &&
+                                !watchDocNumber.trim() &&
+                                !watchGender &&
+                                !watch('phone')?.trim()
+                              }
                               className={cn(
                                 "font-semibold rounded-lg",
                                 "bg-green-800 hover:bg-green-800/80 text-white",
