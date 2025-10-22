@@ -150,8 +150,7 @@ const NavigationButtonsComponent: React.FC<NavigationButtonsProps> = ({
 
     if (isConfirmationStep) disabled ||= !termsAccepted;
 
-    const hideNext =
-      isMercadoPagoSelected && isConfirmationStep && !!mpPreferenceId;
+    const hideNext = isMercadoPagoSelected && isConfirmationStep && !!mpPreferenceId;
 
     if (isInitialStep) {
       text = !eventStarted ? 'Comprar Tickets' : 'Comprar Productos';

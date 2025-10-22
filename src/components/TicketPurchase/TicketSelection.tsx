@@ -330,11 +330,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
       )}
 
       {/* Mensajes de estado */}
-      {!activePreventsExist ? (
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-5 text-center">
-          <p className="text-zinc-200 text-lg">No hay entradas activas disponibles para este evento.</p>
-        </div>
-      ) : !selectedPrevent ? (
+      {!selectedPrevent ? (
         <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4 text-center">
           <p className="text-zinc-300">Por favor, selecciona un tipo de entrada.</p>
         </div>
