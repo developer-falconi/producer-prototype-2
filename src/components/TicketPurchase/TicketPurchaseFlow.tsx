@@ -5,7 +5,7 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, Voucher } from '@/lib/types';
+import { ClientData, CouponEvent, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, Voucher } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -908,6 +908,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return () => { cancelled = true; };
   }, [isClosing, animate, scope, y, height, handleReset, onClose]);
 
+  const isCompleted = fullEventDetails?.status === EventStatus.COMPLETED;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -989,7 +991,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               )}
             </div>
 
-            {currentStep <= dynamicSteps.length - 1 && (
+            {currentStep <= dynamicSteps.length - 1 && !isCompleted && (
               <NavigationButtons
                 currentStep={currentStep}
                 totalSteps={dynamicSteps.length}
