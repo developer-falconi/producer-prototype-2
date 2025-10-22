@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { EventFeeDto, PreventStatusEnum, SettlementEnum } from "./types";
+import { EventFeeDto, PreventStatusEnum, SettlementEnum, ShareMeta } from "./types";
 import * as qrcode from 'qrcode';
 
 export function cn(...inputs: ClassValue[]) {
@@ -147,7 +147,7 @@ export function solveFeesFront(params: {
   // --- Base de política ---
   let p = clamp01(Number(params.eventFee?.platformFeeShare ?? 0.15));
   let alpha = clamp01(Number(params.eventFee?.clientFeeShare ?? 1));
-  let beta  = clamp01(Number(params.eventFee?.producerFeeShare ?? 0));
+  let beta = clamp01(Number(params.eventFee?.producerFeeShare ?? 0));
   [alpha, beta] = normalizeSplit(alpha, beta);
 
   // --- Overrides por método (se transforman en platformFeeShare SOLO para ese método) ---
@@ -161,7 +161,7 @@ export function solveFeesFront(params: {
   }
 
   const p_client = round2(p * alpha);
-  const p_prod   = round2(p * beta);
+  const p_prod = round2(p * beta);
 
   // --- Costo del procesador (NO usamos los overrides como r_mp) ---
   const mpSettlementRate = Number(pctStrToNum(params.eventFee?.mpSettlement?.mpFeeRateWithIva));
@@ -217,5 +217,35 @@ export function solveFeesFront(params: {
       beta,
     },
     settlementMode,
+  };
+}
+
+function normalizeOrigin(u?: string | null): string | undefined {
+  if (!u) return undefined;
+  return /^https?:\/\//i.test(u) ? u : `https://${u}`;
+}
+
+export function buildShareMeta(ev: {
+  id: number;
+  key?: string | null;
+  name: string;
+  description?: string | null;
+  flyer?: string | null;
+  producer?: { name?: string | null; domain?: string | null } | null;
+}): ShareMeta {
+  const plainDesc = String(ev.description || '')
+    .replace(/\r?\n+/g, ' ')
+    .replace(/<[^>]*>/g, '')
+    .trim();
+  const description = plainDesc.length > 180 ? plainDesc.slice(0, 177) + '…' : plainDesc;
+
+  return {
+    title: ev.name,
+    description,
+    image: ev.flyer || '',
+    type: 'event',
+    slugOrId: ev.key?.trim()?.length ? ev.key.trim() : String(ev.id),
+    producerName: ev.producer?.name || undefined,
+    defaultOrigin: normalizeOrigin(ev.producer?.domain || undefined),
   };
 }
