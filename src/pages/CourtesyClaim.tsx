@@ -198,9 +198,42 @@ export default function CourtesyClaim() {
                         <SelectValue placeholder="Seleccioná" />
                       </SelectTrigger>
                       <SelectContent className="bg-neutral-900 border-white/10 text-white">
-                        <SelectItem value={GenderEnum.HOMBRE}>Masculino</SelectItem>
-                        <SelectItem value={GenderEnum.MUJER}>Femenino</SelectItem>
-                        <SelectItem value={GenderEnum.OTRO}>Otro</SelectItem>
+                        <SelectItem
+                          value={GenderEnum.HOMBRE}
+                          className={cn(
+                            "relative cursor-pointer select-none rounded-lg px-3 py-2 text-sm",
+                            "outline-none transition-colors",
+                            "hover:bg-blue-500/20 hover:text-blue-800",
+                            "data-[state=checked]:bg-blue-600/30 data-[state=checked]:text-white",
+                            "data-[highlighted]:bg-blue-500/25 data-[highlighted]:text-white"
+                          )}
+                        >
+                          Masculino
+                        </SelectItem>
+                        <SelectItem
+                          value={GenderEnum.MUJER}
+                          className={cn(
+                            "relative cursor-pointer select-none rounded-lg px-3 py-2 text-sm",
+                            "outline-none transition-colors",
+                            "hover:bg-blue-500/20 hover:text-blue-800",
+                            "data-[state=checked]:bg-blue-600/30 data-[state=checked]:text-white",
+                            "data-[highlighted]:bg-blue-500/25 data-[highlighted]:text-white"
+                          )}
+                        >
+                          Femenino
+                        </SelectItem>
+                        <SelectItem
+                          value={GenderEnum.OTRO}
+                          className={cn(
+                            "relative cursor-pointer select-none rounded-lg px-3 py-2 text-sm",
+                            "outline-none transition-colors",
+                            "hover:bg-blue-500/20 hover:text-blue-800",
+                            "data-[state=checked]:bg-blue-600/30 data-[state=checked]:text-white",
+                            "data-[highlighted]:bg-blue-500/25 data-[highlighted]:text-white"
+                          )}
+                        >
+                          Otro
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     {errors.gender && (

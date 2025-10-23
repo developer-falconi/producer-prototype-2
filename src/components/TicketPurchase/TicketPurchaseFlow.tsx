@@ -5,7 +5,7 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, CouponEvent, EventDto, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, Voucher } from '@/lib/types';
+import { ClientData, CouponEvent, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, Voucher } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -672,19 +672,19 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   const handleShare = useCallback(async () => {
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const id = fullEventDetails?.id ?? initialEvent.id;
-      const url = `${origin}/events?event=${id}${purchaseData.promoter ? `&promoter=${encodeURIComponent(purchaseData.promoter)}` : ""
-        }`;
-      const title = fullEventDetails?.name ?? initialEvent.name;
+      const ev = fullEventDetails ?? initialEvent;
+      const slugOrId = ev.key?.trim()?.length ? ev.key!.trim() : String(ev.id);
+      const url = `${origin}/events?event=${slugOrId}${purchaseData.promoter ? `&promoter=${encodeURIComponent(purchaseData.promoter)}` : ""}`;
+      const title = ev.name;
       const text = `Mirá este evento: ${title}`;
 
       if (navigator.share) {
         await navigator.share({ title, text, url });
-        tracking.ui("share_event_native", { event_id: id, success: true });
+        tracking.ui("share_event_native", { event_id: ev.id, success: true });
       } else {
         await navigator.clipboard.writeText(url);
         toast.success("Link copiado al portapapeles");
-        tracking.ui("share_event_copy", { event_id: id });
+        tracking.ui("share_event_copy", { event_id: ev.id });
       }
     } catch (e: any) {
       if (String(e?.name) !== "AbortError") {
@@ -692,7 +692,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         tracking.ui("share_event_error", { message: String(e?.message || e) });
       }
     }
-  }, [fullEventDetails, initialEvent.id, initialEvent.name, purchaseData.promoter, tracking]);
+  }, [fullEventDetails, initialEvent, purchaseData.promoter, tracking]);
 
   const handleCouponApplied = useCallback((coupon: CouponEvent) => {
     const minOrder = coupon.minOrderAmount != null ? toNum(coupon.minOrderAmount) : null;
@@ -924,6 +924,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return () => { cancelled = true; };
   }, [isClosing, animate, scope, y, height, handleReset, onClose]);
 
+  const isCompleted = fullEventDetails?.status === EventStatus.COMPLETED;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -1005,7 +1007,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               )}
             </div>
 
-            {currentStep <= dynamicSteps.length - 1 && (
+            {currentStep <= dynamicSteps.length - 1 && !isCompleted && (
               <NavigationButtons
                 currentStep={currentStep}
                 totalSteps={dynamicSteps.length}

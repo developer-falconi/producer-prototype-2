@@ -35,16 +35,18 @@ const EventCarousel = ({ events }: { events: EventDto[] }) => {
       >
         {events.map((event) => {
           const isLive = new Date() >= new Date(event.startDate);
+          const eventParam = event.key?.trim()?.length ? event.key.trim() : String(event.id);
 
+          const baseUrl = `/events?${searchParams.toString()}`;
+          const url = searchParams.toString()
+            ? `${baseUrl}&event=${eventParam}`
+            : `/events?event=${eventParam}`;
           return (
             <SwiperSlide
               key={event.id}
               className="flex justify-center w-4/5"
             >
-              <Link
-                to={searchParams.toString() ? `/events?${searchParams.toString()}&event=${event.id}` : `/events?event=${event.id}`}
-                className="block z-10"
-              >
+              <Link to={url} className="block z-10">
                 <div
                   className={cn(
                     'relative aspect-[9/12]',

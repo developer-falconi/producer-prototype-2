@@ -21,6 +21,8 @@ export interface Producer {
   googleAnalyticsId: string;
   status: string;
   logo: string;
+  videoMobile: string;
+  videoDesktop: string;
   instagram: string;
   youtube: string;
   tiktok: string;
@@ -51,6 +53,7 @@ export interface EventDto {
   startDate: string;
   endDate: string;
   location: string;
+  key: string;
   status: EventStatus;
   folder: boolean;
   featured: boolean;
