@@ -5,7 +5,7 @@ import { ContactInfo } from './ContactInfo';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, CouponEvent, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, Voucher } from '@/lib/types';
+import { ClientData, CouponEvent, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, ShareMeta, Voucher } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -16,7 +16,7 @@ import { EventInfo } from './EventInfo';
 import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
 import { toast } from 'sonner';
-import { toNum } from '@/lib/utils';
+import { buildShareMeta, toNum } from '@/lib/utils';
 import { useProducer } from '@/context/ProducerContext';
 import { useTracking } from '@/hooks/use-tracking';
 import { Send } from 'lucide-react';
@@ -657,9 +657,16 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const ev = fullEventDetails ?? initialEvent;
-      const slugOrId = ev.key?.trim()?.length ? ev.key!.trim() : String(ev.id);
-      const url = `${origin}/events?event=${slugOrId}${purchaseData.promoter ? `&promoter=${encodeURIComponent(purchaseData.promoter)}` : ""}`;
-      const title = ev.name;
+      const meta = buildShareMeta(ev);
+      const frontendOrigin = meta.defaultOrigin || origin;
+
+      const url =
+        `${frontendOrigin}/events?event=${encodeURIComponent(meta.slugOrId)}` +
+        (purchaseData.promoter
+          ? `&promoter=${encodeURIComponent(purchaseData.promoter)}`
+          : '');
+
+      const title = meta.title;
       const text = `Mirá este evento: ${title}`;
 
       if (navigator.share) {
@@ -670,11 +677,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         toast.success("Link copiado al portapapeles");
         tracking.ui("share_event_copy", { event_id: ev.id });
       }
-    } catch (e: any) {
+      return meta;
+    } catch (e) {
       if (String(e?.name) !== "AbortError") {
         toast.error("No se pudo compartir");
         tracking.ui("share_event_error", { message: String(e?.message || e) });
       }
+      return null as ShareMeta | null;
     }
   }, [fullEventDetails, initialEvent, purchaseData.promoter, tracking]);
 
