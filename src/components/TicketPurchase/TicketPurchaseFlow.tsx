@@ -924,7 +924,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return () => { cancelled = true; };
   }, [isClosing, animate, scope, y, height, handleReset, onClose]);
 
-  const isCompleted = fullEventDetails?.status === EventStatus.COMPLETED;
+  const isCompletedOrUpcoming = [EventStatus.COMPLETED, EventStatus.UPCOMING].includes(fullEventDetails?.status);
 
   return (
     <AnimatePresence>
@@ -1007,7 +1007,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
               )}
             </div>
 
-            {currentStep <= dynamicSteps.length - 1 && !isCompleted && (
+            {currentStep <= dynamicSteps.length - 1 && !isCompletedOrUpcoming && (
               <NavigationButtons
                 currentStep={currentStep}
                 totalSteps={dynamicSteps.length}
