@@ -224,6 +224,7 @@ export interface PurchaseData {
   paymentMethod: 'mercadopago' | 'bank_transfer' | 'free' | null;
   coupon: CouponEvent | null;
   total: number;
+  totalWithDiscount?: number;
 }
 
 export interface ClientData {

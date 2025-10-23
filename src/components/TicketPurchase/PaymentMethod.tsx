@@ -36,35 +36,6 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     return eventData.payments?.filter(pe => pe.paymentMethod.active) || [];
   }, [eventData.payments]);
 
-  const defaultPaymentMethod: 'mercadopago' | 'bank_transfer' | 'free' = useMemo(() => {
-    if (activePaymentMethods.length === 0) {
-      return null;
-    }
-
-    if (purchaseData.total === 0) {
-      return 'free';
-    }
-
-    const mercadopagoMethod = activePaymentMethods.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'mercadopago');
-    const mpEnabled = !!eventData.oAuthMercadoPago?.mpPublicKey;
-
-    if (mercadopagoMethod && mpEnabled) {
-      setIsMpConfiguredForEvent(true);
-      return 'mercadopago';
-    }
-
-    const transferMethod = activePaymentMethods?.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'transferenciabancaria');
-    const hasTransferDetails = transferMethod?.accountAlias?.length > 0 && transferMethod?.accountBank?.length > 0 && transferMethod?.accountFullName?.length > 0
-
-    if (transferMethod && hasTransferDetails) {
-      return 'bank_transfer';
-    }
-
-    return null;
-  }, [activePaymentMethods, purchaseData.total]);
-
-  const [selected, setSelected] = useState<'mercadopago' | 'bank_transfer' | 'free'>(defaultPaymentMethod);
-
   const calculateSubtotal = () => {
     const ticketPrice = purchaseData.selectedPrevent?.price || 0;
     const subtotalTickets = ticketPrice * purchaseData.ticketQuantity;
@@ -84,7 +55,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     return subtotalTickets + totalProductsPrice + totalCombosPrice;
   };
 
-  const base = useMemo(() => {
+  const totalOriginal = useMemo(() => {
     const fallbackSubtotal = calculateSubtotal();
     return toNum(purchaseData.total ?? fallbackSubtotal);
   }, [
@@ -95,14 +66,48 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     purchaseData.combos
   ]);
 
+  const base = useMemo(() => {
+    return toNum(purchaseData.totalWithDiscount ?? totalOriginal);
+  }, [purchaseData.totalWithDiscount, totalOriginal]);
+
+  const discountAmount = Math.max(0, totalOriginal - base);
+
   const subtotal = base;
+
+  const defaultPaymentMethod: 'mercadopago' | 'bank_transfer' | 'free' = useMemo(() => {
+    if (activePaymentMethods.length === 0) {
+      return null;
+    }
+
+    const totalEffective = base;
+    if (totalEffective === 0) return 'free';
+
+    const mercadopagoMethod = activePaymentMethods.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'mercadopago');
+    const mpEnabled = !!eventData.oAuthMercadoPago?.mpPublicKey;
+
+    if (mercadopagoMethod && mpEnabled) {
+      setIsMpConfiguredForEvent(true);
+      return 'mercadopago';
+    }
+
+    const transferMethod = activePaymentMethods?.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'transferenciabancaria');
+    const hasTransferDetails = transferMethod?.accountAlias?.length > 0 && transferMethod?.accountBank?.length > 0 && transferMethod?.accountFullName?.length > 0
+
+    if (transferMethod && hasTransferDetails) {
+      return 'bank_transfer';
+    }
+
+    return null;
+  }, [activePaymentMethods, base, eventData?.oAuthMercadoPago?.mpPublicKey]);
+
+  const [selected, setSelected] = useState<'mercadopago' | 'bank_transfer' | 'free'>(defaultPaymentMethod);
 
   const transferMethod = useMemo(
     () => eventData.payments?.find(pe => pe.paymentMethod.name.toLowerCase().replace(/\s/g, '') === 'transferenciabancaria'),
     [eventData.payments]
   );
 
-  const hasMP = isMpConfiguredForEvent && purchaseData.total > 0;
+  const hasMP = isMpConfiguredForEvent && base > 0;
   const hasBankTransfer = !!transferMethod;
   const isFree = base <= 0;
 
@@ -295,6 +300,13 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
             <span className="text-sm text-zinc-400">Subtotal</span>
             <span className="text-sm font-bold text-white">{formatPrice(subtotal)}</span>
           </div>
+
+          {discountAmount > 0 && (
+            <div className="mt-2 flex items-center justify-between text-xs">
+              <span className="text-emerald-400">Descuento cupón</span>
+              <span className="font-semibold text-emerald-400">– {formatPrice(discountAmount)}</span>
+            </div>
+          )}
 
           {serviceCharge > 0 && (
             <div className="mt-2 flex items-center justify-between text-xs">
