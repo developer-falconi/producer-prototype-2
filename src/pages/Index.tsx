@@ -205,7 +205,8 @@ const Index = () => {
     );
   }
 
-  const actualTickets = (producer?.totalClients ?? 0) + (producer?.webDetails?.totalTickets ?? 0);
+  const actualTicketsRaw = (producer?.totalClients ?? 0) + (producer?.webDetails?.totalTickets ?? 0);
+  const actualTickets = Math.ceil(actualTicketsRaw / 100) * 100;
   const actualEvents = (producer?.totalEvents ?? 0) + (producer?.webDetails?.totalEvents ?? 0);
 
   return (
