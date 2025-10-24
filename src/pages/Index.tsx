@@ -205,7 +205,8 @@ const Index = () => {
     );
   }
 
-  const actualTickets = (producer?.totalClients ?? 0) + (producer?.webDetails?.totalTickets ?? 0);
+  const actualTicketsRaw = (producer?.totalClients ?? 0) + (producer?.webDetails?.totalTickets ?? 0);
+  const actualTickets = Math.ceil(actualTicketsRaw / 100) * 100;
   const actualEvents = (producer?.totalEvents ?? 0) + (producer?.webDetails?.totalEvents ?? 0);
 
   return (
@@ -400,7 +401,6 @@ const Index = () => {
                     <div className="text-3xl sm:text-4xl font-extrabold tracking-tight tabular-nums">
                       {label !== "Satisfacción del cliente" && "+"}
                       {statsInView ? <CountingNumber number={Number(num)} /> : 0}
-                      {label !== "Satisfacción del cliente" && "+"}
                       {label === "Satisfacción del cliente" && "%"}
                     </div>
 
