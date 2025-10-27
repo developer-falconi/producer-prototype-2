@@ -330,11 +330,11 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
       )}
 
       {/* Mensajes de estado */}
-      {!selectedPrevent ? (
+      {!selectedPrevent && !noTicketsAvailableGlobally ? (
         <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4 text-center">
           <p className="text-zinc-300">Por favor, selecciona un tipo de entrada.</p>
         </div>
-      ) : selectedPrevent.status === PreventStatusEnum.ACTIVE && maxTickets === 0 ? (
+      ) : selectedPrevent?.status === PreventStatusEnum.ACTIVE && maxTickets === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4 text-center">
           <p className="text-zinc-300">No hay tickets disponibles para la entrada seleccionada.</p>
         </div>
