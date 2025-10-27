@@ -286,17 +286,6 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
         )}
       </motion.div>
 
-      {/* Mensajes de estado */}
-      {!selectedPrevent && !noTicketsAvailableGlobally ? (
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4 text-center">
-          <p className="text-zinc-300">Por favor, selecciona un tipo de entrada.</p>
-        </div>
-      ) : selectedPrevent?.status === PreventStatusEnum.ACTIVE && maxTickets === 0 ? (
-        <div className="rounded-2xl border border-white/10 bg-zinc-900/40 p-4 text-center">
-          <p className="text-zinc-300">Seleccioná la cantidad en al menos una entrada.</p>
-        </div>
-      ) : null}
-
       {/* 3) Resumen de precio */}
       {totalSelectedQty > 0 && (
         <motion.div
