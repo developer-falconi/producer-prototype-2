@@ -13,6 +13,16 @@ export enum EventStatus {
   SUSPENDED = 'SUSPENDED'
 }
 
+export type ShareMeta = {
+  title: string;
+  description: string;
+  image: string;
+  type: 'event';
+  slugOrId: string;
+  producerName?: string;
+  defaultOrigin?: string;
+};
+
 export interface Producer {
   id: number;
   name: string;
@@ -218,6 +228,7 @@ export interface PurchaseData {
   paymentMethod: 'mercadopago' | 'bank_transfer' | 'free' | null;
   coupon: CouponEvent | null;
   total: number;
+  totalWithDiscount?: number;
 }
 
 export interface ClientData {
