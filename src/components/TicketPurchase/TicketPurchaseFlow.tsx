@@ -523,7 +523,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
     try {
       const res = await createPreference(
-        purchaseData.selectedPrevent.id,
+        fullEventDetails.id,
         purchaseRequestPayload
       );
 

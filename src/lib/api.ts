@@ -89,11 +89,11 @@ type PreferenceRequestPayload = {
 };
 
 export async function createPreference(
-  preventId: number,
+  eventId: number,
   payload: PreferenceRequestPayload
 ): Promise<ApiResponse<PreferenceData>> {
   try {
-    const response = await fetch(`${API_URL}/mercadopago/create?prevent=${preventId}`, {
+    const response = await fetch(`${API_URL}/mercadopago/create?event=${eventId}`, {
       method: "POST",
       headers: {
         'Content-Type': 'application/json'
