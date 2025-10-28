@@ -54,7 +54,7 @@ export async function fetchProducerGalleryData(): Promise<ApiResponse<EventImage
   }
 }
 
-export async function submitTicketForm(formData: FormData, eventId: number, total: number): Promise<ApiResponse<Voucher>> {
+export async function submitTicketForm(formData: FormData, eventId: number, total: number): Promise<ApiResponse<Voucher[]>> {
   try {
     const clientType = total === 0
       ? ClientTypeEnum.FREE
@@ -78,25 +78,21 @@ export async function submitTicketForm(formData: FormData, eventId: number, tota
   }
 }
 
+type PreferenceRequestPayload = {
+  clients: Participant[];
+  products: { productId: number; quantity: number }[];
+  combos: { comboId: number; quantity: number }[];
+  total: number;
+  promoter: string | null;
+  coupon: number | null;
+  ticketRequests: { preventId: number; clientIndex: number; bundles: number }[];
+};
+
 export async function createPreference(
   preventId: number,
-  clients: Participant[],
-  products: { productId: number, quantity: number }[],
-  combos: { comboId: number, quantity: number }[],
-  total: number,
-  promoter: string,
-  couponId: number
+  payload: PreferenceRequestPayload
 ): Promise<ApiResponse<PreferenceData>> {
   try {
-    const payload = {
-      clients,
-      products,
-      combos,
-      total,
-      promoter,
-      coupon: couponId
-    }
-
     const response = await fetch(`${API_URL}/mercadopago/create?prevent=${preventId}`, {
       method: "POST",
       headers: {
