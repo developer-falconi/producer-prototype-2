@@ -130,6 +130,7 @@ export interface Prevent {
   description: string;
   price: number;
   quantity: number;
+  ticketsLimit?: number;
   remaining?: number;
   status: PreventStatusEnum;
   startDate: Date;
@@ -212,8 +213,11 @@ export interface ProductBuyerInfo {
   fullName: string;
 }
 
+export type TicketLine = { prevent: Prevent; quantity: number };
+
 export interface PurchaseData {
   selectedPrevent: Prevent | null;
+  ticketLines: TicketLine[];
   ticketQuantity: number;
   clients: TicketInfo[];
   products: PurchaseProductItem[];

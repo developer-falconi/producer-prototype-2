@@ -19,7 +19,7 @@ interface PurchaseStatusProps {
   purchaseData: PurchaseData;
   total: number;
   status: { status: "success" | "error"; message: string } | null;
-  voucher: Voucher | null;
+  voucher: Voucher[] | null;
   onResetAndClose: () => void;
 }
 
@@ -123,7 +123,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
             transition={{ delay: 0.18 }}
           >
             <span className="text-sm text-zinc-300">Id de compra:</span>
-            <span className="font-mono text-sm font-semibold text-white">{voucher?.id}</span>
+            <span className="font-mono text-sm font-semibold text-white">{voucher?.[0]?.id}</span>
             <button
               onClick={copySummary}
               className={cn(
