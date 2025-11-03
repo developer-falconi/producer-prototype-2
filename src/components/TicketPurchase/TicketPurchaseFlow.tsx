@@ -86,6 +86,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return fullEventDetails?.oAuthMercadoPago?.mpPublicKey || null;
   }, [fullEventDetails]);
 
+  const requiresClientData = useMemo(() => {
+    if (fullEventDetails?.requiresClientData !== undefined) {
+      return fullEventDetails.requiresClientData;
+    }
+    return initialEvent?.requiresClientData ?? false;
+  }, [fullEventDetails?.requiresClientData, initialEvent?.requiresClientData]);
+
   const dynamicSteps = useMemo(() => {
     if (!fullEventDetails) return steps;
     let currentDynamicSteps = [...steps];
@@ -796,6 +803,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             discountAmount={currentDiscount}
             onCouponApplied={handleCouponApplied}
             onCouponRemoved={handleCouponRemoved}
+            requiresClientData={requiresClientData}
           />
         );
       case 'Productos':

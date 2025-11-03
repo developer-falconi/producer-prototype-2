@@ -52,6 +52,7 @@ interface AttendeeDataProps {
   discountAmount?: number;
   onCouponApplied: (coupon: CouponEvent) => void;
   onCouponRemoved: () => void;
+  requiresClientData?: boolean;
 }
 
 const emptyClient: ClientForm = {
@@ -70,6 +71,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
   discountAmount = 0,
   onCouponApplied,
   onCouponRemoved,
+  requiresClientData = false,
 }) => {
   const [activeIndex, setActiveIndex] = useState(purchaseData.clients.length > 0 ? 0 : -1);
   const [completedClients, setCompletedClients] = useState<boolean[]>(() =>
@@ -210,13 +212,13 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
   const handleCompleteClick = useCallback(
     (index: number) => {
       const nextState = markClientCompletion(index, true);
-      if (index === 0) {
-        setActiveIndex(-1);
+      if (requiresClientData || index > 0) {
+        goToNextCard(index, nextState);
         return;
       }
-      goToNextCard(index, nextState);
+      setActiveIndex(-1);
     },
-    [goToNextCard, markClientCompletion]
+    [goToNextCard, markClientCompletion, requiresClientData]
   );
 
   const handleSkipClick = useCallback(
@@ -368,7 +370,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                     ) : null}
                   </button>
 
-                  {index > 0 && !isActive && !isExplicitlyCompleted && (
+                  {index > 0 && !isActive && !isExplicitlyCompleted && !requiresClientData && (
                     <Button
                       type="button"
                       variant="outline"
@@ -622,7 +624,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                           </AnimatePresence>
 
                           <div className="flex items-center justify-between pt-2">
-                            {index > 0 ? (
+                            {index > 0 && !requiresClientData ? (
                               <Button
                                 type="button"
                                 variant="outline"
