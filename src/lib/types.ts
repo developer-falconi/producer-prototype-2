@@ -63,6 +63,7 @@ export interface EventDto {
   startDate: string;
   endDate: string;
   location: string;
+  requiresClientData: boolean;
   key: string;
   status: EventStatus;
   folder: boolean;
