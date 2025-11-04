@@ -51,6 +51,7 @@ export default function InEventPurchaseFlow({
     buyer: { docNumber: "", email: "", fullName: "" },
     products: [],
     combos: [],
+    experiences: [],
     paymentMethod: 'mercadopago',
     total: 0,
   });
@@ -146,9 +147,14 @@ export default function InEventPurchaseFlow({
       return acc + price * item.quantity;
     }, 0);
 
-    const grandTotal = productsTotal + combosTotal;
+    const experiencesTotal = purchaseData.experiences.reduce((acc, item) => {
+      const price = Number(item.experience.price) || 0;
+      return acc + price * item.quantity;
+    }, 0);
+
+    const grandTotal = productsTotal + combosTotal + experiencesTotal;
     return { subtotal: grandTotal, grandTotal };
-  }, [purchaseData.products, purchaseData.combos]);
+  }, [purchaseData.products, purchaseData.combos, purchaseData.experiences]);
 
   const handleShare = useCallback(async () => {
     try {
@@ -217,6 +223,7 @@ export default function InEventPurchaseFlow({
         buyer: { docNumber: "", email: "", fullName: "" },
         products: [],
         combos: [],
+        experiences: [],
         paymentMethod: "mercadopago",
         total: 0,
       });
@@ -396,6 +403,7 @@ export default function InEventPurchaseFlow({
         client: purchaseData.buyer,
         products: purchaseData.products.map(p => ({ productId: p.product.id, quantity: p.quantity })),
         combos: purchaseData.combos.map(c => ({ comboId: c.combo.id, quantity: c.quantity })),
+        experiences: purchaseData.experiences.map(exp => ({ experienceId: exp.experience.id, quantity: exp.quantity })),
         total: totals.grandTotal,
         coupon: appliedCoupon?.id || null
       };
@@ -433,6 +441,7 @@ export default function InEventPurchaseFlow({
         client: purchaseData.buyer,
         products: purchaseData.products.map(p => ({ productId: p.product.id, quantity: p.quantity })),
         combos: purchaseData.combos.map(c => ({ comboId: c.combo.id, quantity: c.quantity })),
+        experiences: purchaseData.experiences.map(exp => ({ experienceId: exp.experience.id, quantity: exp.quantity })),
         total: totals.grandTotal,
         coupon: appliedCoupon?.id || null
       };
@@ -768,3 +777,4 @@ export default function InEventPurchaseFlow({
     </AnimatePresence>
   );
 }
+
