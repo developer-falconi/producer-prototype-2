@@ -82,6 +82,7 @@ type PreferenceRequestPayload = {
   clients: Participant[];
   products: { productId: number; quantity: number }[];
   combos: { comboId: number; quantity: number }[];
+  experiences: { experienceId: number; quantity: number }[];
   total: number;
   promoter: string | null;
   coupon: number | null;
@@ -144,6 +145,7 @@ export async function createLiveEventPreference(
       client: data.client,
       products: data.products,
       combos: data.combos,
+      experiences: data.experiences,
       total: data.total,
       coupon: data.coupon
     }

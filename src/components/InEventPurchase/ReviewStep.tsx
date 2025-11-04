@@ -20,9 +20,9 @@ export default function ReviewStep({
   const { producer } = useProducer();
   const tracking = useTracking({ producer, channel: "live" });
 
-  const { buyer, products, combos, total, paymentMethod } = purchaseData;
+  const { buyer, products, combos, experiences = [], total, paymentMethod } = purchaseData;
 
-  const { subtotal, discountTotal } = calcTotals(products, combos);
+  const { subtotal, discountTotal } = calcTotals(products, combos, experiences);
   const allItems = [
     ...products.map(p => ({
       key: `p-${p.product.id}`,
@@ -39,6 +39,14 @@ export default function ReviewStep({
       unit: Number(c.combo.price),
       discountPct: 0,
       line: Number(c.combo.price) * c.quantity,
+    })),
+    ...experiences.map(exp => ({
+      key: `e-${exp.experience.id}`,
+      name: exp.experience.name ?? "Experiencia",
+      qty: exp.quantity,
+      unit: Number(exp.experience.price),
+      discountPct: 0,
+      line: Number(exp.experience.price) * exp.quantity,
     })),
   ].filter(i => i.qty > 0);
 
@@ -165,7 +173,8 @@ export default function ReviewStep({
 
 function calcTotals(
   products: InEventPurchaseData["products"],
-  combos: InEventPurchaseData["combos"]
+  combos: InEventPurchaseData["combos"],
+  experiences: InEventPurchaseData["experiences"]
 ) {
   let subtotal = 0;
   let discountTotal = 0;
@@ -180,6 +189,10 @@ function calcTotals(
   for (const c of combos) {
     const price = Number(c.combo.price);
     subtotal += price * c.quantity;
+  }
+  for (const e of experiences) {
+    const price = Number(e.experience.price) || 0;
+    subtotal += price * e.quantity;
   }
   return { subtotal, discountTotal };
 }
@@ -223,3 +236,5 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
     </div>
   );
 }
+
+

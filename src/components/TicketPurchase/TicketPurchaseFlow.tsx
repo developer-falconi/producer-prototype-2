@@ -4,7 +4,7 @@ import { AttendeeData } from './AttendeeData';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, CouponEvent, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, ShareMeta, Voucher } from '@/lib/types';
+import { ClientData, CouponEvent, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, PurchaseExperienceItem, ShareMeta, Voucher } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -14,6 +14,7 @@ import { Button } from '../ui/button';
 import { EventInfo } from './EventInfo';
 import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
+import { ExperienceSelection } from './ExperienceSelection';
 import { toast } from 'sonner';
 import { buildShareMeta, toNum } from '@/lib/utils';
 import { useProducer } from '@/context/ProducerContext';
@@ -28,6 +29,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const steps = [
   'Seleccionar Entradas',
+  'Experiencias',
   'Datos de Asistentes y Contacto',
   'Productos',
   'Metodo de Pago',
@@ -53,6 +55,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     clients: [],
     products: [],
     combos: [],
+    experiences: [],
     email: '',
     comprobante: undefined,
     paymentMethod: null,
@@ -94,13 +97,26 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   }, [fullEventDetails?.requiresClientData, initialEvent?.requiresClientData]);
 
   const dynamicSteps = useMemo(() => {
-    if (!fullEventDetails) return steps;
+    const eventSource = fullEventDetails ?? initialEvent;
     let currentDynamicSteps = [...steps];
-    if (fullEventDetails.products?.length === 0 && fullEventDetails.combos?.length === 0) {
+
+    const hasProductsOrCombos =
+      (eventSource?.products?.length ?? 0) > 0 ||
+      (eventSource?.combos?.length ?? 0) > 0;
+
+    if (!hasProductsOrCombos) {
       currentDynamicSteps = currentDynamicSteps.filter(step => step !== 'Productos');
     }
+
+    const hasExperiences =
+      (eventSource?.experiences ?? []).some(exp => (exp?.children?.length ?? 0) > 0);
+
+    if (!hasExperiences) {
+      currentDynamicSteps = currentDynamicSteps.filter(step => step !== 'Experiencias');
+    }
+
     return currentDynamicSteps;
-  }, [fullEventDetails]);
+  }, [fullEventDetails, initialEvent]);
 
   const { producer } = useProducer();
   const tracking = useTracking({ producer, channel: 'prevent' });
@@ -112,15 +128,17 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     preventQty: number;
     productQtys: Record<number, number>;
     comboQtys: Record<number, number>;
+    experienceQtys: Record<number, number>;
   }>({
     preventId: undefined,
     preventQty: 0,
     productQtys: {},
-    comboQtys: {}
+    comboQtys: {},
+    experienceQtys: {}
   });
 
   const buildTrackingItems = useCallback(() => {
-    const items: Array<{ prevent?: Prevent; product?: any; combo?: any; qty?: number }> = [];
+    const items: Array<{ prevent?: Prevent; product?: any; combo?: any; experience?: PurchaseExperienceItem['experience']; parent?: PurchaseExperienceItem['parent']; qty?: number }> = [];
     if (purchaseData.selectedPrevent && purchaseData.ticketQuantity > 0) {
       items.push({ prevent: purchaseData.selectedPrevent, qty: purchaseData.ticketQuantity });
     }
@@ -130,8 +148,11 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     purchaseData.combos.forEach(c => {
       if (c.quantity > 0) items.push({ combo: c.combo, qty: c.quantity });
     });
+    purchaseData.experiences.forEach(exp => {
+      if (exp.quantity > 0) items.push({ experience: exp.experience, parent: exp.parent, qty: exp.quantity });
+    });
     return items;
-  }, [purchaseData.selectedPrevent, purchaseData.ticketQuantity, purchaseData.products, purchaseData.combos]);
+  }, [purchaseData.selectedPrevent, purchaseData.ticketQuantity, purchaseData.products, purchaseData.combos, purchaseData.experiences]);
 
   const totalSelectedTickets = useMemo(() => {
     return (purchaseData.ticketLines ?? []).reduce((acc, line) => acc + line.quantity, 0);
@@ -207,14 +228,31 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       }
     });
 
+    const currentExperiences: Record<number, number> = {};
+    purchaseData.experiences.forEach(it => { currentExperiences[it.experience.id] = it.quantity; });
+    Object.entries(currentExperiences).forEach(([idStr, qty]) => {
+      const id = Number(idStr);
+      const prevQty = prev.experienceQtys[id] ?? 0;
+      const delta = qty - prevQty;
+      if (delta > 0) {
+        const item = purchaseData.experiences.find(e => e.experience.id === id);
+        const sourceEvent = fullEventDetails ?? initialEvent;
+        if (item && sourceEvent) {
+          tracking.addExperience?.(sourceEvent, item.experience, delta, item.parent ?? null);
+        }
+      }
+    });
+
     lastCartRef.current.productQtys = currentProducts;
     lastCartRef.current.comboQtys = currentCombos;
+    lastCartRef.current.experienceQtys = currentExperiences;
   }, [
     fullEventDetails,
     purchaseData.selectedPrevent,
     purchaseData.ticketQuantity,
     purchaseData.products,
     purchaseData.combos,
+    purchaseData.experiences,
     tracking
   ]);
 
@@ -301,7 +339,12 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       return sum + priceNum * item.quantity;
     }, 0);
 
-    const subtotalAllItems = subtotalTickets + totalProductsPrice + totalCombosPrice;
+    const totalExperiencesPrice = purchaseData.experiences.reduce((sum, item) => {
+      const priceNum = toNum(item.experience.price);
+      return sum + priceNum * item.quantity;
+    }, 0);
+
+    const subtotalAllItems = subtotalTickets + totalProductsPrice + totalCombosPrice + totalExperiencesPrice;
 
     let discount = 0;
     if (appliedCoupon) {
@@ -322,6 +365,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     purchaseData.ticketLines,
     purchaseData.products,
     purchaseData.combos,
+    purchaseData.experiences,
     appliedCoupon,
   ]);
 
@@ -371,6 +415,10 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     setPurchaseData(prev => ({ ...prev, products, combos }));
   }, []);
 
+  const handleUpdateExperiences = useCallback((experiences: PurchaseExperienceItem[]) => {
+    setPurchaseData(prev => ({ ...prev, experiences }));
+  }, []);
+
   const currentSubtotal = useMemo(() => {
     const subtotalTickets = (purchaseData.ticketLines ?? []).reduce(
       (sum, l) => sum + toNum(l.prevent.price) * l.quantity, 0
@@ -386,11 +434,16 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       (s, i) => s + toNum(i.combo.price) * i.quantity, 0
     );
 
-    return subtotalTickets + productsSum + combosSum;
+    const experiencesSum = purchaseData.experiences.reduce(
+      (s, i) => s + toNum(i.experience.price) * i.quantity, 0
+    );
+
+    return subtotalTickets + productsSum + combosSum + experiencesSum;
   }, [
     purchaseData.ticketLines,
     purchaseData.products,
     purchaseData.combos,
+    purchaseData.experiences,
   ]);
 
   const computeCouponDiscount = (subtotal: number, coupon: CouponEvent | null): number => {
@@ -458,6 +511,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         quantity: item.quantity,
       }));
 
+    const experiences = purchaseData.experiences
+      .filter(item => item.quantity > 0)
+      .map(item => ({
+        experienceId: item.experience.id,
+        quantity: item.quantity,
+      }));
+
     const ticketRequests: Array<{ preventId: number; clientIndex: number; bundles: number }> = [];
     let cursor = 0;
     let missingClient = false;
@@ -498,6 +558,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       clients,
       products,
       combos,
+      experiences,
       total: purchaseData.total,
       promoter: purchaseData.promoter || null,
       coupon: purchaseData.coupon?.id ?? null,
@@ -508,6 +569,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     purchaseData.email,
     purchaseData.products,
     purchaseData.combos,
+    purchaseData.experiences,
     purchaseData.ticketLines,
     purchaseData.ticketQuantity,
     purchaseData.total,
@@ -589,6 +651,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
         return allClientsCompleted && isContactEmailValid;
       case 'Productos':
         return true;
+      case 'Experiencias':
+        return true;
       case 'Metodo de Pago':
         if (purchaseData.paymentMethod === 'bank_transfer' && purchaseData.total > 0) {
           return !!purchaseData.comprobante;
@@ -623,6 +687,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       clients: [],
       products: [],
       combos: [],
+      experiences: [],
       email: '',
       promoter: '',
       comprobante: undefined,
@@ -704,7 +769,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     setErrorDetails(null);
     viewTrackedRef.current = false;
     beginCheckoutTrackedRef.current = false;
-    lastCartRef.current = { preventQty: 0, productQtys: {}, comboQtys: {} };
+    lastCartRef.current = { preventQty: 0, productQtys: {}, comboQtys: {}, experienceQtys: {} };
 
     handleReset();
     onClose();
@@ -805,7 +870,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             onCouponRemoved={handleCouponRemoved}
             requiresClientData={requiresClientData}
           />
-        );
+      );
       case 'Productos':
         return (
           <ProductSelection
@@ -815,6 +880,19 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             onUpdateProductsAndCombos={handleUpdateProductsAndCombos}
           />
         );
+      case 'Experiencias': {
+        const availableExperiences = (fullEventDetails?.experiences || initialEvent?.experiences || []).map(exp => ({
+          ...exp,
+          children: exp.children ?? [],
+        }));
+        return (
+          <ExperienceSelection
+            purchaseData={purchaseData}
+            experiences={availableExperiences}
+            onUpdateExperiences={handleUpdateExperiences}
+          />
+        );
+      }
       case 'Metodo de Pago':
         return (
           <PaymentMethod
@@ -860,10 +938,12 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     handleCouponApplied,
     handleCouponRemoved,
     handleUpdateProductsAndCombos,
+    handleUpdateExperiences,
     updatePaymentMethod,
     updatePaymentFile,
     submissionStatus,
-    handleCloseDrawer
+    handleCloseDrawer,
+    initialEvent.experiences
   ]);
 
   const isConfirmationStep = dynamicSteps[currentStep - 1] === 'Confirmacion';
@@ -974,7 +1054,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       setErrorDetails(null);
       viewTrackedRef.current = false;
       beginCheckoutTrackedRef.current = false;
-      lastCartRef.current = { preventQty: 0, productQtys: {}, comboQtys: {} };
+      lastCartRef.current = { preventQty: 0, productQtys: {}, comboQtys: {}, experienceQtys: {} };
 
       handleReset();
       onClose();
@@ -1008,7 +1088,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           <motion.div
             id="ticket-sheet"
             ref={setSheetRef}
-            className="relative mx-auto w-full max-w-lg md:max-w-4xl h-[85vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden touch-none"
+            className="relative mx-auto w-full max-w-lg md:max-w-4xl h-[92vh] bg-zinc-900 rounded-t-lg shadow-xl flex flex-col z-50 overflow-hidden touch-none"
             initial={{ y: "100%" }}
             animate={{ y: "0%" }}
             exit={{ y: "100%" }}
@@ -1096,3 +1176,4 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     </AnimatePresence>
   );
 };
+

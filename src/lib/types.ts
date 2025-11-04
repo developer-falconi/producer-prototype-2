@@ -78,6 +78,7 @@ export interface EventDto {
   featuredPrevent?: Prevent;
   products?: ProductEventDto[];
   combos?: ComboEventDto[];
+  experiences?: ExperienceDto[];
   artists: EventArtistDto[];
   payments: EventPaymentDto[];
   fee: EventFeeDto;
@@ -223,6 +224,7 @@ export interface PurchaseData {
   clients: TicketInfo[];
   products: PurchaseProductItem[];
   combos: PurchaseComboItem[];
+  experiences: PurchaseExperienceItem[];
   email: string;
   promoter: string;
   comprobante: File;
@@ -324,6 +326,12 @@ export interface PurchaseComboItem {
   combo: ComboEventDto;
 }
 
+export interface PurchaseExperienceItem {
+  quantity: number;
+  parent: ExperienceDto;
+  experience: ExperienceChildDto;
+}
+
 export interface ComboEventDto {
   id: number;
   name: string;
@@ -337,6 +345,30 @@ export interface ProductComboItemDto {
   id: number;
   quantity: number;
   productEvent: ProductEventDto;
+}
+
+export interface ExperienceChildDto {
+  id: number;
+  parentId: number;
+  name: string;
+  description?: string | null;
+  image?: string | null;
+  price: number;
+  stock: number;
+  remaining?: number | null;
+  startAt?: string | null;
+  endAt?: string | null;
+  qrTemplate?: string | null;
+}
+
+export interface ExperienceDto {
+  id: number;
+  name: string;
+  description?: string | null;
+  image?: string | null;
+  startAt?: string | null;
+  endAt?: string | null;
+  children: ExperienceChildDto[];
 }
 
 export enum ProductTypeEnum {
@@ -388,6 +420,7 @@ export interface InEventPurchaseData {
   buyer: ProductBuyerInfo;
   products: PurchaseProductItem[];
   combos: PurchaseComboItem[];
+  experiences: PurchaseExperienceItem[];
   paymentMethod: "mercadopago" | "cash" | null;
   total: number;
 }
@@ -406,8 +439,14 @@ export interface InEventPurchasePayload {
   client: ProductBuyerInfo;
   products: ProductItemDto[];
   combos: ComboItemDto[];
+  experiences: ExperienceItemDto[];
   total: number;
   coupon: number | null;
+}
+
+export class ExperienceItemDto {
+  experienceId: number;
+  quantity: number;
 }
 
 export type CouponDiscountType = 'PERCENT' | 'AMOUNT';
@@ -453,3 +492,4 @@ export interface SubmissionResponse {
 export type ApiResponse<T> =
   | { success: true; data: T; message?: string, status?: string }
   | { success: false; data?: any; message?: string, status?: string };
+

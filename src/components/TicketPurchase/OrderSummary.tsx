@@ -87,7 +87,15 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
   }));
   const totalCombosPrice = combosSummary.reduce((s, i) => s + i.price * i.quantity, 0);
 
-  const subtotalAllItems = subtotalTickets + totalProductsPrice + totalCombosPrice;
+  const experiencesSummary = purchaseData.experiences.map(it => ({
+    name: it.experience.name ?? 'Experiencia',
+    parentName: it.parent?.name ?? null,
+    price: num(it.experience.price),
+    quantity: it.quantity,
+  }));
+  const totalExperiencesPrice = experiencesSummary.reduce((s, i) => s + i.price * i.quantity, 0);
+
+  const subtotalAllItems = subtotalTickets + totalProductsPrice + totalCombosPrice + totalExperiencesPrice;
 
   const { discount, details: couponDetails, reason: couponReason } = calcCouponDiscount(
     subtotalAllItems,
@@ -114,12 +122,13 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
 
   useEffect(() => {
     if (!eventData) return;
-    const items: Array<{ prevent?: any; product?: any; combo?: any; qty?: number }> = [];
+    const items: Array<{ prevent?: any; product?: any; combo?: any; experience?: any; parent?: any; qty?: number }> = [];
     if (purchaseData.selectedPrevent && purchaseData.ticketQuantity > 0) {
       items.push({ prevent: purchaseData.selectedPrevent, qty: purchaseData.ticketQuantity });
     }
     purchaseData.products.forEach(p => p.quantity > 0 && items.push({ product: p.product, qty: p.quantity }));
     purchaseData.combos.forEach(c => c.quantity > 0 && items.push({ combo: c.combo, qty: c.quantity }));
+    purchaseData.experiences.forEach(e => e.quantity > 0 && items.push({ experience: e.experience, parent: e.parent, qty: e.quantity }));
 
     const coupon = purchaseData.coupon?.id != null ? String(purchaseData.coupon.id) : purchaseData.promoter || null;
     tracking.viewCart(eventData, items, { coupon, value: Number(toNum(baseNet)) });
@@ -128,6 +137,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
   const hasTickets = ticketLinesSummary.some(i => i.quantity > 0);
   const hasProducts = totalProductsPrice > 0;
   const hasCombos = totalCombosPrice > 0;
+  const hasExperiences = totalExperiencesPrice > 0;
 
   return (
     <div className="space-y-5 p-6 md:p-8">
@@ -154,7 +164,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
 
       {/* Ítems (un solo bloque, secciones mínimas) */}
       <div className="rounded-lg border border-white/10 bg-zinc-900 p-4">
-        {(hasTickets || hasProducts || hasCombos) ? (
+        {(hasTickets || hasProducts || hasCombos || hasExperiences) ? (
           <>
             {hasTickets && (
               <>
@@ -196,6 +206,27 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
                   <LineRow
                     key={`c-${idx}`}
                     left={<span className="truncate text-white">{it.quantity}× {it.name}</span>}
+                    right={<span>{formatPrice(it.price * it.quantity)}</span>}
+                  />
+                ))}
+                <div className="my-2 h-px bg-white/10" />
+              </>
+            )}
+
+            {hasExperiences && (
+              <>
+                <div className="mb-1 text-xs uppercase tracking-wide text-zinc-400">Experiencias</div>
+                {experiencesSummary.map((it, idx) => (
+                  <LineRow
+                    key={`e-${idx}`}
+                    left={
+                      <div className="truncate">
+                        <span className="text-white">{it.quantity} x {it.name}</span>
+                        {it.parentName && (
+                          <div className="text-xs text-zinc-400 truncate">Incluye {it.parentName}</div>
+                        )}
+                      </div>
+                    }
                     right={<span>{formatPrice(it.price * it.quantity)}</span>}
                   />
                 ))}
@@ -249,3 +280,4 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
     </div>
   );
 };
+

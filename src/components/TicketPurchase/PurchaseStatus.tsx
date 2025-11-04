@@ -37,6 +37,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
   const ticketsCount = purchaseData.ticketQuantity ?? 0;
   const prodCount = purchaseData.products?.length ?? 0;
   const comboCount = purchaseData.combos?.length ?? 0;
+  const experienceCount = purchaseData.experiences?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
 
   const totalText = total === 0 ? "Liberado" : formatPrice(total);
   const email = purchaseData.email;
@@ -45,15 +46,15 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
 
   const shareText = useMemo(() => {
     const parts = [
-      "Pedido confirmado ✅",
+      "Pedido confirmado.",
       ticketsCount ? `Entradas: ${ticketsCount}` : "",
       prodCount ? `Productos: ${prodCount}` : "",
       comboCount ? `Combos: ${comboCount}` : "",
+      experienceCount ? `Experiencias: ${experienceCount}` : "",
       `Total: ${totalText}`,
     ].filter(Boolean);
-    return parts.join(" • ");
-  }, [ticketsCount, prodCount, comboCount, totalText]);
-
+    return parts.join(" - ");
+  }, [ticketsCount, prodCount, comboCount, experienceCount, totalText]);
   const copySummary = async () => {
     try {
       await navigator.clipboard.writeText(shareText);
@@ -175,6 +176,10 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
                 <Boxes className="h-4 w-4 text-amber-400" /> {comboCount} combo
                 {comboCount !== 1 ? "s" : ""}
               </li>
+              <li className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-300" /> {experienceCount} experiencia
+                {experienceCount !== 1 ? "s" : ""}
+              </li>
               {email && (
                 <li className="col-span-2 flex items-center gap-2 truncate">
                   <Mail className="h-4 w-4 text-emerald-400" />
@@ -287,3 +292,4 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
     </motion.div>
   );
 };
+
