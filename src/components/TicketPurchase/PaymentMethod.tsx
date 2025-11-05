@@ -135,7 +135,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
     const base = transferMethod ? [{
       key: 'bank_transfer' as const,
       title: 'Transferencia Bancaria',
-      desc: 'Sin comisiones • Acreditación manual',
+      desc: 'Acreditación manual',
       accent: 'from-emerald-600 to-emerald-900',
       badge: null,
       Icon: Landmark,
@@ -155,6 +155,16 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
 
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    if (cards.length === 1) {
+      const [onlyCard] = cards;
+      if (onlyCard && selected !== onlyCard.key) {
+        setSelected(onlyCard.key);
+        onUpdatePaymentMethod(onlyCard.key);
+      }
+    }
+  }, [cards, onUpdatePaymentMethod, selected]);
 
   useEffect(() => {
     if (selected !== purchaseData.paymentMethod) {
