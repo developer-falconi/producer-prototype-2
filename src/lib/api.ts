@@ -54,17 +54,13 @@ export async function fetchProducerGalleryData(): Promise<ApiResponse<EventImage
   }
 }
 
-export async function submitTicketForm(formData: FormData, eventId: number, preventId: number | null, total: number): Promise<ApiResponse<Voucher>> {
+export async function submitTicketForm(formData: FormData, eventId: number, total: number): Promise<ApiResponse<Voucher[]>> {
   try {
     const clientType = total === 0
       ? ClientTypeEnum.FREE
       : ClientTypeEnum.REGULAR;
 
-    let url = `${API_URL}/client/create/${eventId}?type=${clientType}`;
-
-    if (preventId) {
-      url += `&prevent=${preventId}`;
-    }
+    const url = `${API_URL}/client/create/${eventId}?type=${clientType}`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -82,26 +78,23 @@ export async function submitTicketForm(formData: FormData, eventId: number, prev
   }
 }
 
+type PreferenceRequestPayload = {
+  clients: Participant[];
+  products: { productId: number; quantity: number }[];
+  combos: { comboId: number; quantity: number }[];
+  experiences: { experienceId: number; quantity: number }[];
+  total: number;
+  promoter: string | null;
+  coupon: number | null;
+  ticketRequests: { preventId: number; clientIndex: number; bundles: number }[];
+};
+
 export async function createPreference(
-  preventId: number,
-  clients: Participant[],
-  products: { productId: number, quantity: number }[],
-  combos: { comboId: number, quantity: number }[],
-  total: number,
-  promoter: string,
-  couponId: number
+  eventId: number,
+  payload: PreferenceRequestPayload
 ): Promise<ApiResponse<PreferenceData>> {
   try {
-    const payload = {
-      clients,
-      products,
-      combos,
-      total,
-      promoter,
-      coupon: couponId
-    }
-
-    const response = await fetch(`${API_URL}/mercadopago/create?prevent=${preventId}`, {
+    const response = await fetch(`${API_URL}/mercadopago/create?event=${eventId}`, {
       method: "POST",
       headers: {
         'Content-Type': 'application/json'
@@ -152,6 +145,7 @@ export async function createLiveEventPreference(
       client: data.client,
       products: data.products,
       combos: data.combos,
+      experiences: data.experiences,
       total: data.total,
       coupon: data.coupon
     }

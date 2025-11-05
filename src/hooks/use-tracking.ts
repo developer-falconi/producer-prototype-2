@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef } from "react";
-import { useLocation } from "react-router-dom";
 import type {
   Producer,
   EventDto,
   Prevent,
   ComboEventDto,
   ProductEventDto,
+  ExperienceChildDto,
+  ExperienceDto,
   PaymentStatus,
 } from "@/lib/types";
 import {
@@ -26,6 +26,8 @@ import {
   trackAddPaymentInfo,
   trackViewCart,
 } from "@/lib/analytics";
+import { useLocation } from "react-router-dom";
+import { useEffect, useMemo, useRef } from "react";
 
 type Currency = "ARS" | "USD" | "UYU" | "BRL" | string;
 type Channel = "live" | "prevent";
@@ -105,6 +107,8 @@ export function useTracking(
 
       addProduct: (event: EventDto, product: ProductEventDto, qty = 1) =>
         trackAddToCart(event, { product, qty }, producer, currency, { channel }),
+      addExperience: (event: EventDto, experience: ExperienceChildDto, qty = 1, parent?: ExperienceDto | null) =>
+        trackAddToCart(event, { experience, parent, qty }, producer, currency, { channel }),
 
       beginCheckout: (
         event: EventDto,
@@ -112,6 +116,8 @@ export function useTracking(
           prevent?: Prevent;
           combo?: ComboEventDto;
           product?: ProductEventDto;
+          experience?: ExperienceChildDto;
+          parent?: ExperienceDto | null;
           qty?: number;
         }>,
         opts?: { coupon?: string | null; value?: number }
@@ -121,7 +127,9 @@ export function useTracking(
             ? { prevent: it.prevent, qty: it.qty }
             : it.combo
               ? { combo: it.combo, qty: it.qty }
-              : { product: it.product!, qty: it.qty }
+              : it.product
+                ? { product: it.product, qty: it.qty }
+                : { experience: it.experience!, parent: it.parent ?? null, qty: it.qty }
         );
         trackBeginCheckout(
           event,
@@ -145,6 +153,8 @@ export function useTracking(
             prevent?: Prevent;
             combo?: ComboEventDto;
             product?: ProductEventDto;
+            experience?: ExperienceChildDto;
+            parent?: ExperienceDto | null;
             qty?: number;
           }>;
           coupon?: string | null;
@@ -155,7 +165,9 @@ export function useTracking(
             ? { prevent: it.prevent, qty: it.qty }
             : it.combo
               ? { combo: it.combo, qty: it.qty }
-              : { product: it.product!, qty: it.qty }
+              : it.product
+                ? { product: it.product, qty: it.qty }
+                : { experience: it.experience!, parent: it.parent ?? null, qty: it.qty }
         );
         trackPurchase(
           event,
@@ -231,6 +243,8 @@ export function useTracking(
           prevent?: Prevent;
           combo?: ComboEventDto;
           product?: ProductEventDto;
+          experience?: ExperienceChildDto;
+          parent?: ExperienceDto | null;
           qty?: number;
         }>,
         opts: { paymentType: 'bank_transfer' | 'mercadopago' | 'cash'; coupon?: string | null; value?: number }
@@ -240,7 +254,9 @@ export function useTracking(
             ? { prevent: it.prevent, qty: it.qty }
             : it.combo
               ? { combo: it.combo, qty: it.qty }
-              : { product: it.product!, qty: it.qty }
+              : it.product
+                ? { product: it.product, qty: it.qty }
+                : { experience: it.experience!, parent: it.parent ?? null, qty: it.qty }
         );
         trackAddPaymentInfo(
           event,
@@ -262,6 +278,8 @@ export function useTracking(
           prevent?: Prevent;
           combo?: ComboEventDto;
           product?: ProductEventDto;
+          experience?: ExperienceChildDto;
+          parent?: ExperienceDto | null;
           qty?: number;
         }>,
         opts?: { coupon?: string | null; value?: number }
@@ -271,7 +289,9 @@ export function useTracking(
             ? { prevent: it.prevent, qty: it.qty }
             : it.combo
               ? { combo: it.combo, qty: it.qty }
-              : { product: it.product!, qty: it.qty }
+              : it.product
+                ? { product: it.product, qty: it.qty }
+                : { experience: it.experience!, parent: it.parent ?? null, qty: it.qty }
         );
         trackViewCart(
           event,
@@ -292,3 +312,6 @@ export function useTracking(
 
   return api;
 }
+
+
+

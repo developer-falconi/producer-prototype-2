@@ -1,4 +1,4 @@
-import type { EventDto, Prevent, ComboEventDto, ProductEventDto, Producer } from "@/lib/types";
+import type { EventDto, Prevent, ComboEventDto, ProductEventDto, ExperienceChildDto, ExperienceDto, Producer } from "@/lib/types";
 
 type GAParams = Record<string, any>;
 type FBParams = Record<string, any>;
@@ -429,6 +429,33 @@ function toItemFromProduct(event: EventDto, pe: ProductEventDto, qty = 1) {
   };
 }
 
+function toItemFromExperience(event: EventDto, experience: ExperienceChildDto, qty = 1, parent?: ExperienceDto | null) {
+  const price = Number(experience.price) || 0;
+  return {
+    item_id: `event_${event.id}_experience_${experience.id}`,
+    item_name: `${event.name} - ${experience.name ?? "Experiencia"}`,
+    item_category: "experience",
+    item_category2: parent?.name || undefined,
+    item_variant: parent?.name || undefined,
+    price,
+    quantity: qty,
+    event_id: event.id?.toString(),
+  };
+}
+
+type TrackableLine =
+  | { prevent: Prevent; qty?: number }
+  | { combo: ComboEventDto; qty?: number }
+  | { product: ProductEventDto; qty?: number }
+  | { experience: ExperienceChildDto; parent?: ExperienceDto | null; qty?: number };
+
+function lineToGaItem(event: EventDto, line: TrackableLine) {
+  if ("prevent" in line) return toItemFromPrevent(event, line.prevent, line.qty || 1);
+  if ("combo" in line) return toItemFromCombo(event, line.combo, line.qty || 1);
+  if ("product" in line) return toItemFromProduct(event, line.product, line.qty || 1);
+  return toItemFromExperience(event, line.experience, line.qty || 1, line.parent ?? null);
+}
+
 export function trackPageView(
   path: string,
   title?: string,
@@ -476,10 +503,7 @@ export function trackViewEvent(
 
 export function trackAddToCart(
   event: EventDto,
-  line:
-    | { prevent: Prevent; qty?: number }
-    | { combo: ComboEventDto; qty?: number }
-    | { product: ProductEventDto; qty?: number },
+  line: TrackableLine,
   producer?: Producer,
   currency: Currency = "ARS",
   meta?: Meta
@@ -487,15 +511,8 @@ export function trackAddToCart(
   const eid = eventId("add_to_cart", event.id);
   const channel = resolveChannel(event, meta);
 
-  let item: any, value = 0;
-  if ("prevent" in line) {
-    item = toItemFromPrevent(event, line.prevent, line.qty || 1);
-  } else if ("combo" in line) {
-    item = toItemFromCombo(event, line.combo, line.qty || 1);
-  } else {
-    item = toItemFromProduct(event, line.product, line.qty || 1);
-  }
-  value = (Number(item.price) || 0) * (Number(item.quantity) || 1);
+  const item = lineToGaItem(event, line);
+  const value = (Number(item.price) || 0) * (Number(item.quantity) || 1);
 
   const base = baseCommonParams(producer, currency);
   gtag("add_to_cart", withChannel({ event_id: eid, value, currency, items: [item], ...base }, channel));
@@ -512,11 +529,7 @@ export function trackAddToCart(
 
 export function trackBeginCheckout(
   event: EventDto,
-  items: Array<
-    | { prevent: Prevent; qty?: number }
-    | { combo: ComboEventDto; qty?: number }
-    | { product: ProductEventDto; qty?: number }
-  >,
+  items: TrackableLine[],
   options: {
     coupon?: string | null;
     value?: number;
@@ -530,11 +543,7 @@ export function trackBeginCheckout(
   const currency = options.currency || "ARS";
   const channel = resolveChannel(event, meta, options.channel);
 
-  const gaItems = items.map((it) => {
-    if ("prevent" in it) return toItemFromPrevent(event, it.prevent, it.qty || 1);
-    if ("combo" in it) return toItemFromCombo(event, it.combo, it.qty || 1);
-    return toItemFromProduct(event, it.product, it.qty || 1);
-  });
+  const gaItems = items.map((it) => lineToGaItem(event, it));
 
   const gaValue = typeof options.value === "number"
     ? options.value
@@ -560,11 +569,7 @@ export function trackPurchase(
   options: {
     transactionId: string;
     value: number;
-    items: Array<
-      | { prevent: Prevent; qty?: number }
-      | { combo: ComboEventDto; qty?: number }
-      | { product: ProductEventDto; qty?: number }
-    >;
+    items: TrackableLine[];
     coupon?: string | null;
     producer?: Producer;
     currency?: Currency;
@@ -576,11 +581,7 @@ export function trackPurchase(
   const currency = options.currency || "ARS";
   const channel = resolveChannel(event, meta, options.channel);
 
-  const gaItems = options.items.map((it) => {
-    if ("prevent" in it) return toItemFromPrevent(event, it.prevent, it.qty || 1);
-    if ("combo" in it) return toItemFromCombo(event, it.combo, it.qty || 1);
-    return toItemFromProduct(event, it.product, it.qty || 1);
-  });
+  const gaItems = options.items.map((it) => lineToGaItem(event, it));
 
   const base = baseCommonParams(options.producer, currency);
   gtag("purchase", withChannel({
@@ -708,11 +709,7 @@ export function trackLandingEntry(producer?: Producer, info?: EntryInfo) {
 
 export function trackAddPaymentInfo(
   event: EventDto,
-  items: Array<
-    | { prevent: Prevent; qty?: number }
-    | { combo: ComboEventDto; qty?: number }
-    | { product: ProductEventDto; qty?: number }
-  >,
+  items: TrackableLine[],
   options: {
     paymentType: 'bank_transfer' | 'mercadopago' | 'cash';
     coupon?: string | null;
@@ -727,11 +724,7 @@ export function trackAddPaymentInfo(
   const currency = options.currency || "ARS";
   const channel = resolveChannel(event, meta, options.channel);
 
-  const gaItems = items.map((it) => {
-    if ("prevent" in it) return toItemFromPrevent(event, it.prevent, it.qty || 1);
-    if ("combo" in it) return toItemFromCombo(event, it.combo, it.qty || 1);
-    return toItemFromProduct(event, it.product, it.qty || 1);
-  });
+  const gaItems = items.map((it) => lineToGaItem(event, it));
 
   const gaValue = typeof options.value === "number"
     ? options.value
@@ -766,11 +759,7 @@ export function trackAddPaymentInfo(
 
 export function trackViewCart(
   event: EventDto,
-  items: Array<
-    | { prevent: Prevent; qty?: number }
-    | { combo: ComboEventDto; qty?: number }
-    | { product: ProductEventDto; qty?: number }
-  >,
+  items: TrackableLine[],
   options?: {
     coupon?: string | null;
     value?: number;
@@ -784,11 +773,7 @@ export function trackViewCart(
   const currency = options?.currency || "ARS";
   const channel = resolveChannel(event, meta, options?.channel);
 
-  const gaItems = items.map((it) => {
-    if ("prevent" in it) return toItemFromPrevent(event, it.prevent, it.qty || 1);
-    if ("combo" in it) return toItemFromCombo(event, it.combo, it.qty || 1);
-    return toItemFromProduct(event, it.product, it.qty || 1);
-  });
+  const gaItems = items.map((it) => lineToGaItem(event, it));
 
   const value = typeof options?.value === "number"
     ? options.value!
