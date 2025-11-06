@@ -138,6 +138,7 @@ export interface Prevent {
   startDate: Date;
   endDate: Date;
   featured: boolean;
+  order?: number | null;
   promoType: PreventPromoTypeEnum;
   promoPackSize?: number | null;
   promoPayFor?: number | null;
