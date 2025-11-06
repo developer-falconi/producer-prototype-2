@@ -51,10 +51,17 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
 
   const sortedPrevents = useMemo(() => {
     return [...allAvailablePrevents].sort((a, b) => {
+      const orderA = a.order ?? Number.POSITIVE_INFINITY;
+      const orderB = b.order ?? Number.POSITIVE_INFINITY;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
       const aActive = a.status === PreventStatusEnum.ACTIVE;
       const bActive = b.status === PreventStatusEnum.ACTIVE;
       if (aActive && !bActive) return -1;
       if (!aActive && bActive) return 1;
+
       const aTime = a.endDate ? new Date(a.endDate).getTime() : Infinity;
       const bTime = b.endDate ? new Date(b.endDate).getTime() : Infinity;
       return aTime - bTime;

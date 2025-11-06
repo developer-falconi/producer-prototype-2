@@ -290,19 +290,25 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           if (resp.success && resp.data) {
             setFullEventDetails(resp.data);
             let initialSelectedPrevent: Prevent | null = null;
+            let shouldPreselectQuantity = false;
 
-            if (resp.data.featuredPrevent && resp.data.prevents.some(p => p.id === resp.data.featuredPrevent!.id)) {
-              initialSelectedPrevent = resp.data.featuredPrevent;
-            } else if (resp.data.prevents.length > 0) {
-              const activePrevents = (resp.data.prevents || []).filter((p: Prevent) => p.status === PreventStatusEnum.ACTIVE && p.quantity > 0);
-              initialSelectedPrevent = activePrevents[0];
+            const featuredPrevent = (resp.data.prevents || []).find(
+              (p: Prevent) =>
+                p.featured &&
+                p.status === PreventStatusEnum.ACTIVE &&
+                p.quantity > 0
+            );
+
+            if (featuredPrevent) {
+              initialSelectedPrevent = featuredPrevent;
+              shouldPreselectQuantity = true;
             }
 
             setPurchaseData(prev => ({
               ...prev,
               selectedPrevent: initialSelectedPrevent,
-              ticketQuantity: initialSelectedPrevent ? 1 : 0,
-              clients: Array.from({ length: initialSelectedPrevent ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
+              ticketQuantity: shouldPreselectQuantity ? 1 : 0,
+              clients: Array.from({ length: shouldPreselectQuantity ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
             }));
           } else {
             setErrorDetails("Error al cargar detalles.");
