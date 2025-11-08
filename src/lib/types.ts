@@ -62,6 +62,7 @@ export interface EventDto {
   description: string;
   startDate: string;
   endDate: string;
+  salesEndDate: string;
   location: string;
   requiresClientData: boolean;
   key: string;

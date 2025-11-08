@@ -112,7 +112,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
   const firstPreventDate = getFirstPreventDate(event.prevents);
   const isUpcoming = event.status === EventStatus.UPCOMING;
   const isCompleted = event.status === EventStatus.COMPLETED;
-  const isLive = new Date() >= new Date(event.startDate) && new Date() < new Date(event.endDate);
+  const isLive = new Date() >= new Date(event.salesEndDate) && new Date() < new Date(event.endDate);
 
   return (
     <>
