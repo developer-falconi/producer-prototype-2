@@ -4,7 +4,7 @@ import { AttendeeData } from './AttendeeData';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, CouponEvent, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, PurchaseExperienceItem, ShareMeta, Voucher } from '@/lib/types';
+import { ClientData, CouponEvent, EmptyBannerModule, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, PurchaseExperienceItem, ShareMeta, Voucher } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -96,6 +96,11 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return initialEvent?.requiresClientData ?? false;
   }, [fullEventDetails?.requiresClientData, initialEvent?.requiresClientData]);
 
+  const getEmptyBanner = useCallback((module: EmptyBannerModule) => {
+    const source = fullEventDetails ?? initialEvent;
+    return source?.emptyBanners?.find((banner) => banner.module === module) ?? null;
+  }, [fullEventDetails, initialEvent]);
+
   const dynamicSteps = useMemo(() => {
     const eventSource = fullEventDetails ?? initialEvent;
     let currentDynamicSteps = [...steps];
@@ -103,15 +108,21 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     const hasProductsOrCombos =
       (eventSource?.products?.length ?? 0) > 0 ||
       (eventSource?.combos?.length ?? 0) > 0;
+    const hasProductsBanner = Boolean(
+      eventSource?.emptyBanners?.some((banner) => banner.module === EmptyBannerModule.PRODUCTS)
+    );
 
-    if (!hasProductsOrCombos) {
+    if (!hasProductsOrCombos && !hasProductsBanner) {
       currentDynamicSteps = currentDynamicSteps.filter(step => step !== 'Productos');
     }
 
     const hasExperiences =
       (eventSource?.experiences ?? []).some(exp => (exp?.children?.length ?? 0) > 0);
+    const hasExperiencesBanner = Boolean(
+      eventSource?.emptyBanners?.some((banner) => banner.module === EmptyBannerModule.EXPERIENCES)
+    );
 
-    if (!hasExperiences) {
+    if (!hasExperiences && !hasExperiencesBanner) {
       currentDynamicSteps = currentDynamicSteps.filter(step => step !== 'Experiencias');
     }
 
@@ -884,6 +895,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             availableProducts={fullEventDetails?.products || []}
             availableCombos={fullEventDetails?.combos || []}
             onUpdateProductsAndCombos={handleUpdateProductsAndCombos}
+            emptyBanner={getEmptyBanner(EmptyBannerModule.PRODUCTS)}
           />
         );
       case 'Experiencias': {
@@ -896,6 +908,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             purchaseData={purchaseData}
             experiences={availableExperiences}
             onUpdateExperiences={handleUpdateExperiences}
+            emptyBanner={getEmptyBanner(EmptyBannerModule.EXPERIENCES)}
           />
         );
       }
