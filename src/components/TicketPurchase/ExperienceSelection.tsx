@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  EmptyBannerDto,
   ExperienceChildDto,
   ExperienceDto,
   PurchaseData,
@@ -9,11 +10,13 @@ import { FormInput } from "../ui/form-input";
 import { Button } from "../ui/button";
 import { Armchair, CheckCircle2, ChevronDown, Search } from "lucide-react";
 import { cn, formatDate, formatTime, formatPrice } from "@/lib/utils";
+import { EmptyModuleBanner } from "./EmptyModuleBanner";
 
 interface ExperienceSelectionProps {
   experiences: ExperienceDto[];
   purchaseData: PurchaseData;
   onUpdateExperiences: (items: PurchaseExperienceItem[]) => void;
+  emptyBanner?: EmptyBannerDto | null;
 }
 
 const getAvailableStock = (experience: ExperienceChildDto) => {
@@ -35,6 +38,7 @@ export const ExperienceSelection: React.FC<ExperienceSelectionProps> = ({
   experiences,
   purchaseData,
   onUpdateExperiences,
+  emptyBanner,
 }) => {
   const [query, setQuery] = useState("");
   const selected = purchaseData.experiences ?? [];
@@ -117,7 +121,7 @@ export const ExperienceSelection: React.FC<ExperienceSelectionProps> = ({
   if (!experiences || experiences.length === 0) {
     return (
       <div className="px-4 sm:px-6 pb-6">
-        <EmptyState />
+        {emptyBanner ? <EmptyModuleBanner banner={emptyBanner} /> : <EmptyState />}
       </div>
     );
   }

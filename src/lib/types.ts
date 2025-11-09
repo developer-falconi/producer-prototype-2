@@ -83,6 +83,7 @@ export interface EventDto {
   artists: EventArtistDto[];
   payments: EventPaymentDto[];
   fee: EventFeeDto;
+  emptyBanners?: EmptyBannerDto[];
 }
 
 export enum PreventPromoTypeEnum {
@@ -416,6 +417,26 @@ export interface EventPaymentDto {
   accountBank: string | null;
   accountAlias: string | null;
   paymentMethod: PaymentMethodDto;
+}
+
+export enum EmptyBannerModule {
+  EXPERIENCES = 'EVENT_EXPERIENCES',
+  PRODUCTS = 'EVENT_PRODUCTS',
+  COMBOS = 'EVENT_COMBOS',
+}
+
+export interface EmptyBannerDto {
+  id: number;
+  module: EmptyBannerModule | string;
+  eventId: number;
+  title: string;
+  description: string;
+  image: string | null;
+  actionLabel: string | null;
+  actionUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface InEventPurchaseData {

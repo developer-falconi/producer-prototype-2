@@ -105,7 +105,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
     ? getFeaturedPrevent(event.prevents)?.price || getOldestActivePrevent(event.prevents)?.price
     : null;
 
-  const formattedPrice = displayPrice === 0
+  const formattedPrice = Number(displayPrice) === 0
     ? 'Liberada'
     : (displayPrice ? formatEventPrice(displayPrice) : '-');
 
