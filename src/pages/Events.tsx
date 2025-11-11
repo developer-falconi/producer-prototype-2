@@ -81,7 +81,7 @@ const Events = () => {
 
   const rawImage = activeEvent?.flyer || producer?.logo || "/og-default.jpg";
   const image = absolutize(rawImage);
-  const iconHref = absolutize(activeEvent?.flyer || producer?.logo || "/favicon.svg");
+  const iconHref = absolutize(activeEvent?.flyer || producer?.logo || "/favicon.png");
 
   const shareUrl = buildShareUrl(activeEvent, promoterKey);
 

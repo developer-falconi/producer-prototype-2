@@ -129,7 +129,7 @@ const Index = () => {
       typeof window !== "undefined" ? `${origin}${location.pathname}${location.search}` : `${origin}/`;
 
     const ogImage = eventsForHeroCarousel[0]?.flyer || producer?.logo || "/og-default.jpg";
-    const favicon = producer?.logo || "/favicon.svg";
+    const favicon = producer?.logo || "/favicon.png";
 
     const orgLd = {
       "@context": "https://schema.org",

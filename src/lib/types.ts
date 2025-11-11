@@ -472,6 +472,73 @@ export class ExperienceItemDto {
   quantity: number;
 }
 
+export enum LiveOrderStateEnum {
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  PREPARING = "PREPARING",
+  READY = "READY",
+  DELIVERED = "DELIVERED",
+  CANCELLED = "CANCELLED"
+}
+
+export interface LiveOrderStatusDto {
+  id: number;
+  pickupCode: string;
+  status: LiveOrderStateEnum;
+  qrCode: string | null;
+  total: number;
+  updatedAt: string;
+  pickupMessage?: string | null;
+}
+
+export interface LiveOrderSummary {
+  id: number;
+  token: string;
+  status: LiveOrderStateEnum;
+  channel: string;
+  voucherId: number;
+  eventId: number;
+  clientEmail: string;
+  clientName: string;
+  docNumber: string;
+  pickupCode: string;
+  confirmedAt: string | null;
+  readyAt: string | null;
+  deliveredAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface StoredLiveOrderSnapshot {
+  eventId: number;
+  orderId: number;
+  token: string;
+  pickupCode: string;
+  paymentMethod: "cash" | "mercadopago";
+  createdAt: string;
+  notificationEndpoint?: string | null;
+}
+
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  expirationTime: number | null;
+  keys?: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  expirationTime: number | null;
+  keys?: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
 export type CouponDiscountType = 'PERCENT' | 'AMOUNT';
 export type CouponChannel = 'ONLINE' | 'IN_EVENT' | 'BOTH';
 

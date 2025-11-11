@@ -1,4 +1,4 @@
-import { ApiResponse, Client, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, Participant, PreferenceData, Producer, Voucher } from "./types";
+import { ApiResponse, Client, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, LiveOrderStateEnum, LiveOrderStatusDto, LiveOrderSummary, Participant, PreferenceData, Producer, PushSubscriptionPayload, Voucher } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
 
@@ -113,7 +113,7 @@ export async function createPreference(
 }
 
 
-export async function submitLiveEventPurchase(payload: InEventPurchasePayload, eventId: number): Promise<ApiResponse<Voucher>> {
+export async function submitLiveEventPurchase(payload: InEventPurchasePayload, eventId: number): Promise<ApiResponse<{ voucher: Voucher; order: LiveOrderSummary }>> {
   try {
     const url = `${API_URL}/client/purchase/live/${eventId}`;
 
@@ -136,6 +136,24 @@ export async function submitLiveEventPurchase(payload: InEventPurchasePayload, e
   }
 }
 
+export async function markDeliveredOrder(orderId: number, status: LiveOrderStateEnum): Promise<ApiResponse<LiveOrderStatusDto>> {
+  try {
+    const payload = { status };
+    const response = await fetch(`${API_URL}/orders/status?order=${orderId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to fetch live order status");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching live order status: ", error);
+    return { success: false };
+  }
+}
+
 export async function createLiveEventPreference(
   eventId: number,
   data: InEventPurchasePayload
@@ -152,9 +170,7 @@ export async function createLiveEventPreference(
 
     const response = await fetch(`${API_URL}/mercadopago/create/live?event=${eventId}`, {
       method: "POST",
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
@@ -164,6 +180,46 @@ export async function createLiveEventPreference(
     return await response.json();
   } catch (error) {
     console.error("Error submitting ticket form:", error);
+    return { success: false };
+  }
+}
+
+export async function registerLiveOrderPushSubscription(
+  token: string,
+  subscription: PushSubscriptionJSON
+): Promise<ApiResponse<null>> {
+  try {
+    const response = await fetch(`${API_URL}/orders/track/${token}/notifications`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...subscription }),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to register notification subscription");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error registering notification subscription:", error);
+    return { success: false };
+  }
+}
+
+export async function unregisterLiveOrderPushSubscription(
+  token: string,
+  endpoint: string
+): Promise<ApiResponse<null>> {
+  try {
+    const response = await fetch(`${API_URL}/orders/track/${token}/notifications`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint }),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to unregister notification subscription");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error unregistering notification subscription:", error);
     return { success: false };
   }
 }
