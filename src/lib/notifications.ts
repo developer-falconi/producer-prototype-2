@@ -1,4 +1,5 @@
 import { registerLiveOrderPushSubscription, unregisterLiveOrderPushSubscription } from "./api";
+import * as crypto from 'crypto';
 
 const SW_PATH = "/live-order-sw.js";
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
@@ -110,3 +111,12 @@ export const unsubscribeLiveOrderNotifications = async (
     console.error("No se pudo eliminar la suscripción de notificaciones:", error);
   }
 };
+
+export function getOrCreateDeviceId() {
+  let deviceId = localStorage.getItem("deviceId");
+  if (!deviceId) {
+    deviceId = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15));
+    localStorage.setItem("deviceId", deviceId);
+  }
+  return deviceId;
+}

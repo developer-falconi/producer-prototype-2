@@ -1,3 +1,4 @@
+import { getOrCreateDeviceId } from "./notifications";
 import { ApiResponse, Client, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, LiveOrderStateEnum, LiveOrderStatusDto, LiveOrderSummary, Participant, PreferenceData, Producer, PushSubscriptionPayload, Voucher } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
@@ -187,16 +188,23 @@ export async function createLiveEventPreference(
 export async function registerLiveOrderPushSubscription(
   token: string,
   subscription: PushSubscriptionJSON
-): Promise<ApiResponse<null>> {
+): Promise<ApiResponse<any>> {
   try {
+    const deviceId = getOrCreateDeviceId();
+    const existing = localStorage.getItem(`subscription_${token}_${deviceId}`);
+
+    const payload = JSON.stringify({ ...subscription, deviceId });
+    if (existing === payload) return { success: true, data: null };
+
     const response = await fetch(`${API_URL}/orders/track/${token}/notifications`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...subscription }),
+      body: JSON.stringify({ ...subscription, deviceId }),
     });
-    if (!response.ok) {
-      throw new Error("Failed to register notification subscription");
-    }
+
+    if (!response.ok) throw new Error("Failed to register notification subscription");
+    localStorage.setItem(`subscription_${token}_${deviceId}`, payload);
+    
     return await response.json();
   } catch (error) {
     console.error("Error registering notification subscription:", error);
