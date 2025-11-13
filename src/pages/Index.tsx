@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { EventDto, PaymentStatus } from "@/lib/types";
 import { fetchProducerEventDetailData } from "@/lib/api";
 import PaymentResult from "@/components/PaymentResult";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CountingNumber } from "@/components/animate-ui/text/counting-number";
 import { useIsMobile } from "@/hooks/use-mobile";
 import EventCarousel from "@/components/EventCarousel";
@@ -19,6 +19,7 @@ const Index = () => {
   const { producer, loadingProducer } = useProducer();
   const isMobile = useIsMobile();
   const location = useLocation();
+  const navigate = useNavigate();
   const { search } = location;
   const tracking = useTracking({ producer, currency: "ARS" });
 
@@ -45,9 +46,19 @@ const Index = () => {
       q.forEach((v, k) => (params[k] = v));
       setPaymentStatus({ status, params });
       setPaymentEventId(eid);
-      window.history.replaceState({}, document.title, window.location.pathname);
+      if (!q.get("order")) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const orderParam = params.get("order");
+    if (!orderParam) return;
+    if (location.pathname.startsWith("/events")) return;
+    navigate(`/events${location.search}`, { replace: true });
+  }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (!paymentEventId || !producer) return;
