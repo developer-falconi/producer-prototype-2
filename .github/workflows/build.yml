@@ -3,7 +3,8 @@ name: Build Vite Project
 on:
   push:
     branches:
-      - main
+      - '**'
+      - '!development'
 
 permissions:
   contents: write
