@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, PanInfo, useAnimate, useDragControls, useMotionValue } from "framer-motion";
 import { ComboEventDto, CouponEvent, EventDto, InEventPurchaseData, InEventPurchasePayload, LiveOrderStateEnum, ProductEventDto, ProductTypeEnum, StoredLiveOrderSnapshot } from "@/lib/types";
-import { createLiveEventPreference, fetchProducerEventDetailData, markDeliveredOrder, submitLiveEventPurchase } from "@/lib/api";
+import { createLiveEventPreference, fetchProducerEventDetailData, submitLiveEventPurchase } from "@/lib/api";
 import { subscribeLiveOrderNotifications, unsubscribeLiveOrderNotifications } from "@/lib/notifications";
 import BuyerStep from "./BuyerStep";
 import CatalogStep from "./CatalogStep";
@@ -369,12 +369,6 @@ export default function InEventPurchaseFlow({
   };
 
   const handleCloseTracking = async () => {
-    try {
-      const res = await markDeliveredOrder(order.id, LiveOrderStateEnum.DELIVERED);
-      console.log(res)
-    } catch (error) {
-      console.log(error)
-    }
     setStep(Step.Banner);
     setPurchaseData({
       buyer: { docNumber: "", email: "", fullName: "" },

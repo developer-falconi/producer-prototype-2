@@ -1,5 +1,5 @@
 import { getOrCreateDeviceId } from "./notifications";
-import { ApiResponse, Client, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, LiveOrderStateEnum, LiveOrderStatusDto, LiveOrderSummary, Participant, PreferenceData, Producer, PushSubscriptionPayload, Voucher } from "./types";
+import { ApiResponse, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, LiveOrderSummary, Participant, PreferenceData, Producer, Voucher } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
 
@@ -133,24 +133,6 @@ export async function submitLiveEventPurchase(payload: InEventPurchasePayload, e
     return await response.json();
   } catch (error) {
     console.error("Error submitting ticket form: ", error);
-    return { success: false };
-  }
-}
-
-export async function markDeliveredOrder(orderId: number, status: LiveOrderStateEnum): Promise<ApiResponse<LiveOrderStatusDto>> {
-  try {
-    const payload = { status };
-    const response = await fetch(`${API_URL}/orders/status?order=${orderId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      throw new Error("Failed to fetch live order status");
-    }
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching live order status: ", error);
     return { success: false };
   }
 }
