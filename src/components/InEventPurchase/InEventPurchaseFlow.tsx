@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, PanInfo, useAnimate, useDragControls, useMotionValue } from "framer-motion";
-import { ComboEventDto, CouponEvent, EventDto, InEventPurchaseData, InEventPurchasePayload, ProductEventDto, ProductTypeEnum } from "@/lib/types";
+import { ComboEventDto, CouponEvent, EventDto, InEventPurchaseData, InEventPurchasePayload, LiveOrderStateEnum, ProductEventDto, ProductTypeEnum, StoredLiveOrderSnapshot } from "@/lib/types";
 import { createLiveEventPreference, fetchProducerEventDetailData, submitLiveEventPurchase } from "@/lib/api";
+import { subscribeLiveOrderNotifications, unsubscribeLiveOrderNotifications } from "@/lib/notifications";
 import BuyerStep from "./BuyerStep";
 import CatalogStep from "./CatalogStep";
 import PaymentStep from "./PaymentStep";
 import ReviewStep from "./ReviewStep";
-import QRStep from "./QrStep";
 import Spinner from "../Spinner";
 import useMeasure from "react-use-measure";
 import { ProgressBar } from "./ProgressBar";
@@ -18,6 +18,7 @@ import { useTracking } from "@/hooks/use-tracking";
 import { Button } from "../ui/button";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
+import { useRealtimeOrder } from "@/hooks/use-realtime-order";
 
 const DRAG_CLOSE_PX = 100;
 const DRAG_CLOSE_VELOCITY = 800;
@@ -29,8 +30,7 @@ const Step = {
   Catalog: 2,
   Payment: 3,
   Review: 4,
-  QR: 5,
-  PurchaseStatus: 6
+  PurchaseStatus: 5
 } as const;
 
 export type StepKey = typeof Step[keyof typeof Step];
@@ -66,8 +66,11 @@ export default function InEventPurchaseFlow({
   const [isGeneratingPreference, setIsGeneratingPreference] = useState(false);
 
   const [fullEventDetails, setFullEventDetails] = useState<EventDto | null>(null);
-  const [purchaseCode, setPurchaseCode] = useState<number | null>(null);
+  const [purchaseCode, setPurchaseCode] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponEvent | null>(null);
+  const [savedOrder, setSavedOrder] = useState<StoredLiveOrderSnapshot | null>(null);
+
+  const { order } = useRealtimeOrder(purchaseCode);
 
   const [scope, animate] = useAnimate();
   const [setSheetMeasureRef, { height }] = useMeasure();
@@ -94,6 +97,89 @@ export default function InEventPurchaseFlow({
     productQtys: Record<number, number>;
     comboQtys: Record<number, number>;
   }>({ productQtys: {}, comboQtys: {} });
+  const mpPurchaseRegisteredRef = useRef(false);
+  const lastStatusNotifiedRef = useRef<LiveOrderStateEnum | null>(null);
+  const savedOrderRef = useRef<StoredLiveOrderSnapshot | null>(null);
+  const notificationAttemptedRef = useRef<Record<string, boolean>>({});
+
+  const liveOrderStorageKey = useMemo(() => `produtik.live-order.${event.id}`, [event.id]);
+
+  const persistLiveOrderSnapshot = useCallback((snapshot: StoredLiveOrderSnapshot | null) => {
+    if (typeof window === "undefined") return;
+    try {
+      if (!snapshot) {
+        window.localStorage.removeItem(liveOrderStorageKey);
+      } else {
+        window.localStorage.setItem(liveOrderStorageKey, JSON.stringify(snapshot));
+      }
+    } catch (err) {
+      console.warn("No se pudo persistir el pedido en curso:", err);
+    }
+  }, [liveOrderStorageKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem(liveOrderStorageKey);
+      if (stored) {
+        const raw = JSON.parse(stored) as Partial<StoredLiveOrderSnapshot> & {
+          purchaseId?: number;
+          code?: number | string;
+        };
+
+        const pickupCode = raw.pickupCode ?? (raw.code != null ? String(raw.code) : null);
+        const orderId = raw.orderId ?? raw.purchaseId ?? null;
+        const token = typeof raw.token === "string" ? raw.token : null;
+
+        if (pickupCode && orderId && raw.eventId && token) {
+          const normalized: StoredLiveOrderSnapshot = {
+            eventId: raw.eventId,
+            orderId,
+            token,
+            pickupCode,
+            paymentMethod: raw.paymentMethod ?? "cash",
+            createdAt: raw.createdAt ?? new Date().toISOString(),
+            notificationEndpoint: raw.notificationEndpoint ?? null,
+          };
+          setSavedOrder(normalized);
+          setPurchaseCode(pickupCode);
+        } else {
+          window.localStorage.removeItem(liveOrderStorageKey);
+        }
+      }
+    } catch (err) {
+      console.warn("No pudimos leer el pedido guardado:", err);
+    }
+  }, [liveOrderStorageKey]);
+
+  useEffect(() => {
+    if (savedOrder && !purchaseCode) {
+      setPurchaseCode(savedOrder.pickupCode);
+    }
+  }, [savedOrder, purchaseCode]);
+
+  useEffect(() => {
+    savedOrderRef.current = savedOrder;
+  }, [savedOrder]);
+
+  useEffect(() => {
+    if (!savedOrder) return;
+    if (savedOrder.notificationEndpoint) return;
+    if (notificationAttemptedRef.current[savedOrder.token]) return;
+
+    notificationAttemptedRef.current[savedOrder.token] = true;
+
+    (async () => {
+      const endpoint = await subscribeLiveOrderNotifications(savedOrder.token);
+      if (endpoint) {
+        const updatedSnapshot = { ...savedOrder, notificationEndpoint: endpoint };
+        setSavedOrder(updatedSnapshot);
+        persistLiveOrderSnapshot(updatedSnapshot);
+      } else {
+        delete notificationAttemptedRef.current[savedOrder.token];
+      }
+    })();
+  }, [savedOrder, persistLiveOrderSnapshot, subscribeLiveOrderNotifications]);
 
   const updatePurchaseData = (newData: Partial<InEventPurchaseData>) => {
     setPurchaseData(prevData => ({ ...prevData, ...newData }));
@@ -239,48 +325,21 @@ export default function InEventPurchaseFlow({
       beginCheckoutTrackedRef.current = false;
       lastCartRef.current = { productQtys: {}, comboQtys: {} };
       lastPaymentTrackedRef.current = null;
+      mpPurchaseRegisteredRef.current = false;
     }
   }, [isOpen]);
 
   useEffect(() => {
-    if (step !== Step.Review) return;
+    if (!isOpen || !savedOrder) return;
+    setStep(Step.PurchaseStatus);
+  }, [isOpen, savedOrder]);
 
-    const maybeGoToQR = (params?: Record<string, any>) => {
-      const txn =
-        params?.collection_id ||
-        params?.payment_id ||
-        params?.preference_id ||
-        mpPreferenceId ||
-        `mp_${(fullEventDetails || event).id}_${Date.now()}`;
-
-      tracking.purchase(fullEventDetails || event, {
-        transactionId: String(txn),
-        value: getCheckoutValue(),
-        items: buildTrackingItems(),
-        coupon: getCheckoutCoupon(),
-      });
-
-      setStep(Step.QR);
-    };
-
-    const urlPaid = (() => {
-      try {
-        const usp = new URLSearchParams(window.location.search);
-        return usp.get("paid") === "1";
-      } catch { return false; }
-    })();
-
-    if (urlPaid) maybeGoToQR();
-
-    const handler = (ev: MessageEvent) => {
-      if (ev?.data?.type === "MP_PAYMENT_APPROVED") {
-        const params = (ev.data && (ev.data.params || ev.data.payload)) || {};
-        maybeGoToQR(params);
-      }
-    };
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [step, fullEventDetails, event, mpPreferenceId]);
+  const detachOrderNotifications = useCallback(async (order?: StoredLiveOrderSnapshot | null) => {
+    const target = order ?? savedOrderRef.current;
+    if (!target?.token) return;
+    await unsubscribeLiveOrderNotifications(target.token, target.notificationEndpoint);
+    delete notificationAttemptedRef.current[target.token];
+  }, []);
 
   const handleCloseDrawer = async () => {
     await animate(scope.current, { opacity: [1, 0] }, { duration: 0.3 });
@@ -307,6 +366,39 @@ export default function InEventPurchaseFlow({
 
   const handlePointerDown = (event: any) => {
     dragControls.start(event);
+  };
+
+  const handleCloseTracking = async () => {
+    setStep(Step.Banner);
+    setPurchaseData({
+      buyer: { docNumber: "", email: "", fullName: "" },
+      products: [],
+      combos: [],
+      experiences: [],
+      paymentMethod: "mercadopago",
+      total: 0,
+    });
+    setError(null);
+    setFullEventDetails(null);
+    setIsGeneratingPreference(false);
+    setIsSubmitting(false);
+    setPurchaseCode(null);
+    setAppliedCoupon(null);
+    setMpPreferenceId(null);
+
+    viewTrackedRef.current = false;
+    beginCheckoutTrackedRef.current = false;
+    lastCartRef.current = { productQtys: {}, comboQtys: {} };
+    lastPaymentTrackedRef.current = null;
+    mpPurchaseRegisteredRef.current = false;
+
+    localStorage.removeItem(liveOrderStorageKey);
+
+    onClose();
+  };
+
+  const handleClearOrder = () => {
+    handleCloseTracking();
   };
 
   useEffect(() => {
@@ -385,8 +477,128 @@ export default function InEventPurchaseFlow({
     }
   };
 
-  const generatePreference = async () => {
-    if (!hasMP) {
+  const buildPurchasePayload = useCallback((): InEventPurchasePayload => ({
+    client: purchaseData.buyer,
+    products: purchaseData.products.map(p => ({ productId: p.product.id, quantity: p.quantity })),
+    combos: purchaseData.combos.map(c => ({ comboId: c.combo.id, quantity: c.quantity })),
+    experiences: purchaseData.experiences.map(exp => ({ experienceId: exp.experience.id, quantity: exp.quantity })),
+    total: totals.grandTotal,
+    coupon: appliedCoupon?.id || null
+  }), [purchaseData, totals.grandTotal, appliedCoupon]);
+
+  const registerLivePurchase = useCallback(async (
+    method: 'cash' | 'mercadopago',
+    options?: { transactionId?: string }
+  ) => {
+    const payload = buildPurchasePayload();
+    const result = await submitLiveEventPurchase(payload, event.id);
+
+    if (!result.success || !result.data?.order) {
+      throw new Error(result.message || "No pudimos registrar el pedido");
+    }
+
+    const { order, voucher } = result.data;
+    const orderStatus = (order.status || "PENDING") as LiveOrderStateEnum;
+
+    const snapshot: StoredLiveOrderSnapshot = {
+      eventId: order.eventId,
+      orderId: order.id,
+      token: order.token,
+      pickupCode: order.pickupCode,
+      paymentMethod: method,
+      createdAt: order.createdAt || new Date().toISOString(),
+      notificationEndpoint: null,
+    };
+
+    setPurchaseCode(order.pickupCode);
+    setSavedOrder(snapshot);
+    lastStatusNotifiedRef.current = orderStatus;
+
+    persistLiveOrderSnapshot(snapshot);
+
+    notificationAttemptedRef.current[order.token] = true;
+    (async () => {
+      const endpoint = await subscribeLiveOrderNotifications(order.token);
+      if (endpoint) {
+        const updatedSnapshot = { ...snapshot, notificationEndpoint: endpoint };
+        setSavedOrder(updatedSnapshot);
+        persistLiveOrderSnapshot(updatedSnapshot);
+      } else {
+        delete notificationAttemptedRef.current[order.token];
+      }
+    })();
+
+    tracking.purchase(fullEventDetails || event, {
+      transactionId: options?.transactionId || String(voucher?.id ?? order.id),
+      value: getCheckoutValue(),
+      items: buildTrackingItems(),
+      coupon: getCheckoutCoupon(),
+    });
+
+    setStep(Step.PurchaseStatus);
+    return order;
+  }, [
+    buildPurchasePayload,
+    event,
+    totals.grandTotal,
+    persistLiveOrderSnapshot,
+    tracking,
+    fullEventDetails,
+    getCheckoutValue,
+    buildTrackingItems,
+    getCheckoutCoupon,
+    subscribeLiveOrderNotifications
+  ]);
+
+  useEffect(() => {
+    if (step !== Step.Review) return;
+
+    const finalizePayment = async (params?: Record<string, any>) => {
+      if (mpPurchaseRegisteredRef.current) return;
+      mpPurchaseRegisteredRef.current = true;
+      try {
+        const txn = params?.collection_id ||
+          params?.payment_id ||
+          params?.preference_id ||
+          mpPreferenceId ||
+          `mp_${(fullEventDetails || event).id}_${Date.now()}`;
+
+        await registerLivePurchase("mercadopago", { transactionId: String(txn) });
+      } catch (error) {
+        console.error("No pudimos confirmar el pago de MP:", error);
+        toast.error("Mercado Pago confirmó el cobro pero no pudimos registrar el pedido. Contactanos.");
+      }
+    };
+
+    const urlPaid = (() => {
+      try {
+        const usp = new URLSearchParams(window.location.search);
+        return usp.get("paid") === "1";
+      } catch { return false; }
+    })();
+
+    if (urlPaid) finalizePayment();
+
+    const handler = (ev: MessageEvent) => {
+      if (ev?.data?.type === "MP_PAYMENT_APPROVED") {
+        const params = (ev.data && (ev.data.params || ev.data.payload)) || {};
+        finalizePayment(params);
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [step, fullEventDetails, event, mpPreferenceId, registerLivePurchase]);
+
+  const clearLiveOrder = useCallback(() => {
+    void detachOrderNotifications();
+    setSavedOrder(null);
+    setPurchaseCode(null);
+    persistLiveOrderSnapshot(null);
+    lastStatusNotifiedRef.current = null;
+  }, [persistLiveOrderSnapshot, detachOrderNotifications]);
+
+  const generatePreference = useCallback(async (): Promise<boolean> => {
+    if (!hasMP || !fullEventDetails) {
       setError("Mercado Pago no está configurado para este evento.");
       return false;
     }
@@ -432,40 +644,32 @@ export default function InEventPurchaseFlow({
     } finally {
       setIsGeneratingPreference(false);
     }
-  };
+  }, [
+    hasMP,
+    fullEventDetails,
+    totals.grandTotal,
+    purchaseData,
+    appliedCoupon,
+    tracking,
+    buildTrackingItems,
+    getCheckoutCoupon,
+    getCheckoutValue
+  ]);
 
   const handleComplete = async () => {
     setIsSubmitting(true);
     try {
-      const payload: InEventPurchasePayload = {
-        client: purchaseData.buyer,
-        products: purchaseData.products.map(p => ({ productId: p.product.id, quantity: p.quantity })),
-        combos: purchaseData.combos.map(c => ({ comboId: c.combo.id, quantity: c.quantity })),
-        experiences: purchaseData.experiences.map(exp => ({ experienceId: exp.experience.id, quantity: exp.quantity })),
-        total: totals.grandTotal,
-        coupon: appliedCoupon?.id || null
-      };
-      const result = await submitLiveEventPurchase(payload, event.id);
-
-      if (result.success) {
-        setPurchaseCode(result.data.id);
-        tracking.purchase(fullEventDetails || event, {
-          transactionId: String(result.data.id),
-          value: getCheckoutValue(),
-          items: buildTrackingItems(),
-          coupon: getCheckoutCoupon(),
-        });
-        setStep(Step.PurchaseStatus);
-      }
+      await registerLivePurchase('cash');
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      toast.error("No pudimos registrar tu pedido. Intentá nuevamente.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleNext = () => {
-    if (step < Step.QR) {
+    if (step < Step.Review) {
       setStep((prevStep) => (prevStep + 1) as StepKey);
     }
   };
@@ -491,7 +695,6 @@ export default function InEventPurchaseFlow({
       case Step.Payment:
         return totals.subtotal > 0;
       case Step.Review:
-      case Step.QR:
         return true;
       default:
         return false;
@@ -533,19 +736,13 @@ export default function InEventPurchaseFlow({
           purchaseData={purchaseData}
           couponId={appliedCoupon?.id ? appliedCoupon.id : null}
         />;
-      case Step.QR:
-        return (
-          <QRStep
-            total={totals.grandTotal}
-            qrValue={mpPreferenceId || ""}
-            onClose={handleCloseDrawer}
-          />
-        );
       case Step.PurchaseStatus:
         return (
           <PurchaseStatus
             purchaseCode={purchaseCode}
-            onClose={handleCloseDrawer}
+            pendingOrder={order}
+            onClose={onClose}
+            onClearOrder={handleClearOrder}
           />
         );
       default:
@@ -558,7 +755,6 @@ export default function InEventPurchaseFlow({
     sheetElRef.current = node;
   }, [setSheetMeasureRef]);
 
-  // --- Nuevo: cierre por “pull-down” en móvil cuando el contenido está scrolleado arriba del todo
   useEffect(() => {
     if (!isOpen) return;
 
@@ -638,7 +834,6 @@ export default function InEventPurchaseFlow({
     };
   }, [isOpen, sheetElRef, handleCloseDrawer]);
 
-  // --- Nuevo: efecto de cierre programático equivalente a la función de cierre (si necesitás dispararlo con estado)
   useEffect(() => {
     if (!isClosing) return;
 
@@ -655,7 +850,6 @@ export default function InEventPurchaseFlow({
 
       if (cancelled) return;
 
-      // Reseteos mínimos para este flujo
       setStep(Step.Banner);
       setFullEventDetails(null);
       setError(null);
@@ -728,7 +922,7 @@ export default function InEventPurchaseFlow({
 
             <div
               ref={scrollableContentRef}
-              className="flex-grow pt-1 relative"
+              className="flex-grow pt-1 relative overflow-x-hidden"
               style={{ overflowY: 'auto' }}
             >
               {loadingDetails ? (
@@ -743,7 +937,7 @@ export default function InEventPurchaseFlow({
                   {step > Step.Banner && step !== Step.PurchaseStatus && (
                     <ProgressBar
                       currentStep={step}
-                      steps={[Step.Buyer, Step.Catalog, Step.Payment, Step.Review, Step.QR]}
+                      steps={[Step.Buyer, Step.Catalog, Step.Payment, Step.Review]}
                     />
                   )}
                   <div className="animate-fade-in">{renderCurrentStep()}</div>

@@ -119,17 +119,15 @@ const Index = () => {
 
   const meta = useMemo(() => {
     const siteName = producer?.name || "Produtik";
-    const subtitle =
-      producer?.webDetails?.subtitle || "Explorando nuevas fronteras en la creación de eventos únicos.";
+    const subtitle = producer?.webDetails?.subtitle || "Explorando nuevas fronteras en la creación de eventos únicos.";
     const title = `Inicio — ${siteName}`;
     const description = subtitle.length > 180 ? subtitle.slice(0, 177) + "…" : subtitle;
 
     const origin = typeof window !== "undefined" ? window.location.origin : "https://example.com";
-    const url =
-      typeof window !== "undefined" ? `${origin}${location.pathname}${location.search}` : `${origin}/`;
+    const url = typeof window !== "undefined" ? `${origin}${location.pathname}${location.search}` : `${origin}/`;
 
     const ogImage = eventsForHeroCarousel[0]?.flyer || producer?.logo || "/og-default.jpg";
-    const favicon = producer?.logo || "/favicon.svg";
+    const favicon = producer?.logo || "/favicon.png";
 
     const orgLd = {
       "@context": "https://schema.org",

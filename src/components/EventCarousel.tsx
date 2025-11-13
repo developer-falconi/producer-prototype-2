@@ -34,7 +34,7 @@ const EventCarousel = ({ events }: { events: EventDto[] }) => {
         className="relative z-20 w-full py-4"
       >
         {events.map((event) => {
-          const isLive = new Date() >= new Date(event.startDate);
+          const isLive = new Date() >= new Date(event.salesEndDate) && new Date() < new Date(event.endDate);
           const eventParam = event.key?.trim()?.length ? event.key.trim() : String(event.id);
 
           const baseUrl = `/events?${searchParams.toString()}`;
