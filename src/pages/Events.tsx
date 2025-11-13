@@ -19,6 +19,7 @@ import { useTracking } from "@/hooks/use-tracking";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import Spinner from "@/components/Spinner";
 import { Helmet } from "react-helmet-async";
+import { readPendingLivePurchase, readSavedOrderSnapshot } from "@/lib/live-order-storage";
 
 const VALID_STATUS = new Set(["all", "active", "completed", "upcoming"]);
 
@@ -145,6 +146,55 @@ const Events = () => {
     setInitialOpenEventId(match ? match.id : null);
   }, [searchParams, events]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const orderParam = searchParams.get("order");
+    const paidFlag = searchParams.get("paid");
+    const statusParam = (searchParams.get("collection_status") || searchParams.get("status") || "").toLowerCase();
+    const isPaidReturn = paidFlag === "1" || statusParam === "approved";
+
+    let targetEventId: number | null = null;
+
+    if (orderParam) {
+      const snapshot = readSavedOrderSnapshot(orderParam);
+      if (snapshot) targetEventId = snapshot.eventId;
+    }
+
+    if (!targetEventId && isPaidReturn) {
+      const pending = readPendingLivePurchase();
+      if (pending) targetEventId = pending.eventId;
+    }
+
+    if (!targetEventId) {
+      if (isPaidReturn) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("paid");
+          next.delete("status");
+          next.delete("collection_status");
+          return next;
+        }, { replace: true });
+      }
+      return;
+    }
+
+    const eventIdStr = String(targetEventId);
+    const shouldUpdateEvent = searchParams.get("event") !== eventIdStr;
+
+    if (!shouldUpdateEvent && !isPaidReturn) return;
+
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("event", eventIdStr);
+      if (isPaidReturn) {
+        next.delete("paid");
+        next.delete("status");
+        next.delete("collection_status");
+      }
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     const currentQ = searchParams.get("q") ?? "";

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, PanInfo, useAnimate, useDragControls, useMotionValue } from "framer-motion";
 import { ComboEventDto, CouponEvent, EventDto, InEventPurchaseData, InEventPurchasePayload, LiveOrderStateEnum, ProductEventDto, ProductTypeEnum, StoredLiveOrderSnapshot } from "@/lib/types";
 import { createLiveEventPreference, fetchProducerEventDetailData, submitLiveEventPurchase } from "@/lib/api";
@@ -19,6 +19,14 @@ import { Button } from "../ui/button";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { useRealtimeOrder } from "@/hooks/use-realtime-order";
+import {
+  PendingLivePurchaseSnapshot,
+  readPendingLivePurchase,
+  readSavedOrderSnapshot,
+  removeSavedOrderSnapshot,
+  writePendingLivePurchase,
+  writeSavedOrderSnapshot,
+} from "@/lib/live-order-storage";
 
 const DRAG_CLOSE_PX = 100;
 const DRAG_CLOSE_VELOCITY = 800;
@@ -69,6 +77,7 @@ export default function InEventPurchaseFlow({
   const [purchaseCode, setPurchaseCode] = useState<string | null>(null);
   const [appliedCoupon, setAppliedCoupon] = useState<CouponEvent | null>(null);
   const [savedOrder, setSavedOrder] = useState<StoredLiveOrderSnapshot | null>(null);
+  const [pendingPurchase, setPendingPurchase] = useState<PendingLivePurchaseSnapshot | null>(null);
 
   const { order } = useRealtimeOrder(purchaseCode);
 
@@ -101,16 +110,47 @@ export default function InEventPurchaseFlow({
   const lastStatusNotifiedRef = useRef<LiveOrderStateEnum | null>(null);
   const savedOrderRef = useRef<StoredLiveOrderSnapshot | null>(null);
   const notificationAttemptedRef = useRef<Record<string, boolean>>({});
+  const pendingPurchaseHydratedRef = useRef(false);
 
   const liveOrderStorageKey = useMemo(() => `produtik.live-order.${event.id}`, [event.id]);
+
+  const syncPendingPurchaseFromStorage = useCallback(() => {
+    const stored = readPendingLivePurchase();
+    if (stored?.eventId === event.id) {
+      setPendingPurchase(stored);
+      return stored;
+    }
+    return null;
+  }, [event.id]);
+
+  const clearPendingPurchase = useCallback(() => {
+    const stored = readPendingLivePurchase();
+    if (stored && stored.eventId !== event.id) return;
+    writePendingLivePurchase(null);
+    setPendingPurchase(null);
+  }, [event.id]);
+
+  const persistPendingPurchase = useCallback((snapshot: PendingLivePurchaseSnapshot | null) => {
+    if (!snapshot) {
+      clearPendingPurchase();
+      return;
+    }
+    writePendingLivePurchase(snapshot);
+    setPendingPurchase(snapshot);
+  }, [clearPendingPurchase]);
 
   const persistLiveOrderSnapshot = useCallback((snapshot: StoredLiveOrderSnapshot | null) => {
     if (typeof window === "undefined") return;
     try {
       if (!snapshot) {
         window.localStorage.removeItem(liveOrderStorageKey);
+        const lastOrderId = savedOrderRef.current?.orderId;
+        if (lastOrderId != null) {
+          removeSavedOrderSnapshot(lastOrderId);
+        }
       } else {
         window.localStorage.setItem(liveOrderStorageKey, JSON.stringify(snapshot));
+        writeSavedOrderSnapshot(snapshot);
       }
     } catch (err) {
       console.warn("No se pudo persistir el pedido en curso:", err);
@@ -118,39 +158,64 @@ export default function InEventPurchaseFlow({
   }, [liveOrderStorageKey]);
 
   useEffect(() => {
+    syncPendingPurchaseFromStorage();
+  }, [syncPendingPurchaseFromStorage]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const stored = window.localStorage.getItem(liveOrderStorageKey);
+      let rawSnapshot: Partial<StoredLiveOrderSnapshot> & {
+        purchaseId?: number;
+        code?: number | string;
+      } | null = null;
+
       if (stored) {
-        const raw = JSON.parse(stored) as Partial<StoredLiveOrderSnapshot> & {
-          purchaseId?: number;
-          code?: number | string;
-        };
+        rawSnapshot = JSON.parse(stored);
+      } else {
+        const orderParam = (() => {
+          try {
+            const usp = new URLSearchParams(window.location.search);
+            return usp.get("order");
+          } catch {
+            return null;
+          }
+        })();
 
-        const pickupCode = raw.pickupCode ?? (raw.code != null ? String(raw.code) : null);
-        const orderId = raw.orderId ?? raw.purchaseId ?? null;
-        const token = typeof raw.token === "string" ? raw.token : null;
-
-        if (pickupCode && orderId && raw.eventId && token) {
-          const normalized: StoredLiveOrderSnapshot = {
-            eventId: raw.eventId,
-            orderId,
-            token,
-            pickupCode,
-            paymentMethod: raw.paymentMethod ?? "cash",
-            createdAt: raw.createdAt ?? new Date().toISOString(),
-            notificationEndpoint: raw.notificationEndpoint ?? null,
-          };
-          setSavedOrder(normalized);
-          setPurchaseCode(pickupCode);
-        } else {
-          window.localStorage.removeItem(liveOrderStorageKey);
+        if (orderParam) {
+          const snapshot = readSavedOrderSnapshot(orderParam);
+          if (snapshot && snapshot.eventId === event.id) {
+            rawSnapshot = snapshot;
+            window.localStorage.setItem(liveOrderStorageKey, JSON.stringify(snapshot));
+          }
         }
+      }
+
+      if (!rawSnapshot) return;
+
+      const pickupCode = rawSnapshot.pickupCode ?? (rawSnapshot.code != null ? String(rawSnapshot.code) : null);
+      const orderId = rawSnapshot.orderId ?? rawSnapshot.purchaseId ?? null;
+      const token = typeof rawSnapshot.token === "string" ? rawSnapshot.token : null;
+
+      if (pickupCode && orderId && rawSnapshot.eventId && token) {
+        const normalized: StoredLiveOrderSnapshot = {
+          eventId: rawSnapshot.eventId,
+          orderId,
+          token,
+          pickupCode,
+          paymentMethod: rawSnapshot.paymentMethod ?? "cash",
+          createdAt: rawSnapshot.createdAt ?? new Date().toISOString(),
+          notificationEndpoint: rawSnapshot.notificationEndpoint ?? null,
+        };
+        setSavedOrder(normalized);
+        setPurchaseCode(pickupCode);
+      } else {
+        window.localStorage.removeItem(liveOrderStorageKey);
       }
     } catch (err) {
       console.warn("No pudimos leer el pedido guardado:", err);
     }
-  }, [liveOrderStorageKey]);
+  }, [liveOrderStorageKey, event.id]);
 
   useEffect(() => {
     if (savedOrder && !purchaseCode) {
@@ -161,6 +226,18 @@ export default function InEventPurchaseFlow({
   useEffect(() => {
     savedOrderRef.current = savedOrder;
   }, [savedOrder]);
+
+  useEffect(() => {
+    if (!pendingPurchase) {
+      pendingPurchaseHydratedRef.current = false;
+    }
+  }, [pendingPurchase]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      pendingPurchaseHydratedRef.current = false;
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!savedOrder) return;
@@ -248,7 +325,7 @@ export default function InEventPurchaseFlow({
       const id = fullEventDetails?.id ?? event.id;
       const url = `${origin}/events?event=${id}`;
       const title = fullEventDetails?.name ?? event.name;
-      const text = `Mirá este evento: ${title}`;
+      const text = `MirÃ¡ este evento: ${title}`;
 
       if (navigator.share) {
         await navigator.share({ title, text, url });
@@ -301,6 +378,51 @@ export default function InEventPurchaseFlow({
     document.body.style.overflow = isOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!pendingPurchase || pendingPurchase.eventId !== event.id) return;
+    if (!fullEventDetails) return;
+    if (pendingPurchaseHydratedRef.current) return;
+    if (savedOrder) return;
+
+    const products = (pendingPurchase.payload.products || [])
+      .map(item => {
+        const product = fullEventDetails.products?.find(p => p.id === item.productId);
+        return product ? { product, quantity: item.quantity } : null;
+      })
+      .filter(Boolean) as typeof purchaseData.products;
+
+    const combos = (pendingPurchase.payload.combos || [])
+      .map(item => {
+        const combo = fullEventDetails.combos?.find(c => c.id === item.comboId);
+        return combo ? { combo, quantity: item.quantity } : null;
+      })
+      .filter(Boolean) as typeof purchaseData.combos;
+
+    const experiences = (pendingPurchase.payload.experiences || [])
+      .map(item => {
+        const parent = fullEventDetails.experiences?.find(exp =>
+          exp.children?.some(child => child.id === item.experienceId)
+        );
+        const experience = parent?.children.find(child => child.id === item.experienceId);
+        return parent && experience ? { parent, experience, quantity: item.quantity } : null;
+      })
+      .filter(Boolean) as typeof purchaseData.experiences;
+
+    setPurchaseData({
+      buyer: pendingPurchase.payload.client,
+      products,
+      combos,
+      experiences,
+      paymentMethod: "mercadopago",
+      total: pendingPurchase.payload.total,
+    });
+
+    setAppliedCoupon(pendingPurchase.coupon ?? null);
+    setMpPreferenceId(prev => prev || pendingPurchase.preferenceId || null);
+    setStep(prev => (prev === Step.PurchaseStatus ? prev : Step.Review));
+    pendingPurchaseHydratedRef.current = true;
+  }, [pendingPurchase, fullEventDetails, event.id, savedOrder]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -393,6 +515,7 @@ export default function InEventPurchaseFlow({
     mpPurchaseRegisteredRef.current = false;
 
     localStorage.removeItem(liveOrderStorageKey);
+    clearPendingPurchase();
 
     onClose();
   };
@@ -457,6 +580,9 @@ export default function InEventPurchaseFlow({
     updatePurchaseData({ paymentMethod: method });
 
     if (!fullEventDetails) return;
+    if (method !== "mercadopago") {
+      clearPendingPurchase();
+    }
 
     if (lastPaymentTrackedRef.current !== method) {
       lastPaymentTrackedRef.current = method;
@@ -515,6 +641,7 @@ export default function InEventPurchaseFlow({
     lastStatusNotifiedRef.current = orderStatus;
 
     persistLiveOrderSnapshot(snapshot);
+    clearPendingPurchase();
 
     notificationAttemptedRef.current[order.token] = true;
     (async () => {
@@ -547,63 +674,81 @@ export default function InEventPurchaseFlow({
     getCheckoutValue,
     buildTrackingItems,
     getCheckoutCoupon,
-    subscribeLiveOrderNotifications
+    subscribeLiveOrderNotifications,
+    clearPendingPurchase
   ]);
+
+  const finalizeMpPayment = useCallback(async (params?: Record<string, any>) => {
+    if (mpPurchaseRegisteredRef.current) return;
+    mpPurchaseRegisteredRef.current = true;
+    try {
+      const txn = params?.collection_id ||
+        params?.payment_id ||
+        params?.preference_id ||
+        mpPreferenceId ||
+        `mp_${(fullEventDetails || event).id}_${Date.now()}`;
+
+      await registerLivePurchase("mercadopago", { transactionId: String(txn) });
+
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        ["paid", "status", "collection_status"].forEach((key) => url.searchParams.delete(key));
+        const nextSearch = url.searchParams.toString();
+        const nextUrl = `${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+        window.history.replaceState({}, document.title, nextUrl);
+      }
+    } catch (error) {
+      mpPurchaseRegisteredRef.current = false;
+      console.error("No pudimos confirmar el pago de MP:", error);
+      toast.error("Mercado Pago confirmó el cobro pero no pudimos registrar el pedido. Contactanos.");
+    }
+  }, [registerLivePurchase, mpPreferenceId, fullEventDetails, event]);
 
   useEffect(() => {
     if (step !== Step.Review) return;
-
-    const finalizePayment = async (params?: Record<string, any>) => {
-      if (mpPurchaseRegisteredRef.current) return;
-      mpPurchaseRegisteredRef.current = true;
-      try {
-        const txn = params?.collection_id ||
-          params?.payment_id ||
-          params?.preference_id ||
-          mpPreferenceId ||
-          `mp_${(fullEventDetails || event).id}_${Date.now()}`;
-
-        await registerLivePurchase("mercadopago", { transactionId: String(txn) });
-      } catch (error) {
-        console.error("No pudimos confirmar el pago de MP:", error);
-        toast.error("Mercado Pago confirmó el cobro pero no pudimos registrar el pedido. Contactanos.");
-      }
-    };
-
-    const urlPaid = (() => {
-      try {
-        const usp = new URLSearchParams(window.location.search);
-        return usp.get("paid") === "1";
-      } catch { return false; }
-    })();
-
-    if (urlPaid) finalizePayment();
+    if (purchaseData.paymentMethod !== "mercadopago") return;
 
     const handler = (ev: MessageEvent) => {
       if (ev?.data?.type === "MP_PAYMENT_APPROVED") {
         const params = (ev.data && (ev.data.params || ev.data.payload)) || {};
-        finalizePayment(params);
+        finalizeMpPayment(params);
       }
     };
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [step, fullEventDetails, event, mpPreferenceId, registerLivePurchase]);
+  }, [step, purchaseData.paymentMethod, finalizeMpPayment]);
 
-  const clearLiveOrder = useCallback(() => {
-    void detachOrderNotifications();
-    setSavedOrder(null);
-    setPurchaseCode(null);
-    persistLiveOrderSnapshot(null);
-    lastStatusNotifiedRef.current = null;
-  }, [persistLiveOrderSnapshot, detachOrderNotifications]);
+  useEffect(() => {
+    if (mpPurchaseRegisteredRef.current) return;
+    if (purchaseData.paymentMethod !== "mercadopago") return;
+
+    let paidFromUrl = false;
+    let params: Record<string, string> = {};
+    if (typeof window !== "undefined") {
+      const usp = new URLSearchParams(window.location.search);
+      const status = (usp.get("collection_status") || usp.get("status") || "").toLowerCase();
+      const paidFlag = usp.get("paid");
+      paidFromUrl = paidFlag === "1" || status === "approved";
+      usp.forEach((value, key) => {
+        params[key] = value;
+      });
+    }
+
+    if (!paidFromUrl) return;
+    if (step !== Step.Review) {
+      if (!pendingPurchase || pendingPurchase.eventId !== event.id) return;
+    }
+
+    finalizeMpPayment(params);
+  }, [step, pendingPurchase, purchaseData.paymentMethod, finalizeMpPayment, event.id]);
 
   const generatePreference = useCallback(async (): Promise<boolean> => {
     if (!hasMP || !fullEventDetails) {
-      setError("Mercado Pago no está configurado para este evento.");
+      setError("Mercado Pago no estÃ¡ configurado para este evento.");
       return false;
     }
     if (totals.grandTotal <= 0) {
-      setError("Agregá productos antes de generar el pago.");
+      setError("AgregÃ¡ productos antes de generar el pago.");
       return false;
     }
 
@@ -623,6 +768,13 @@ export default function InEventPurchaseFlow({
       const res = await createLiveEventPreference(fullEventDetails!.id, payload);
       if (res.success) {
         setMpPreferenceId(res.data.preferenceId);
+        persistPendingPurchase({
+          eventId: fullEventDetails!.id,
+          payload,
+          preferenceId: res.data.preferenceId,
+          coupon: appliedCoupon,
+          createdAt: new Date().toISOString(),
+        });
 
         if (fullEventDetails && !beginCheckoutTrackedRef.current) {
           tracking.beginCheckout(fullEventDetails, buildTrackingItems(), {
@@ -639,7 +791,7 @@ export default function InEventPurchaseFlow({
       return false;
     } catch (err) {
       console.error('Error contacting Mercado Pago for preference:', err);
-      setError("Error al generar el link de pago. Intentá de nuevo.");
+      setError("Error al generar el link de pago. IntentÃ¡ de nuevo.");
       return false;
     } finally {
       setIsGeneratingPreference(false);
@@ -653,7 +805,8 @@ export default function InEventPurchaseFlow({
     tracking,
     buildTrackingItems,
     getCheckoutCoupon,
-    getCheckoutValue
+    getCheckoutValue,
+    persistPendingPurchase
   ]);
 
   const handleComplete = async () => {
@@ -662,7 +815,7 @@ export default function InEventPurchaseFlow({
       await registerLivePurchase('cash');
     } catch (error) {
       console.error(error);
-      toast.error("No pudimos registrar tu pedido. Intentá nuevamente.");
+      toast.error("No pudimos registrar tu pedido. IntentÃ¡ nuevamente.");
     } finally {
       setIsSubmitting(false);
     }
@@ -971,4 +1124,8 @@ export default function InEventPurchaseFlow({
     </AnimatePresence>
   );
 }
+
+
+
+
 
