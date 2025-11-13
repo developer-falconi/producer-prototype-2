@@ -141,7 +141,7 @@ export default function ReviewStep({
             <Row
               label="Descuentos"
               value={`- ${formatPrice(discountTotal)}`}
-              accent="text-emerald-300"
+              accent="text-emerald-600"
             />
           )}
           <Separator className="my-2 bg-white/10" />

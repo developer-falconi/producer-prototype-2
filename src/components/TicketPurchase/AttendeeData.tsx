@@ -339,7 +339,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                           className={cn(
                             'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
                             isExplicitlyCompleted
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/20'
+                              ? 'bg-emerald-500/20 text-emerald-600 border border-emerald-400/20'
                               : 'bg-white/10 text-white/90 border border-white/15'
                           )}
                         >
@@ -361,7 +361,7 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                       </div>
                     </div>
                     {isExplicitlyCompleted && !isActive ? (
-                      <span className="flex items-center gap-2 text-xs text-emerald-300">
+                      <span className="flex items-center gap-2 text-xs text-emerald-600">
                         <CheckCircle2 className="h-4 w-4" />
                         {client.fullName && client.docNumber
                           ? `${client.fullName} - ${client.docNumber}`
@@ -777,14 +777,14 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                   <div className="flex flex-col gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-3 sm:items-center">
                       <span className="mt-0.5 rounded-md border border-emerald-400/30 bg-emerald-500/20 p-1.5">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                       </span>
                       <div className="space-y-0.5">
                         <p className="text-sm text-emerald-200">
                           Cupon aplicado: <span className="font-semibold underline">{appliedCoupon.code}</span>
                         </p>
                         {!!discountAmount && (
-                          <p className="text-xs text-emerald-300/90">
+                          <p className="text-xs text-emerald-600/90">
                             Descuento: ${discountAmount.toFixed(2)}
                           </p>
                         )}

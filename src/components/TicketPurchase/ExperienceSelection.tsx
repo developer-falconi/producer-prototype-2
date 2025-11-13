@@ -287,7 +287,7 @@ function ExperienceOption({
             {formatPrice(Number(child.price ?? 0))}
           </span>
         )}
-        <span className="inline-flex items-center gap-1 text-emerald-300 text-xs">
+        <span className="inline-flex items-center gap-1 text-emerald-600 text-xs">
           <Armchair className="h-3 w-3" />
           {soldOut ? "Agotado" : stock}
         </span>

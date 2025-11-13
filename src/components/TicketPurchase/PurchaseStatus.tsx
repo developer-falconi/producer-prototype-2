@@ -131,7 +131,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
                 "ml-1 inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] border",
                 "hover:brightness-110",
                 isSuccess
-                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/30"
+                  ? "bg-emerald-500/15 text-emerald-600 border-emerald-400/30"
                   : "bg-rose-500/15 text-rose-300 border-rose-400/30"
               )}
               aria-label="Copiar resumen"

@@ -203,9 +203,9 @@ export default function CourtesyClaim() {
                           className={cn(
                             "relative cursor-pointer select-none rounded-lg px-3 py-2 text-sm",
                             "outline-none transition-colors",
-                            "hover:bg-blue-500/20 hover:text-blue-800",
-                            "data-[state=checked]:bg-blue-600/30 data-[state=checked]:text-white",
-                            "data-[highlighted]:bg-blue-500/25 data-[highlighted]:text-white"
+                            "hover:bg-emerald-700/20 hover:text-emerald-200",
+                            "data-[state=checked]:bg-emerald-600/30 data-[state=checked]:text-white",
+                            "data-[highlighted]:bg-emerald-600/25 data-[highlighted]:text-white"
                           )}
                         >
                           Masculino
@@ -215,9 +215,9 @@ export default function CourtesyClaim() {
                           className={cn(
                             "relative cursor-pointer select-none rounded-lg px-3 py-2 text-sm",
                             "outline-none transition-colors",
-                            "hover:bg-blue-500/20 hover:text-blue-800",
-                            "data-[state=checked]:bg-blue-600/30 data-[state=checked]:text-white",
-                            "data-[highlighted]:bg-blue-500/25 data-[highlighted]:text-white"
+                            "hover:bg-emerald-700/20 hover:text-emerald-200",
+                            "data-[state=checked]:bg-emerald-600/30 data-[state=checked]:text-white",
+                            "data-[highlighted]:bg-emerald-600/25 data-[highlighted]:text-white"
                           )}
                         >
                           Femenino
@@ -227,9 +227,9 @@ export default function CourtesyClaim() {
                           className={cn(
                             "relative cursor-pointer select-none rounded-lg px-3 py-2 text-sm",
                             "outline-none transition-colors",
-                            "hover:bg-blue-500/20 hover:text-blue-800",
-                            "data-[state=checked]:bg-blue-600/30 data-[state=checked]:text-white",
-                            "data-[highlighted]:bg-blue-500/25 data-[highlighted]:text-white"
+                            "hover:bg-emerald-700/20 hover:text-emerald-200",
+                            "data-[state=checked]:bg-emerald-600/30 data-[state=checked]:text-white",
+                            "data-[highlighted]:bg-emerald-600/25 data-[highlighted]:text-white"
                           )}
                         >
                           Otro
@@ -258,7 +258,7 @@ export default function CourtesyClaim() {
                   <div className="md:col-span-2 flex items-center justify-end pt-2">
                     <Button
                       type="submit"
-                      className="bg-[#001B97] hover:bg-[#001B97]/85"
+                      className="bg-emerald-900 hover:bg-emerald-900/85"
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? "Enviando…" : "Confirmar cortesía"}

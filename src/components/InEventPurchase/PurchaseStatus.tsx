@@ -268,7 +268,7 @@ export default function PurchaseStatus({
                       className={cn(
                         "relative z-10 h-7 w-7 rounded-full flex items-center justify-center",
                         isDanger && (isCompleted || isActive) ? "bg-rose-500/20 text-rose-300" :
-                          isCompleted ? "bg-emerald-500/20 text-emerald-300" :
+                          isCompleted ? "bg-emerald-500/20 text-emerald-600" :
                             isActive ? "bg-blue-500/20 text-blue-300" :
                               "bg-zinc-800 text-zinc-500"
                       )}

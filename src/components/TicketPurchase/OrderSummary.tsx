@@ -258,8 +258,8 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
 
             {baseNet > 0 && clientFeePortion > 0 && (
               <LineRow
-                left={<span className="text-emerald-300">Cargo por servicio</span>}
-                right={<span className="text-emerald-300">+ {formatPrice(clientFeePortion)}</span>}
+                left={<span className="text-emerald-600">Cargo por servicio</span>}
+                right={<span className="text-emerald-600">+ {formatPrice(clientFeePortion)}</span>}
               />
             )}
 

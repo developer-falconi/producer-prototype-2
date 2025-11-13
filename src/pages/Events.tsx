@@ -218,7 +218,7 @@ const Events = () => {
 
   if (loading || loadingProducer) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-black to-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-emerald-950 to-black">
         <Spinner />
         <span className="sr-only">Cargando eventos…</span>
       </div>
@@ -273,7 +273,7 @@ const Events = () => {
         )}
       </Helmet>
 
-      <div className="relative min-h-screen bg-gradient-to-br from-black via-black to-gray-900">
+      <div className="relative min-h-screen flex flex-col bg-gradient-to-br from-black via-emerald-950 to-black">
         {producer ? (
           <>
             {/* Header */}
@@ -316,7 +316,7 @@ const Events = () => {
                           <Filter className="w-4 h-4 mr-2" />
                           <SelectValue placeholder="Estado" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                        <SelectContent className="bg-black border-slate-700 text-white">
                           <SelectItem value="all" className="cursor-pointer">Todos</SelectItem>
                           <SelectItem value="active" className="cursor-pointer">Activos</SelectItem>
                           <SelectItem value="upcoming" className="cursor-pointer">Próximos</SelectItem>
@@ -342,7 +342,7 @@ const Events = () => {
             </div>
 
             {/* Contenido */}
-            <main className="max-w-7xl mx-auto p-8">
+            <main className="max-w-7xl mx-auto p-8 flex-1 w-full">
               {/* Loading con skeletons */}
               {(loading || loadingProducer) && (
                 <div className="grid md:grid-cols-3 gap-8">
@@ -404,7 +404,7 @@ const Events = () => {
               Error al cargar los datos del productor.
             </p>
             <Link to="https://app.produtik.com" target="_blank">
-              <div className="flex items-center gap-2 bg-[#001B97] hover:[#001B97]/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+              <div className="flex items-center gap-2 bg-emerald-950 hover:bg-emerald-950/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
                 Encontranos en Produtik <ExternalLink className="h-4 w-4" />
               </div>
             </Link>

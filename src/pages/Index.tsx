@@ -195,7 +195,7 @@ const Index = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-950">
         <p className="font-medium text-lg text-white mb-3">Error al cargar los datos del productor.</p>
         <Link to="https://app.produtik.com" target="_blank">
-          <div className="flex items-center gap-2 bg-[#001B97] hover:bg-[#001B97]/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
+          <div className="flex items-center gap-2 bg-emerald-950 hover:bg-emerald-950/80 text-white text-sm px-3 py-1 rounded-full shadow-lg cursor-pointer">
             Encontranos en Produtik <ExternalLink className="h-4 w-4" />
           </div>
         </Link>
@@ -294,7 +294,7 @@ const Index = () => {
                 poster={eventsForHeroCarousel[0]?.flyer || producer.logo}
               />
             )}
-            <div className="absolute inset-0 bg-slate-950/20 z-[1]" />
+            <div className="absolute inset-0 bg-black/20 z-[1]" />
 
             {eventsForHeroCarousel.length > 0 && (
               <div className="relative z-[2] w-full md:w-1/2 max-w-[720px] mx-auto mb-2">
@@ -348,7 +348,7 @@ const Index = () => {
                 className="flex flex-wrap items-center gap-3 justify-center w-full"
               >
                 <Link to={`/events${search}`} onClick={handleHeroCta}>
-                  <button className="bg-[#001B97] text-white font-semibold py-3 px-7 rounded-full shadow-lg text-base md:text-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 inline-flex items-center">
+                  <button className="bg-emerald-950 text-white font-semibold py-3 px-7 rounded-full shadow-lg text-base md:text-lg transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 inline-flex items-center">
                     Ver todos los eventos <ArrowRight className="ml-2 h-5 w-5" />
                   </button>
                 </Link>
@@ -358,7 +358,7 @@ const Index = () => {
 
           {/* ESTADÍSTICAS */}
           <section
-            className="relative isolate py-12 bg-gradient-to-br from-[#001B97] via-slate-950 to-black text-white"
+            className="relative isolate py-12 bg-gradient-to-br from-emerald-950 via-black to-black text-white"
             ref={statsSectionRef}
             aria-labelledby="stats-heading"
           >
@@ -378,7 +378,7 @@ const Index = () => {
                     key={i}
                     role="group"
                     aria-label={label}
-                    className="rounded-2xl bg-black/20 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] py-4 text-center transition-all duration-300 hover:bg-black/30 hover:-translate-y-1 focus-within:-translate-y-1 focus-within:ring-2 focus-within:ring-cyan-400/30"
+                    className="rounded-2xl bg-black/20 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] py-4 text-center transition-all duration-300 hover:bg-black/30 hover:-translate-y-1 focus-within:-translate-y-1 focus-within:ring-2 focus-within:ring-emerald-400/30"
                     initial={{ opacity: 0, y: 16 }}
                     animate={statsInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
                     transition={{ delay: 0.08 + i * 0.08, duration: 0.5 }}
@@ -410,8 +410,8 @@ const Index = () => {
           </section>
 
           {/* MISIÓN */}
-          <section className="relative py-12 bg-gradient-to-br from-black via-slate-950 to-[#001B97] text-white overflow-hidden">
-            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(700px_260px_at_50%_0%,rgba(34,211,238,0.14),transparent)]" />
+          <section className="relative py-12 bg-gradient-to-br from-black via-emerald-950 to-emerald-950 text-white overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(700px_260px_at_50%_0%,rgba(5,150,105,0.18),transparent)]" />
 
             <motion.div
               className="max-w-5xl mx-auto px-6"
