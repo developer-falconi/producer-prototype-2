@@ -85,6 +85,7 @@ export default function InEventPurchaseFlow({
   const [savedOrder, setSavedOrder] = useState<StoredLiveOrderSnapshot | null>(null);
   const [pendingPurchase, setPendingPurchase] = useState<PendingLivePurchaseSnapshot | null>(null);
   const [shouldDisplaySavedOrder, setShouldDisplaySavedOrder] = useState(true);
+  const [purchaseStatusError, setPurchaseStatusError] = useState<string | null>(null);
 
   const { order } = useRealtimeOrder(purchaseCode);
 
@@ -173,6 +174,7 @@ export default function InEventPurchaseFlow({
     setIsGeneratingPreference(false);
     setIsSubmitting(false);
     setPendingPurchase(null);
+    setPurchaseStatusError(null);
     pendingPurchaseHydratedRef.current = false;
     viewTrackedRef.current = false;
     beginCheckoutTrackedRef.current = false;
@@ -272,7 +274,7 @@ export default function InEventPurchaseFlow({
         setShouldDisplaySavedOrder(true);
       }
     } catch (err) {
-      console.warn("No pudimos procesar los parámetros de pago:", err);
+      console.warn("No pudimos procesar los parï¿½metros de pago:", err);
     }
   }, [event.id, clearPendingPurchase]);
 
@@ -682,12 +684,15 @@ export default function InEventPurchaseFlow({
   const registerLivePurchase = useCallback(async (
     method: 'cash' | 'mercadopago',
     options?: { transactionId?: string }
-  ) => {
+  ): Promise<LiveOrderSummary | null> => {
     const payload = buildPurchasePayload();
     const result = await submitLiveEventPurchase(payload, event.id);
 
     if (!result.success || !result.data?.order) {
-      throw new Error(result.message || "No pudimos registrar el pedido");
+      const failureMessage = result.message || "No pudimos registrar el pedido.";
+      setPurchaseStatusError(failureMessage);
+      setStep(Step.PurchaseStatus);
+      return null;
     }
 
     const { order, voucher } = result.data;
@@ -736,7 +741,9 @@ export default function InEventPurchaseFlow({
     getCheckoutCoupon,
     subscribeLiveOrderNotifications,
     clearPendingPurchase,
-    buildStoredSnapshot
+    buildStoredSnapshot,
+    setStep,
+    setPurchaseStatusError
   ]);
 
   const finalizeMpPayment = useCallback(async (params?: Record<string, any>) => {
@@ -749,7 +756,11 @@ export default function InEventPurchaseFlow({
         mpPreferenceId ||
         `mp_${(fullEventDetails || event).id}_${Date.now()}`;
 
-      await registerLivePurchase("mercadopago", { transactionId: String(txn) });
+      const order = await registerLivePurchase("mercadopago", { transactionId: String(txn) });
+      if (!order) {
+        mpPurchaseRegisteredRef.current = false;
+        return;
+      }
       setShouldDisplaySavedOrder(true);
 
       if (typeof window !== "undefined") {
@@ -762,7 +773,7 @@ export default function InEventPurchaseFlow({
     } catch (error) {
       mpPurchaseRegisteredRef.current = false;
       console.error("No pudimos confirmar el pago de MP:", error);
-      toast.error("Mercado Pago confirmó el cobro pero no pudimos registrar el pedido. Contactanos.");
+      toast.error("Mercado Pago confirmï¿½ el cobro pero no pudimos registrar el pedido. Contactanos.");
     }
   }, [registerLivePurchase, mpPreferenceId, fullEventDetails, event]);
 
@@ -884,10 +895,19 @@ export default function InEventPurchaseFlow({
     buildStoredSnapshot
   ]);
 
+  const handlePurchaseStatusRetry = useCallback(() => {
+    setPurchaseStatusError(null);
+    mpPurchaseRegisteredRef.current = false;
+    setStep(Step.Review);
+  }, [setStep]);
+
   const handleComplete = async () => {
     setIsSubmitting(true);
     try {
-      await registerLivePurchase('cash');
+      const order = await registerLivePurchase('cash');
+      if (!order) {
+        return;
+      }
     } catch (error) {
       console.error(error);
       toast.error("No pudimos registrar tu pedido. IntentÃ¡ nuevamente.");
@@ -971,6 +991,8 @@ export default function InEventPurchaseFlow({
             pendingOrder={order}
             onClose={onClose}
             onClearOrder={handleClearOrder}
+            errorMessage={purchaseStatusError}
+            onRetry={handlePurchaseStatusRetry}
           />
         );
       default:

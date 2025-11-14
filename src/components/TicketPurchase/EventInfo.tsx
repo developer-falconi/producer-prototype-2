@@ -50,7 +50,7 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
 
   return (
     <motion.div
-      className="relative w-full h-full flex flex-col bg-zinc-900 text-white overflow-y-auto rounded-lg shadow-2xl"
+      className="relative w-full h-full flex flex-col min-h-0 bg-zinc-900 text-white overflow-y-auto rounded-lg shadow-2xl"
       initial="hidden"
       animate="visible"
       exit="exit"
