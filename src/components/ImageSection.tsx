@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { motion, Variants } from "framer-motion";
+import OptimizedImage from "@/components/OptimizedImage";
 
 interface ImageSectionProps {
   producer: Producer;
@@ -46,10 +47,12 @@ export default function ImageSection({ producer }: ImageSectionProps) {
         animate="visible"
         variants={popVariant}
       >
-        <img
+        <OptimizedImage
           src={producer.logo}
           alt={producer.name}
-          className="w-full h-full object-contain bg-gradient-to-br from-black to-gray-600 backdrop-blur-md"
+          transformOptions={{ width: 512, height: 512, crop: "fit", gravity: "auto", quality: "auto" }}
+          wrapperClassName="absolute inset-0"
+          className="h-full w-full object-contain bg-gradient-to-br from-black to-gray-600 backdrop-blur-md"
         />
       </motion.div>
 

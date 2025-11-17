@@ -1,11 +1,12 @@
 import React from 'react';
 import { Easing, motion } from 'framer-motion';
 import { EventDto, EventStatus } from '@/lib/types';
-import { formatDate, formatTime } from '@/lib/utils';
+import { cn, formatDate, formatTime } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Calendar } from 'lucide-react';
 import { EventArtistsDisplay } from '../EventArtistsDisplay';
 import { EventMap } from '../EventMap';
+import OptimizedImage from '@/components/OptimizedImage';
 
 interface EventInfoProps {
   event: EventDto;
@@ -50,7 +51,7 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
 
   return (
     <motion.div
-      className="relative w-full h-full flex flex-col bg-zinc-900 text-white overflow-y-auto rounded-lg shadow-2xl"
+      className="relative w-full h-full flex flex-col min-h-0 bg-zinc-900 text-white overflow-y-auto rounded-lg shadow-2xl"
       initial="hidden"
       animate="visible"
       exit="exit"
@@ -60,8 +61,18 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
         <motion.div
           className="absolute inset-0 w-full h-full"
           variants={imageVariants}
-          style={{ background: `url(${event.flyer}) center center / ${isMobile ? 'cover' : 'contain'} no-repeat` }}
         >
+          <OptimizedImage
+            src={event.flyer}
+            alt={event.name}
+            transformOptions={{ width: 1920, height: 1080, crop: isMobile ? "fill" : "fit", gravity: "auto", quality: "auto" }}
+            wrapperClassName="absolute inset-0"
+            className={cn(
+              "h-full w-full",
+              isMobile ? "object-cover" : "object-contain"
+            )}
+            fallbackSrc="https://via.placeholder.com/1920x1080?text=Evento"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
         </motion.div>
 

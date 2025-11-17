@@ -193,8 +193,10 @@ export enum ClientTypeEnum {
 }
 
 export interface PreferenceData {
+  init_point: string;
   preferenceId: string;
   publicKey: string;
+  order?: LiveOrderSummary;
 }
 
 export interface MercadoPagoConfigDto {
