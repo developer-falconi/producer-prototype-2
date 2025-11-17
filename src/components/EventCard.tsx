@@ -1,5 +1,6 @@
 import { Calendar, CircleDollarSign, Radio } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import OptimizedImage from "@/components/OptimizedImage";
 import { cn, formatEventDate, formatEventPrice } from "@/lib/utils";
 import { EventDto, EventStatus, Prevent, PreventStatusEnum } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -105,14 +106,14 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
     ? getFeaturedPrevent(event.prevents)?.price || getOldestActivePrevent(event.prevents)?.price
     : null;
 
-  const formattedPrice = displayPrice === 0
+  const formattedPrice = Number(displayPrice) === 0
     ? 'Liberada'
     : (displayPrice ? formatEventPrice(displayPrice) : '-');
 
   const firstPreventDate = getFirstPreventDate(event.prevents);
   const isUpcoming = event.status === EventStatus.UPCOMING;
   const isCompleted = event.status === EventStatus.COMPLETED;
-  const isLive = new Date() >= new Date(event.startDate) && new Date() < new Date(event.endDate);
+  const isLive = new Date() >= new Date(event.salesEndDate) && new Date() < new Date(event.endDate);
 
   return (
     <>
@@ -175,11 +176,16 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
             </div>
           )}
 
-          <img
-            src={event.flyer}
-            alt={event.name}
-            className="absolute inset-0 w-full h-full aspect-9/16 object-cover group-hover:scale-110 transition-transform duration-700"
-          />
+          <div className="absolute inset-0">
+            <OptimizedImage
+              src={event.flyer}
+              alt={event.name}
+              transformOptions={{ width: 1080, aspectRatio: "9:16", crop: "fill", gravity: "auto", quality: "auto" }}
+              wrapperClassName="absolute inset-0"
+              className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
+              fallbackSrc="https://via.placeholder.com/1080x1920?text=Evento"
+            />
+          </div>
           <div className="absolute inset-0 flex flex-col justify-between p-6 bg-gradient-to-t from-black via-black/50 to-transparent">
             {
               !isCompleted && (

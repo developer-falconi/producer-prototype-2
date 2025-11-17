@@ -62,6 +62,7 @@ export interface EventDto {
   description: string;
   startDate: string;
   endDate: string;
+  salesEndDate: string;
   location: string;
   requiresClientData: boolean;
   key: string;
@@ -82,6 +83,7 @@ export interface EventDto {
   artists: EventArtistDto[];
   payments: EventPaymentDto[];
   fee: EventFeeDto;
+  emptyBanners?: EmptyBannerDto[];
 }
 
 export enum PreventPromoTypeEnum {
@@ -138,6 +140,7 @@ export interface Prevent {
   startDate: Date;
   endDate: Date;
   featured: boolean;
+  order?: number | null;
   promoType: PreventPromoTypeEnum;
   promoPackSize?: number | null;
   promoPayFor?: number | null;
@@ -190,8 +193,10 @@ export enum ClientTypeEnum {
 }
 
 export interface PreferenceData {
+  init_point: string;
   preferenceId: string;
   publicKey: string;
+  order?: LiveOrderSummary;
 }
 
 export interface MercadoPagoConfigDto {
@@ -416,6 +421,26 @@ export interface EventPaymentDto {
   paymentMethod: PaymentMethodDto;
 }
 
+export enum EmptyBannerModule {
+  EXPERIENCES = 'EVENT_EXPERIENCES',
+  PRODUCTS = 'EVENT_PRODUCTS',
+  COMBOS = 'EVENT_COMBOS',
+}
+
+export interface EmptyBannerDto {
+  id: number;
+  module: EmptyBannerModule | string;
+  eventId: number;
+  title: string;
+  description: string;
+  image: string | null;
+  actionLabel: string | null;
+  actionUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
 export interface InEventPurchaseData {
   buyer: ProductBuyerInfo;
   products: PurchaseProductItem[];
@@ -447,6 +472,73 @@ export interface InEventPurchasePayload {
 export class ExperienceItemDto {
   experienceId: number;
   quantity: number;
+}
+
+export enum LiveOrderStateEnum {
+  PENDING = "PENDING",
+  CONFIRMED = "CONFIRMED",
+  PREPARING = "PREPARING",
+  READY = "READY",
+  DELIVERED = "DELIVERED",
+  CANCELLED = "CANCELLED"
+}
+
+export interface LiveOrderStatusDto {
+  id: number;
+  pickupCode: string;
+  status: LiveOrderStateEnum;
+  qrCode: string | null;
+  total: number;
+  updatedAt: string;
+  pickupMessage?: string | null;
+}
+
+export interface LiveOrderSummary {
+  id: number;
+  token: string;
+  status: LiveOrderStateEnum;
+  channel: string;
+  voucherId: number;
+  eventId: number;
+  clientEmail: string;
+  clientName: string;
+  docNumber: string;
+  pickupCode: string;
+  confirmedAt: string | null;
+  readyAt: string | null;
+  deliveredAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface StoredLiveOrderSnapshot {
+  eventId: number;
+  orderId: number;
+  token: string;
+  pickupCode: string;
+  paymentMethod: "cash" | "mercadopago";
+  createdAt: string;
+  notificationEndpoint?: string | null;
+}
+
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  expirationTime: number | null;
+  keys?: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+export interface PushSubscriptionPayload {
+  endpoint: string;
+  expirationTime: number | null;
+  keys?: {
+    p256dh: string;
+    auth: string;
+  };
 }
 
 export type CouponDiscountType = 'PERCENT' | 'AMOUNT';

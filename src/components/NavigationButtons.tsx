@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Check, Ticket } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Ticket, ScanBarcode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SmallSpinner from './SmallSpinner';
 import MercadoPagoButton from './MercadoPago';
@@ -153,8 +153,8 @@ const NavigationButtonsComponent: React.FC<NavigationButtonsProps> = ({
     const hideNext = isMercadoPagoSelected && isConfirmationStep && !!mpPreferenceId;
 
     if (isInitialStep) {
-      text = !eventStarted ? 'Comprar Tickets' : 'Comprar Productos';
-      icon = <Ticket className="w-4 h-4 mr-2" />;
+      text = !eventStarted ? 'Comprar Tickets' : 'Comprar';
+      icon = !eventStarted ? <Ticket className="w-4 h-4 mr-2" /> : <ScanBarcode className="w-4 h-4 mr-2" />;
       klass = 'w-full bg-red-700 hover:bg-red-700/80';
       action = handleNext;
     } else if (isPaymentMethodStep && isMercadoPagoSelected) {

@@ -1,4 +1,5 @@
-import { ApiResponse, Client, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, Participant, PreferenceData, Producer, Voucher } from "./types";
+import { getOrCreateDeviceId } from "./notifications";
+import { ApiResponse, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, LiveOrderSummary, Participant, PreferenceData, Producer, Voucher } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
 
@@ -113,7 +114,7 @@ export async function createPreference(
 }
 
 
-export async function submitLiveEventPurchase(payload: InEventPurchasePayload, eventId: number): Promise<ApiResponse<Voucher>> {
+export async function submitLiveEventPurchase(payload: InEventPurchasePayload, eventId: number): Promise<ApiResponse<{ voucher: Voucher; order: LiveOrderSummary }>> {
   try {
     const url = `${API_URL}/client/purchase/live/${eventId}`;
 
@@ -152,9 +153,7 @@ export async function createLiveEventPreference(
 
     const response = await fetch(`${API_URL}/mercadopago/create/live?event=${eventId}`, {
       method: "POST",
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
@@ -164,6 +163,53 @@ export async function createLiveEventPreference(
     return await response.json();
   } catch (error) {
     console.error("Error submitting ticket form:", error);
+    return { success: false };
+  }
+}
+
+export async function registerLiveOrderPushSubscription(
+  token: string,
+  subscription: PushSubscriptionJSON
+): Promise<ApiResponse<any>> {
+  try {
+    const deviceId = getOrCreateDeviceId();
+    const existing = localStorage.getItem(`subscription_${token}_${deviceId}`);
+
+    const payload = JSON.stringify({ ...subscription, deviceId });
+    if (existing === payload) return { success: true, data: null };
+
+    const response = await fetch(`${API_URL}/orders/track/${token}/notifications`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...subscription, deviceId }),
+    });
+
+    if (!response.ok) throw new Error("Failed to register notification subscription");
+    localStorage.setItem(`subscription_${token}_${deviceId}`, payload);
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error registering notification subscription:", error);
+    return { success: false };
+  }
+}
+
+export async function unregisterLiveOrderPushSubscription(
+  token: string,
+  endpoint: string
+): Promise<ApiResponse<null>> {
+  try {
+    const response = await fetch(`${API_URL}/orders/track/${token}/notifications`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint }),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to unregister notification subscription");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error unregistering notification subscription:", error);
     return { success: false };
   }
 }

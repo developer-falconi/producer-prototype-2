@@ -1,17 +1,19 @@
 import React, { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { ProductEventDto, ComboEventDto, ProductTypeEnum, PurchaseData, PurchaseProductItem, PurchaseComboItem } from "@/lib/types";
+import { ProductEventDto, ComboEventDto, ProductTypeEnum, PurchaseData, PurchaseProductItem, PurchaseComboItem, EmptyBannerDto } from "@/lib/types";
 import { Search, Package, Sandwich } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import ItemCard from "../ItemCard";
 import { FormInput } from "../ui/form-input";
+import { EmptyModuleBanner } from "./EmptyModuleBanner";
 
 interface ProductSelectionProps {
   availableProducts: ProductEventDto[];
   availableCombos: ComboEventDto[];
   purchaseData: PurchaseData;
   onUpdateProductsAndCombos: (products: PurchaseProductItem[], combos: PurchaseComboItem[]) => void;
+  emptyBanner?: EmptyBannerDto | null;
 }
 
 export const ProductSelection: React.FC<ProductSelectionProps> = ({
@@ -19,6 +21,7 @@ export const ProductSelection: React.FC<ProductSelectionProps> = ({
   availableCombos,
   purchaseData,
   onUpdateProductsAndCombos,
+  emptyBanner,
 }) => {
   const [searchText, setSearchText] = useState("");
 
@@ -68,7 +71,11 @@ export const ProductSelection: React.FC<ProductSelectionProps> = ({
   return (
     <div className={cn("px-4 sm:px-6 pb-4 relative overflow-hidden")}>
       {hasNothing ? (
-        <EmptyNotice text="No hay productos ni combos disponibles para este evento." />
+        emptyBanner ? (
+          <EmptyModuleBanner banner={emptyBanner} />
+        ) : (
+          <EmptyNotice text="No hay productos ni combos disponibles para este evento." />
+        )
       ) : (
         <Tabs defaultValue={filteredCombos.length > 0 ? "combos" : "products"} className="w-full relative z-10">
           <TabsList className="grid grid-cols-2 w-full rounded-xl bg-transparent">

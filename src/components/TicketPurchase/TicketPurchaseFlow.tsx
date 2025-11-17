@@ -4,7 +4,7 @@ import { AttendeeData } from './AttendeeData';
 import { PaymentMethod } from './PaymentMethod';
 import { OrderSummary } from './OrderSummary';
 import { ProgressBar } from './ProgressBar';
-import { ClientData, CouponEvent, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, PurchaseExperienceItem, ShareMeta, Voucher } from '@/lib/types';
+import { ClientData, CouponEvent, EmptyBannerModule, EventDto, EventStatus, GenderEnum, Prevent, PreventStatusEnum, PurchaseComboItem, PurchaseData, PurchaseProductItem, PurchaseExperienceItem, ShareMeta, Voucher } from '@/lib/types';
 import { PurchaseStatus } from './PurchaseStatus';
 import { NavigationButtons } from '../NavigationButtons';
 import { motion, AnimatePresence, PanInfo, useDragControls, useAnimate, useMotionValue } from "framer-motion";
@@ -96,6 +96,11 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return initialEvent?.requiresClientData ?? false;
   }, [fullEventDetails?.requiresClientData, initialEvent?.requiresClientData]);
 
+  const getEmptyBanner = useCallback((module: EmptyBannerModule) => {
+    const source = fullEventDetails ?? initialEvent;
+    return source?.emptyBanners?.find((banner) => banner.module === module) ?? null;
+  }, [fullEventDetails, initialEvent]);
+
   const dynamicSteps = useMemo(() => {
     const eventSource = fullEventDetails ?? initialEvent;
     let currentDynamicSteps = [...steps];
@@ -103,20 +108,35 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     const hasProductsOrCombos =
       (eventSource?.products?.length ?? 0) > 0 ||
       (eventSource?.combos?.length ?? 0) > 0;
+    const hasProductsBanner = Boolean(
+      eventSource?.emptyBanners?.some((banner) => banner.module === EmptyBannerModule.PRODUCTS)
+    );
 
-    if (!hasProductsOrCombos) {
+    if (!hasProductsOrCombos && !hasProductsBanner) {
       currentDynamicSteps = currentDynamicSteps.filter(step => step !== 'Productos');
     }
 
     const hasExperiences =
       (eventSource?.experiences ?? []).some(exp => (exp?.children?.length ?? 0) > 0);
+    const hasExperiencesBanner = Boolean(
+      eventSource?.emptyBanners?.some((banner) => banner.module === EmptyBannerModule.EXPERIENCES)
+    );
 
-    if (!hasExperiences) {
+    if (!hasExperiences && !hasExperiencesBanner) {
       currentDynamicSteps = currentDynamicSteps.filter(step => step !== 'Experiencias');
     }
 
     return currentDynamicSteps;
   }, [fullEventDetails, initialEvent]);
+
+  const statusRetryStep = useMemo(() => {
+    const confirmationIndex = dynamicSteps.findIndex(step => step === 'Confirmacion');
+    if (confirmationIndex >= 0) {
+      return confirmationIndex + 1;
+    }
+    const fallbackIndex = dynamicSteps.length > 1 ? dynamicSteps.length - 1 : 1;
+    return fallbackIndex;
+  }, [dynamicSteps]);
 
   const { producer } = useProducer();
   const tracking = useTracking({ producer, channel: 'prevent' });
@@ -290,19 +310,25 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
           if (resp.success && resp.data) {
             setFullEventDetails(resp.data);
             let initialSelectedPrevent: Prevent | null = null;
+            let shouldPreselectQuantity = false;
 
-            if (resp.data.featuredPrevent && resp.data.prevents.some(p => p.id === resp.data.featuredPrevent!.id)) {
-              initialSelectedPrevent = resp.data.featuredPrevent;
-            } else if (resp.data.prevents.length > 0) {
-              const activePrevents = (resp.data.prevents || []).filter((p: Prevent) => p.status === PreventStatusEnum.ACTIVE && p.quantity > 0);
-              initialSelectedPrevent = activePrevents[0];
+            const featuredPrevent = (resp.data.prevents || []).find(
+              (p: Prevent) =>
+                p.featured &&
+                p.status === PreventStatusEnum.ACTIVE &&
+                p.quantity > 0
+            );
+
+            if (featuredPrevent) {
+              initialSelectedPrevent = featuredPrevent;
+              shouldPreselectQuantity = true;
             }
 
             setPurchaseData(prev => ({
               ...prev,
               selectedPrevent: initialSelectedPrevent,
-              ticketQuantity: initialSelectedPrevent ? 1 : 0,
-              clients: Array.from({ length: initialSelectedPrevent ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
+              ticketQuantity: shouldPreselectQuantity ? 1 : 0,
+              clients: Array.from({ length: shouldPreselectQuantity ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
             }));
           } else {
             setErrorDetails("Error al cargar detalles.");
@@ -697,7 +723,9 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     });
     setMpPreferenceId(null);
     setMpGeneratingPreference(false);
-  }, []);
+    setSubmissionStatus(null);
+    setSubmissionData(null);
+  }, [setSubmissionStatus, setSubmissionData]);
 
   const handleComplete = useCallback(async () => {
     if (!purchaseRequestPayload) {
@@ -755,6 +783,12 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     getCheckoutCoupon,
     dynamicSteps.length
   ]);
+
+  const handleStatusRetry = useCallback(() => {
+    setSubmissionStatus(null);
+    setSubmissionData(null);
+    setCurrentStep(statusRetryStep);
+  }, [setCurrentStep, setSubmissionStatus, setSubmissionData, statusRetryStep]);
   const handleCloseDrawer = useCallback(async () => {
     await animate(scope.current, { opacity: [1, 0] }, { duration: 0.3 });
 
@@ -878,6 +912,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             availableProducts={fullEventDetails?.products || []}
             availableCombos={fullEventDetails?.combos || []}
             onUpdateProductsAndCombos={handleUpdateProductsAndCombos}
+            emptyBanner={getEmptyBanner(EmptyBannerModule.PRODUCTS)}
           />
         );
       case 'Experiencias': {
@@ -890,6 +925,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             purchaseData={purchaseData}
             experiences={availableExperiences}
             onUpdateExperiences={handleUpdateExperiences}
+            emptyBanner={getEmptyBanner(EmptyBannerModule.EXPERIENCES)}
           />
         );
       }
@@ -918,6 +954,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             status={submissionStatus}
             voucher={submissionData}
             onResetAndClose={handleCloseDrawer}
+            onRetry={handleStatusRetry}
           />
         );
       default:
@@ -1141,7 +1178,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                   {currentStep > 0 && currentStep <= dynamicSteps.length - 1 && (
                     <ProgressBar currentStep={currentStep} steps={dynamicSteps} />
                   )}
-                  <div className="animate-fade-in overflow-hidden">
+                  <div className="animate-fade-in overflow-hidden min-h-0">
                     {renderCurrentStep()}
                   </div>
                 </>

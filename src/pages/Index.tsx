@@ -3,12 +3,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Users, Award, TrendingUp, ExternalLink, ArrowRight } from "lucide-react";
 import Footer from "@/components/Footer";
 import Spinner from "@/components/Spinner";
+import OptimizedImage from "@/components/OptimizedImage";
+import PaymentResult from "@/components/PaymentResult";
 import { useProducer } from "@/context/ProducerContext";
+import { fetchProducerEventDetailData } from "@/lib/api";
+import { imagePresets } from "@/lib/cloudinary";
 import { cn } from "@/lib/utils";
 import { EventDto, PaymentStatus } from "@/lib/types";
-import { fetchProducerEventDetailData } from "@/lib/api";
-import PaymentResult from "@/components/PaymentResult";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CountingNumber } from "@/components/animate-ui/text/counting-number";
 import { useIsMobile } from "@/hooks/use-mobile";
 import EventCarousel from "@/components/EventCarousel";
@@ -19,6 +21,7 @@ const Index = () => {
   const { producer, loadingProducer } = useProducer();
   const isMobile = useIsMobile();
   const location = useLocation();
+  const navigate = useNavigate();
   const { search } = location;
   const tracking = useTracking({ producer, currency: "ARS" });
 
@@ -45,9 +48,19 @@ const Index = () => {
       q.forEach((v, k) => (params[k] = v));
       setPaymentStatus({ status, params });
       setPaymentEventId(eid);
-      window.history.replaceState({}, document.title, window.location.pathname);
+      if (!q.get("order")) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const orderParam = params.get("order");
+    if (!orderParam) return;
+    if (location.pathname.startsWith("/events")) return;
+    navigate(`/events${location.search}`, { replace: true });
+  }, [location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (!paymentEventId || !producer) return;
@@ -100,6 +113,12 @@ const Index = () => {
     return featuredEvents.length > 0 ? featuredEvents : producer.events.slice(0, 3);
   }, [featuredEvents, producer]);
 
+  const heroPrimaryImage = eventsForHeroCarousel[0]?.flyer || producer?.logo || null;
+
+  const heroPoster = useMemo(() => {
+    return heroPrimaryImage ? imagePresets.hero(heroPrimaryImage) : undefined;
+  }, [heroPrimaryImage]);
+
   const handleHeroCta = useCallback(() => {
     if (eventsForHeroCarousel[0]) {
       tracking.selectFromList("Hero CTA", eventsForHeroCarousel[0]);
@@ -119,24 +138,22 @@ const Index = () => {
 
   const meta = useMemo(() => {
     const siteName = producer?.name || "Produtik";
-    const subtitle =
-      producer?.webDetails?.subtitle || "Explorando nuevas fronteras en la creación de eventos únicos.";
+    const subtitle = producer?.webDetails?.subtitle || "Explorando nuevas fronteras en la creación de eventos únicos.";
     const title = `Inicio — ${siteName}`;
     const description = subtitle.length > 180 ? subtitle.slice(0, 177) + "…" : subtitle;
 
     const origin = typeof window !== "undefined" ? window.location.origin : "https://example.com";
-    const url =
-      typeof window !== "undefined" ? `${origin}${location.pathname}${location.search}` : `${origin}/`;
+    const url = typeof window !== "undefined" ? `${origin}${location.pathname}${location.search}` : `${origin}/`;
 
-    const ogImage = eventsForHeroCarousel[0]?.flyer || producer?.logo || "/og-default.jpg";
-    const favicon = producer?.logo || "/favicon.svg";
+    const ogImage = heroPrimaryImage ? imagePresets.og(heroPrimaryImage) : "/og-default.jpg";
+    const favicon = producer?.logo ? imagePresets.avatar(producer.logo) : "/favicon.png";
 
     const orgLd = {
       "@context": "https://schema.org",
       "@type": "Organization",
       name: siteName,
       url: origin,
-      logo: producer?.logo || undefined,
+      logo: producer?.logo ? imagePresets.avatar(producer.logo) : undefined,
       sameAs: producer?.instagram ? [`https://instagram.com/${producer.instagram}`] : undefined,
     };
 
@@ -173,7 +190,7 @@ const Index = () => {
         : null;
 
     return { siteName, title, description, url, ogImage, favicon, orgLd, siteLd, eventsLd };
-  }, [producer, eventsForHeroCarousel, location.pathname, location.search]);
+  }, [producer, eventsForHeroCarousel, location.pathname, location.search, heroPrimaryImage]);
 
   const heroVideoUrl = useMemo(() => {
     const fallback = "/fallbackvideo.mp4";
@@ -293,7 +310,7 @@ const Index = () => {
                 preload="auto"
                 onPlaying={() => setVideoStarted(true)}
                 aria-hidden="true"
-                poster={eventsForHeroCarousel[0]?.flyer || producer.logo}
+                poster={heroPoster || undefined}
               />
             )}
             <div className="absolute inset-0 bg-slate-950/20 z-[1]" />
@@ -310,6 +327,7 @@ const Index = () => {
                 eventsForHeroCarousel.length > 0 ? "md:w-1/2 md:items-start" : "max-w-4xl"
               )}
             >
+        
               <motion.h1
                 className={cn(
                   "font-extrabold mb-5 leading-tight drop-shadow-lg text-center w-full text-[#951f1f]",
@@ -320,15 +338,17 @@ const Index = () => {
                 transition={{ duration: 0.45, delay: 0.2 }}
               >
                 {producer.logo && (
-                  <img
+                  <OptimizedImage
                     src={producer.logo}
                     alt={`Logo de ${producer.name}`}
-                    className={cn(
-                      "block rounded-full mx-auto mb-4 object-cover ring-1 ring-white/15",
+                    transformOptions={{ width: 512, height: 512, crop: "fit", gravity: "center", quality: "auto:good" }}
+                    wrapperClassName={cn(
+                      "mx-auto mb-4 rounded-full ring-1 ring-white/15",
                       eventsForHeroCarousel.length > 0 ? "h-20 w-20 md:h-48 md:w-48" : "h-24 w-24 md:h-64 md:w-64"
                     )}
-                    loading="lazy"
+                    className="object-contain"
                     decoding="async"
+                    loading="eager"
                   />
                 )}
                 {producer.name}
