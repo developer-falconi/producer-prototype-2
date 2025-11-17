@@ -90,12 +90,16 @@ export const getOptimizedImageUrl = (
       if (width) resizeAction.width(width);
       if (height) resizeAction.height(height);
 
-      if (gravity === "auto") {
-        resizeAction.gravity(autoGravity());
-      } else if (gravity === "face") {
-        resizeAction.gravity(focusOn(FocusOn.face()));
-      } else if (gravity === "faces") {
-        resizeAction.gravity(focusOn(FocusOn.faces()));
+      const canApplyGravity = typeof (resizeAction as any)?.gravity === "function";
+
+      if (canApplyGravity) {
+        if (gravity === "auto") {
+          resizeAction.gravity(autoGravity());
+        } else if (gravity === "face") {
+          resizeAction.gravity(focusOn(FocusOn.face()));
+        } else if (gravity === "faces") {
+          resizeAction.gravity(focusOn(FocusOn.faces()));
+        }
       }
 
       cldImage.resize(resizeAction);
@@ -153,7 +157,7 @@ export const getResponsiveImageUrls = (
   }
 
   const widths = [320, 640, 768, 1024, 1280, 1536, 1920];
-  
+
   const srcSet = widths
     .map((w) => {
       const url = getOptimizedImageUrl(imageUrl, { ...options, width: w });
@@ -192,7 +196,7 @@ export const imagePresets = {
       gravity: "auto",
       quality: "auto:eco",
     }),
-  
+
   card: (url: string) =>
     getOptimizedImageUrl(url, {
       width: 400,
@@ -201,7 +205,7 @@ export const imagePresets = {
       gravity: "auto",
       quality: "auto:eco",
     }),
-  
+
   hero: (url: string) =>
     getOptimizedImageUrl(url, {
       width: 1920,
@@ -210,7 +214,7 @@ export const imagePresets = {
       gravity: "auto",
       quality: "auto:best",
     }),
-  
+
   avatar: (url: string) =>
     getOptimizedImageUrl(url, {
       width: 150,
@@ -219,7 +223,7 @@ export const imagePresets = {
       gravity: "face",
       quality: "auto:eco",
     }),
-  
+
   og: (url: string) =>
     getOptimizedImageUrl(url, {
       width: 1200,
