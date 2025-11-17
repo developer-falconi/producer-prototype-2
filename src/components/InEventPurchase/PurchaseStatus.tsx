@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
-import { Check, CheckCircle, CheckCircle2, Circle, CircleDot, ClipboardCheck, ClipboardCopy, Loader2, PackageCheck, PartyPopper, QrCode, RefreshCw, Share2, Soup, Sparkles, XCircle } from "lucide-react";
+import { Check, CheckCircle, CheckCircle2, Circle, CircleDot, ClipboardCheck, ClipboardCopy, Info, Loader2, PackageCheck, PartyPopper, QrCode, RefreshCw, Share2, Soup, Sparkles, XCircle } from "lucide-react";
 import { cn, formatPrice, generateQrCode } from "@/lib/utils";
 import { LiveOrderStateEnum, LiveOrderStatusDto } from "@/lib/types";
 import React from "react";
@@ -84,6 +84,8 @@ interface PurchaseStatusProps {
   pendingOrder: LiveOrderStatusDto | null;
   onClose: () => void;
   onClearOrder: () => void;
+  errorMessage?: string | null;
+  onRetry?: () => void;
 }
 
 export default function PurchaseStatus({
@@ -91,6 +93,8 @@ export default function PurchaseStatus({
   pendingOrder,
   onClose,
   onClearOrder,
+  errorMessage,
+  onRetry,
 }: PurchaseStatusProps) {
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
@@ -103,6 +107,9 @@ export default function PurchaseStatus({
   const currentState: LiveOrderStateEnum = order?.status ?? LiveOrderStateEnum.PENDING;
   const statusCopy = STATE_COPY[currentState];
   const visual = STATUS_VISUALS[currentState];
+  const isErrorState = Boolean(errorMessage);
+  const displayTitle = isErrorState ? "No pudimos registrar tu pedido" : statusCopy?.title;
+  const displayDescription = errorMessage ?? statusCopy?.description;
 
   const codeString = purchaseCode || order?.pickupCode || "—";
   const qrValue = useMemo(() => order?.qrCode || order?.pickupCode || (codeString !== "—" ? codeString : null), [order, codeString]);
@@ -183,195 +190,225 @@ export default function PurchaseStatus({
 
   return (
     <motion.div
-      className="relative p-6"
+      className="relative flex-1 h-full min-h-full w-full flex flex-col items-center justify-between text-center p-6 overflow-hidden"
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
     >
       <div className="pointer-events-none absolute -top-24 -right-16 h-72 w-72 rounded-full bg-rose-500/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 -left-12 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
-      <div className="relative z-10 space-y-3 text-center">
-        <span
+      <div className="relative z-10 text-center">
+        <motion.h2
           className={cn(
-            "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold tracking-wide uppercase",
+            "text-xl font-extrabold tracking-tight text-white mb-4",
             isDanger
-              ? "bg-rose-500/15 border-rose-400/30 text-rose-200"
+              ? "text-rose-200"
               : isDelivered
-                ? "bg-emerald-500/15 border-emerald-400/30 text-emerald-200"
-                : "bg-amber-500/15 border-amber-400/30 text-amber-100"
+                ? "text-emerald-200"
+                : "text-amber-100"
           )}
         >
-          {statusCopy?.title}
-        </span>
-      </div>
-
-      <div className="relative z-10 grid gap-6 lg:grid-cols-2 w-full min-w-0 mt-4">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2 min-w-0 lg:overflow-y-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col text-left">
-              <span className="text-xs text-zinc-400">Código de pedido</span>
-              <span className="font-mono text-lg text-white">{codeString}</span>
-            </div>
-            <div className="flex flex-col md:flex-row items-center gap-2">
-              <button
-                onClick={copyCode}
-                className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs text-white border border-white/15 hover:bg-white/15"
-              >
-                {copied ? <Sparkles className="h-3.5 w-3.5" /> : <ClipboardCopy className="h-3.5 w-3.5" />}
-                {copied ? "Copiado" : "Copiar"}
-              </button>
-              {canShare && (
-                <button
-                  onClick={shareCode}
-                  className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs text-white border border-white/15 hover:bg-white/15"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Compartir
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-black/30 border border-white/5 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-300">
-                  Total: {' '}
-                  {totalAmount !== null ? formatPrice(totalAmount) : "Calculando..."}
-                </p>
-              </div>
-              {lastUpdate && <p className="text-xs text-zinc-400">Actualizado {lastUpdate}</p>}
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-black/30 border border-white/5 p-4">
-            <ol className="relative space-y-4">
-              {STATUS_STEPS.map((step, idx) => {
-                const isCompleted = activeIndex > idx;
-                const isActive = activeIndex === idx;
-
-                return (
-                  <li key={step.state} className="relative flex items-start gap-3">
-                    {idx < STATUS_STEPS.length - 1 && (
-                      <div
-                        className={cn(
-                          "absolute left-3.5 top-9 -bottom-4 w-px",
-                          isCompleted ? "bg-emerald-400" : "bg-zinc-700",
-                          isDanger && 'bg-red-500/20'
-                        )}
-                        aria-hidden="true"
-                      />
-                    )}
-
-                    {/* Icono del paso */}
-                    <div
-                      className={cn(
-                        "relative z-10 h-7 w-7 rounded-full flex items-center justify-center",
-                        isDanger && (isCompleted || isActive) ? "bg-rose-500/20 text-rose-300" :
-                          isCompleted ? "bg-emerald-500/20 text-emerald-300" :
-                            isActive ? "bg-blue-500/20 text-blue-300" :
-                              "bg-zinc-800 text-zinc-500"
-                      )}
-                    >
-                      {isCompleted ? <Check className="h-4 w-4" /> :
-                        isActive ? (STEP_ICONS[step.state] || <CircleDot className="h-4 w-4 animate-pulse" />) :
-                          <Circle className="h-4 w-4" />
-                      }
-                    </div>
-
-                    {/* Texto del paso */}
-                    <div>
-                      <p className={cn(
-                        "text-sm font-semibold",
-                        isCompleted || isActive ? "text-white" : "text-zinc-400"
-                      )}>
-                        {step.title}
-                      </p>
-                      <p className="text-xs text-zinc-500">{step.helper}</p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
-        </div>
-
-        {currentState === "READY" && !isFinal && (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col items-center justify-center gap-4 min-w-0 lg:overflow-y-auto">
-            <>
-              <div className="w-full flex items-center justify-between text-xs text-zinc-400">
-                <span>Mostrá este QR en la barra</span>
-                {loadingQr && (
-                  <span className="inline-flex items-center gap-1 text-emerald-200">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Generando...
-                  </span>
-                )}
-              </div>
-
-              <div
-                className="relative bg-white rounded-2xl shadow-xl w-full max-w-[260px] mx-auto min-h-[248px] flex items-center justify-center p-4"
-                aria-busy={loadingQr}
-              >
-                {qrSrc && !qrError && (
-                  <img src={qrSrc} alt="Código QR" className="w-[220px] h-[220px]" draggable={false} />
-                )}
-                {!qrSrc && !qrError && (
-                  <div className="w-[220px] h-[220px] rounded bg-zinc-200 relative overflow-hidden">
-                    <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-zinc-200 via-zinc-100 to-zinc-200" />
-                  </div>
-                )}
-                {qrError && (
-                  <div className="flex flex-col items-center gap-2 text-center">
-                    <span className="text-sm text-rose-400">{qrError}</span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-white/20 text-white"
-                      onClick={reloadQr}
-                    >
-                      <RefreshCw className="h-3 w-3 mr-2" />
-                      Reintentar
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 w-full max-w-[260px] mx-auto">
-                {qrSrc && (
-                  <a href={qrSrc} download={`pedido-${codeString}.png`} className="w-full">
-                    <Button className="w-full bg-blue-800 hover:bg-blue-800/80 text-white">Descargar QR</Button>
-                  </a>
-                )}
-                <Button
-                  variant="outline"
-                  className="w-full border-white/20 hover:bg-gray-300"
-                  onClick={copyCode}
-                >
-                  {copied ? "Copiado" : "Copiar código"}
-                </Button>
-              </div>
-            </>
-
-            {currentState !== "READY" && !isFinal && (
-              <div className={cn("flex flex-col items-center justify-center text-center gap-4 p-8", visual.classes)}>
-                {visual.icon}
-                <p className="text-sm text-zinc-400 max-w-xs">
-                  {isFinal
-                    ? "Ya no necesitás el QR para este pedido."
-                    : "Tu QR aparecerá acá apenas el pedido esté listo para retirar."}
-                </p>
-              </div>
+          {displayTitle}
+        </motion.h2>
+        {displayDescription && (
+          <motion.div
+            className={cn(
+              "mx-auto my-4 flex max-w-sm items-center gap-2 rounded-2xl px-4 py-2 text-sm",
+              isErrorState ? "text-rose-200 border border-rose-500/60 bg-rose-500/10" : "text-zinc-300"
             )}
-          </div>
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+          >
+            <Info className="h-4 w-4" />
+            <span>{displayDescription}</span>
+          </motion.div>
         )}
       </div>
 
-      <div className="relative z-10 flex flex-col md:flex-row gap-3 w-full max-w-xl mx-auto mt-4">
+      {!isErrorState && (
+        <div className="relative z-10 grid gap-6 lg:grid-cols-2 w-full min-w-0 mt-4">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col gap-2 min-w-0 lg:overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col text-left">
+                <span className="text-xs text-zinc-400">Código de pedido</span>
+                <span className="font-mono text-lg text-white">{codeString}</span>
+              </div>
+              <div className="flex flex-col md:flex-row items-center gap-2">
+                <button
+                  onClick={copyCode}
+                  className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs text-white border border-white/15 hover:bg-white/15"
+                >
+                  {copied ? <Sparkles className="h-3.5 w-3.5" /> : <ClipboardCopy className="h-3.5 w-3.5" />}
+                  {copied ? "Copiado" : "Copiar"}
+                </button>
+                {canShare && (
+                  <button
+                    onClick={shareCode}
+                    className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs text-white border border-white/15 hover:bg-white/15"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Compartir
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-black/30 border border-white/5 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-zinc-300">
+                    Total: {' '}
+                    {totalAmount !== null ? formatPrice(totalAmount) : "Calculando..."}
+                  </p>
+                </div>
+                {lastUpdate && <p className="text-xs text-zinc-400">Actualizado {lastUpdate}</p>}
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-black/30 border border-white/5 p-4">
+              <ol className="relative space-y-4">
+                {STATUS_STEPS.map((step, idx) => {
+                  const isCompleted = activeIndex > idx;
+                  const isActive = activeIndex === idx;
+
+                  return (
+                    <li key={step.state} className="relative flex items-start gap-3">
+                      {idx < STATUS_STEPS.length - 1 && (
+                        <div
+                          className={cn(
+                            "absolute left-3.5 top-9 -bottom-4 w-px",
+                            isCompleted ? "bg-emerald-400" : "bg-zinc-700",
+                            isDanger && 'bg-red-500/20'
+                          )}
+                          aria-hidden="true"
+                        />
+                      )}
+
+                      {/* Icono del paso */}
+                      <div
+                        className={cn(
+                          "relative z-10 h-7 w-7 rounded-full flex items-center justify-center",
+                          isDanger && (isCompleted || isActive) ? "bg-rose-500/20 text-rose-300" :
+                            isCompleted ? "bg-emerald-500/20 text-emerald-300" :
+                              isActive ? "bg-blue-500/20 text-blue-300" :
+                                "bg-zinc-800 text-zinc-500"
+                        )}
+                      >
+                        {isCompleted ? <Check className="h-4 w-4" /> :
+                          isActive ? (STEP_ICONS[step.state] || <CircleDot className="h-4 w-4 animate-pulse" />) :
+                            <Circle className="h-4 w-4" />
+                        }
+                      </div>
+
+                      {/* Texto del paso */}
+                      <div>
+                        <p className={cn(
+                          "text-sm font-semibold",
+                          isCompleted || isActive ? "text-white" : "text-zinc-400"
+                        )}>
+                          {step.title}
+                        </p>
+                        <p className="text-xs text-zinc-500">{step.helper}</p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          </div>
+
+          {currentState === "READY" && !isFinal && (
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col items-center justify-center gap-4 min-w-0 lg:overflow-y-auto">
+              <>
+                <div className="w-full flex items-center justify-between text-xs text-zinc-400">
+                  <span>Mostrá este QR en la barra</span>
+                  {loadingQr && (
+                    <span className="inline-flex items-center gap-1 text-emerald-200">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Generando...
+                    </span>
+                  )}
+                </div>
+
+                <div
+                  className="relative bg-white rounded-2xl shadow-xl w-full max-w-[260px] mx-auto min-h-[248px] flex items-center justify-center p-4"
+                  aria-busy={loadingQr}
+                >
+                  {qrSrc && !qrError && (
+                    <img src={qrSrc} alt="Código QR" className="w-[220px] h-[220px]" draggable={false} />
+                  )}
+                  {!qrSrc && !qrError && (
+                    <div className="w-[220px] h-[220px] rounded bg-zinc-200 relative overflow-hidden">
+                      <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-zinc-200 via-zinc-100 to-zinc-200" />
+                    </div>
+                  )}
+                  {qrError && (
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <span className="text-sm text-rose-400">{qrError}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-white/20 text-white"
+                        onClick={reloadQr}
+                      >
+                        <RefreshCw className="h-3 w-3 mr-2" />
+                        Reintentar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 w-full max-w-[260px] mx-auto">
+                  {qrSrc && (
+                    <a href={qrSrc} download={`pedido-${codeString}.png`} className="w-full">
+                      <Button className="w-full bg-blue-800 hover:bg-blue-800/80 text-white">Descargar QR</Button>
+                    </a>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="w-full border-white/20 hover:bg-gray-300"
+                    onClick={copyCode}
+                  >
+                    {copied ? "Copiado" : "Copiar código"}
+                  </Button>
+                </div>
+              </>
+
+              {currentState !== "READY" && !isFinal && (
+                <div className={cn("flex flex-col items-center justify-center text-center gap-4 p-8", visual.classes)}>
+                  {visual.icon}
+                  <p className="text-sm text-zinc-400 max-w-xs">
+                    {isFinal
+                      ? "Ya no necesitás el QR para este pedido."
+                      : "Tu QR aparecerá acá apenas el pedido esté listo para retirar."}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="relative z-10 flex gap-3 w-full max-w-xl mx-auto mt-8">
+        {errorMessage && onRetry && !isFinal && (
+          <Button
+            onClick={onRetry}
+            variant="outline"
+            className="w-full h-11 font-semibold rounded-xl"
+          >
+            Reintentar
+          </Button>
+        )}
         {!isFinal && (
           <Button
             onClick={onClose}
-            className="w-full h-11 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:brightness-110 text-white font-semibold rounded-xl"
+            className={cn(
+              "w-full h-11 text-white font-semibold rounded-xl",
+              isDelivered
+                ? "bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:brightness-110"
+                : "bg-gradient-to-r from-rose-600 via-rose-700 to-rose-800 hover:brightness-110"
+            )}
           >
             Cerrar
           </Button>
@@ -396,3 +433,4 @@ export default function PurchaseStatus({
     </motion.div>
   );
 }
+
