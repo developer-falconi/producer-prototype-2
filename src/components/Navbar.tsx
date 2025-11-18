@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, Ticket, Images } from "lucide-react";
+import { Home, Ticket, Images, TicketSlash } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useProducer } from "@/context/ProducerContext";
@@ -8,7 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 const navItems = [
   { path: "/", label: "Inicio", icon: <Home size={20} /> },
   { path: "/events", label: "Eventos", icon: <Ticket size={20} /> },
-  { path: "/gallery", label: "Galería", icon: <Images size={20} /> }
+  { path: "/gallery", label: "Galería", icon: <Images size={20} /> },
+  // { path: "/devoluciones", label: "Devoluciones", icon: <TicketSlash size={20} />, },
 ];
 
 const Navbar = () => {
@@ -32,14 +33,15 @@ const Navbar = () => {
     </Link>
   );
 
-  if (!producer) return
+  if (!producer) return null;
 
   return (
-    <nav className={cn(
-      "fixed inset-x-0 z-40 bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60",
-      isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
-    )}>
-
+    <nav
+      className={cn(
+        "fixed inset-x-0 z-40 bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60",
+        isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
+      )}
+    >
       <div className="max-w-7xl mx-auto px-4">
         {isMobile ? (
           <div className="flex justify-around items-center h-12">
@@ -47,22 +49,17 @@ const Navbar = () => {
           </div>
         ) : (
           <div className="flex items-center justify-between h-16">
-            <>
-              <Link
-                to={`/${search}`}
-                className="flex items-center gap-2 font-medium text-white hover:scale-105 transition"
-              >
-                <Avatar>
-                  <AvatarImage src={producer?.logo} alt={producer?.name || 'logo'} />
-                  <AvatarFallback>{producer?.name}</AvatarFallback>
-                </Avatar>
-                {producer?.name}
-              </Link>
-            </>
-
-            <div className="flex items-center space-x-8">
-              {navItems.slice(0, 3).map(renderLink)}
-            </div>
+            <Link
+              to={`/${search}`}
+              className="flex items-center gap-2 font-medium text-white hover:scale-105 transition"
+            >
+              <Avatar>
+                <AvatarImage src={producer?.logo} alt={producer?.name || "logo"} />
+                <AvatarFallback>{producer?.name}</AvatarFallback>
+              </Avatar>
+              {producer?.name}
+            </Link>
+            <div className="flex items-center space-x-8">{navItems.map(renderLink)}</div>
           </div>
         )}
       </div>

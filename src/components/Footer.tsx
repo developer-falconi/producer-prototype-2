@@ -43,6 +43,12 @@ const Footer = ({ producer }: { producer: Producer }) => {
               >
                 Galería
               </a>
+              <a
+                href="/devoluciones"
+                className="block text-white hover:text-[#001B97] transition-colors duration-300"
+              >
+                Devoluciones
+              </a>
             </div>
           </div>
 

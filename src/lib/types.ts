@@ -565,6 +565,17 @@ export interface CouponEvent {
   totalDiscountAmount: string;
 }
 
+export interface ReturnRequestPayload {
+  eventId: number;
+  fullName: string;
+  docNumber: string;
+  email: string;
+  phone: string;
+  orderReference: string;
+  ticketCount: number;
+  reason: string;
+}
+
 export interface CourtesyDto {
   eventId: number;
   eventName: string;
