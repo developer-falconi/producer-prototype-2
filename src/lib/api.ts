@@ -1,5 +1,5 @@
 import { getOrCreateDeviceId } from "./notifications";
-import { ApiResponse, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, LiveOrderSummary, Participant, PreferenceData, Producer, Voucher } from "./types";
+import { ApiResponse, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, LiveOrderSummary, Participant, PreferenceData, Producer, ReturnRequestPayload, Voucher } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
 
@@ -164,6 +164,33 @@ export async function createLiveEventPreference(
   } catch (error) {
     console.error("Error submitting ticket form:", error);
     return { success: false };
+  }
+}
+
+export async function submitReturnRequest(
+  payload: ReturnRequestPayload
+): Promise<ApiResponse<ReturnRequestPayload>> {
+  try {
+    const response = await fetch(`${API_URL}/refund`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to submit return request");
+    }
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.message || "No se pudo registrar la devolución");
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error submitting return request:", error);
+    const message = error instanceof Error ? error.message : "Error procesando la solicitud";
+    throw new Error(message);
   }
 }
 
