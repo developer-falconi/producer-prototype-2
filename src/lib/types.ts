@@ -565,6 +565,11 @@ export interface CouponEvent {
   totalDiscountAmount: string;
 }
 
+export enum PaymentMethodEnum {
+  MERCADO_PAGO = 'MERCADO PAGO',
+  TRANSFER = 'TRANSFER'
+}
+
 export interface ReturnRequestPayload {
   eventId: number;
   fullName: string;
@@ -574,6 +579,9 @@ export interface ReturnRequestPayload {
   orderReference: string;
   ticketCount: number;
   reason: string;
+  paymentMethod: PaymentMethodEnum;
+  bank?: string;
+  accountReference?: string;
 }
 
 export interface CourtesyDto {

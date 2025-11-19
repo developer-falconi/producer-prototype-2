@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 
 import { useProducer } from "@/context/ProducerContext";
-import { ApiResponse, EventStatus, ReturnRequestPayload } from "@/lib/types";
+import { ApiResponse, EventStatus, PaymentMethodEnum, ReturnRequestPayload } from "@/lib/types";
 import { cn, formatEventDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,23 +18,47 @@ import Spinner from "@/components/Spinner";
 import Footer from "@/components/Footer";
 import { submitReturnRequest } from "@/lib/api";
 
-const DevolucionSchema = z.object({
-  eventId: z.string().min(1, "Selecciona el evento asociado a la devolución"),
-  fullName: z.string().min(3, "Ingresa tu nombre completo"),
-  docNumber: z.string().min(6, "Documento inválido"),
-  email: z.string().email("Correo inválido"),
-  phone: z
-    .string()
-    .min(6, "Teléfono inválido")
-    .regex(/^[0-9+\-() ]+$/, "Solo números y símbolos + - ( )"),
-  orderReference: z.string().optional(),
-  // orderReference: z.string().min(3, "Cuéntanos tu número de compra o reserva"),
-  ticketCount: z.coerce
-    .number()
-    .min(1, "Indica al menos una entrada")
-    .max(20, "Si tenías más de 20 entradas, mándanos un mensaje directo"),
-  reason: z.string().min(15, "Explícanos por qué necesitas la devolución"),
-});
+const DevolucionSchema = z
+  .object({
+    eventId: z.string().min(1, "Selecciona el evento asociado a la devolución"),
+    fullName: z.string().min(3, "Ingresa tu nombre completo"),
+    docNumber: z.string().min(6, "Documento inválido"),
+    email: z.string().email("Correo inválido"),
+    phone: z
+      .string()
+      .min(6, "Teléfono inválido")
+      .regex(/^[0-9+\-() ]+$/, "Solo números y símbolos + - ( )"),
+    orderReference: z.string().optional(),
+    ticketCount: z.coerce
+      .number()
+      .min(1, "Indica al menos una entrada")
+      .max(20, "Si tenías más de 20 entradas, mándanos un mensaje directo"),
+    reason: z.string().min(15, "Explícanos por qué necesitas la devolución"),
+    paymentMethod: z.nativeEnum(PaymentMethodEnum, {
+      required_error: "Selecciona un método de pago",
+    }),
+    bank: z.string().optional(),
+    accountReference: z.string().optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.paymentMethod === PaymentMethodEnum.TRANSFER) {
+      if (!values.bank?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["bank"],
+          message: "Indica el banco para la transferencia",
+        });
+      }
+
+      if (!values.accountReference?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["accountReference"],
+          message: "Agrega el CBU o alias de la cuenta",
+        });
+      }
+    }
+  });
 
 type DevolucionForm = z.infer<typeof DevolucionSchema>;
 
@@ -47,15 +71,16 @@ const defaultValues: DevolucionForm = {
   orderReference: "",
   ticketCount: 1,
   reason: "",
+  paymentMethod: PaymentMethodEnum.MERCADO_PAGO,
+  bank: "",
+  accountReference: "",
 };
 
 const Devoluciones = () => {
   const { producer, loadingProducer } = useProducer();
   const activeEvents = useMemo(
     () =>
-      producer?.events
-        ?.filter((event) => event.status === EventStatus.ACTIVE)
-        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()) ?? [],
+      producer?.events.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()) ?? [],
     [producer]
   );
 
@@ -77,6 +102,7 @@ const Devoluciones = () => {
   });
 
   const selectedEventId = watch("eventId");
+  const paymentMethod = watch("paymentMethod");
   const selectedEvent = useMemo(
     () => activeEvents.find((event) => String(event.id) === selectedEventId),
     [activeEvents, selectedEventId]
@@ -96,6 +122,15 @@ const Devoluciones = () => {
       orderReference: values.orderReference ?? "",
       ticketCount: values.ticketCount,
       reason: values.reason,
+      paymentMethod: values.paymentMethod,
+      bank:
+        values.paymentMethod === PaymentMethodEnum.TRANSFER
+          ? values.bank?.trim() ?? ""
+          : undefined,
+      accountReference:
+        values.paymentMethod === PaymentMethodEnum.TRANSFER
+          ? values.accountReference?.trim() ?? ""
+          : undefined,
     };
 
     try {
@@ -200,7 +235,7 @@ const Devoluciones = () => {
 
               {selectedEvent && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                  <p className="text-xs uppercase text-slate-500">Detalles del evento</p>
+                  <p className="text-xs uppercase text-slate-5 00">Detalles del evento</p>
                   <p className="text-base font-semibold text-white">{selectedEvent.name}</p>
                   <p>
                     {formatEventDate(selectedEvent.startDate)} · {selectedEvent.location}
@@ -260,7 +295,7 @@ const Devoluciones = () => {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-1">
                   <Label htmlFor="orderReference">Número de compra o reserva</Label>
                   <Input
@@ -288,7 +323,92 @@ const Devoluciones = () => {
                     <p className="text-xs text-destructive">{errors.ticketCount.message}</p>
                   )}
                 </div>
+                <div className="space-y-1">
+                  <Label htmlFor="paymentMethod">Método de pago</Label>
+                  <Select
+                    value={paymentMethod}
+                    onValueChange={(value) =>
+                      setValue("paymentMethod", value as DevolucionForm["paymentMethod"], {
+                        shouldTouch: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger
+                      className={cn(
+                        "h-10 w-full rounded-xl px-3",
+                        "bg-white/5 text-white placeholder:text-white/60",
+                        "border border-white/10 shadow-sm",
+                        "transition-[border,box-shadow,background] duration-200",
+                        "hover:bg-white/[0.08] hover:border-white/20",
+                        "focus:outline-none focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500",
+                        "data-[state=open]:ring-2 data-[state=open]:ring-blue-500/60 data-[state=open]:border-blue-500",
+                        "disabled:cursor-not-allowed disabled:opacity-50",
+                        "[&>span[data-slot=icon]]:text-white/70 [&>span[data-slot=icon]]:transition-transform",
+                        "data-[state=open]:[&>span[data-slot=icon]]:rotate-180"
+                      )}
+                    >
+                      <SelectValue placeholder="Selecciona el método de devolución" />
+                    </SelectTrigger>
+                    <SelectContent
+                      side="bottom"
+                      align="start"
+                      className={cn(
+                        "rounded-lg border border-white/10 bg-zinc-900",
+                        "shadow-lg shadow-black/30 text-white",
+                        "max-h-64 overflow-auto",
+                        "animate-in fade-in-0 zoom-in-95"
+                      )}
+                    >
+                      {[PaymentMethodEnum.MERCADO_PAGO, PaymentMethodEnum.TRANSFER].map((method) => (
+                        <SelectItem
+                          key={method}
+                          value={method}
+                          className={cn(
+                            "relative cursor-pointer select-none rounded-lg px-3 py-2 text-sm",
+                            "outline-none transition-colors",
+                            "hover:bg-blue-500/20 hover:text-blue-800",
+                            "data-[state=checked]:bg-blue-600/30 data-[state=checked]:text-white",
+                            "data-[highlighted]:bg-blue-500/25 data-[highlighted]:text-white"
+                          )}
+                        >
+                          {method === PaymentMethodEnum.TRANSFER ? "Transferencia bancaria" : "Mercado Pago"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.paymentMethod && (
+                    <p className="text-xs text-destructive">{errors.paymentMethod.message}</p>
+                  )}
+                </div>
               </div>
+
+              {paymentMethod === PaymentMethodEnum.TRANSFER && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="bank">Banco</Label>
+                    <Input
+                      id="bank"
+                      placeholder="Ej. Banco de la Nación"
+                      {...register("bank")}
+                      className="bg-slate-950/80 text-white border-white/10"
+                    />
+                    {errors.bank && <p className="text-xs text-destructive">{errors.bank.message}</p>}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor="accountReference">CBU o alias</Label>
+                    <Input
+                      id="accountReference"
+                      placeholder="Ej. 1234567890123456789012"
+                      {...register("accountReference")}
+                      className="bg-slate-950/80 text-white border-white/10"
+                    />
+                    {errors.accountReference && (
+                      <p className="text-xs text-destructive">{errors.accountReference.message}</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <Label htmlFor="reason">Motivo de la devolución</Label>
@@ -308,8 +428,11 @@ const Devoluciones = () => {
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={isSubmitting || mutation.isPending || !activeEvents.length}
-                  className="w-full"
+                  disabled={isSubmitting || mutation.isPending || !activeEvents.length || !selectedEvent}
+                  className={cn(
+                    "w-full bg-blue-700 hover:bg-blue-800 text-white",
+                    "disabled:bg-blue-700/50 disabled:text-white/50"
+                  )}
                 >
                   {mutation.isPending || isSubmitting ? "Enviando..." : "Solicitar devolución"}
                 </Button>

@@ -46,7 +46,7 @@ const Footer = ({ producer }: { producer: Producer }) => {
               <a
                 href="/devoluciones"
                 className="block text-white hover:text-[#001B97] transition-colors duration-300"
-              >
+              > 
                 Devoluciones
               </a>
             </div>
