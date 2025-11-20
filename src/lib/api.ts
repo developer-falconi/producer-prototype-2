@@ -2,10 +2,17 @@ import { getOrCreateDeviceId } from "./notifications";
 import { ApiResponse, ClientTypeEnum, CourtesyDto, EventDto, EventImageDto, InEventPurchasePayload, LiveOrderSummary, Participant, PreferenceData, Producer, ReturnRequestPayload, Voucher } from "./types";
 
 const API_URL = import.meta.env.VITE_APP_API_BE;
+const fetchNoStore = (url: string, init: RequestInit = {}) => {
+  const headers = new Headers(init.headers ?? {});
+  headers.set("Cache-Control", "no-store");
+  headers.set("Pragma", "no-cache");
+
+  return fetch(url, { ...init, cache: "no-store", headers });
+};
 
 export async function fetchProducerData(): Promise<ApiResponse<Producer>> {
   try {
-    const response = await fetch(`${API_URL}/producer/domain`);
+    const response = await fetchNoStore(`${API_URL}/producer/domain`);
     if (!response.ok) {
       throw new Error("Failed to fetch producer data");
     }
@@ -18,7 +25,7 @@ export async function fetchProducerData(): Promise<ApiResponse<Producer>> {
 
 export async function fetchProducerEventsData(): Promise<ApiResponse<EventDto[]>> {
   try {
-    const response = await fetch(`${API_URL}/producer/domain/events`);
+    const response = await fetchNoStore(`${API_URL}/producer/domain/events`);
     if (!response.ok) {
       throw new Error("Failed to fetch producer data");
     }
@@ -31,7 +38,7 @@ export async function fetchProducerEventsData(): Promise<ApiResponse<EventDto[]>
 
 export async function fetchProducerEventDetailData(eventId: number): Promise<ApiResponse<EventDto>> {
   try {
-    const response = await fetch(`${API_URL}/producer/domain/event/${eventId}`);
+    const response = await fetchNoStore(`${API_URL}/producer/domain/event/${eventId}`);
     if (!response.ok) {
       throw new Error("Failed to fetch producer data");
     }
@@ -44,7 +51,7 @@ export async function fetchProducerEventDetailData(eventId: number): Promise<Api
 
 export async function fetchProducerGalleryData(): Promise<ApiResponse<EventImageDto[]>> {
   try {
-    const response = await fetch(`${API_URL}/producer/domain/gallery`);
+    const response = await fetchNoStore(`${API_URL}/producer/domain/gallery`);
     if (!response.ok) {
       throw new Error("Failed to fetch producer data");
     }
@@ -243,7 +250,7 @@ export async function unregisterLiveOrderPushSubscription(
 
 export async function validateCoupon(eventId: number, code: string) {
   try {
-    const response = await fetch(`${API_URL}/producer/domain/event/${eventId}/coupon?coupon=${encodeURIComponent(code)}`);
+    const response = await fetchNoStore(`${API_URL}/producer/domain/event/${eventId}/coupon?coupon=${encodeURIComponent(code)}`);
     if (!response.ok) {
       throw new Error("Failed to fetch producer data");
     }
@@ -255,7 +262,7 @@ export async function validateCoupon(eventId: number, code: string) {
 }
 
 export async function getCourtesyInvite(token: string): Promise<ApiResponse<CourtesyDto>> {
-  const res = await fetch(`${API_URL}/courtesy/invite?token=${encodeURIComponent(token)}`);
+  const res = await fetchNoStore(`${API_URL}/courtesy/invite?token=${encodeURIComponent(token)}`);
   if (!res.ok) throw new Error("No se pudo cargar la cortesía");
   return await res.json();
 }

@@ -27,7 +27,18 @@ export const ProducerProvider: React.FC<ProducerProviderProps> = ({ children }) 
   const [loadingProducer, setLoadingProducer] = useState(true);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const bootstrap = async () => {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+      } catch (error) {
+        console.warn("Error clearing caches:", error);
+      }
+
       try {
         const response = await fetchProducerData();
         if (response.success && response.data) {
@@ -40,7 +51,7 @@ export const ProducerProvider: React.FC<ProducerProviderProps> = ({ children }) 
       }
     };
 
-    fetchData();
+    bootstrap();
   }, []);
 
   return (
