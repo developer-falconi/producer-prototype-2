@@ -103,11 +103,11 @@ const CarouselPoster = ({ event }: { event: EventDto }) => {
       </div>
 
       <OptimizedImage
-        src={event.flyer || undefined}
-        alt={event.name}
-        transformOptions={{ width: 1080, aspectRatio: "3:4", crop: "fill", gravity: "auto", quality: "auto" }}
-        wrapperClassName="block h-full w-full"
-        className="h-full w-full object-cover object-center"
+          src={event.flyer || undefined}
+          alt={event.name}
+          transformOptions={{ width: 1080, aspectRatio: "3:4", crop: "fill", gravity: "auto", quality: "auto:eco" }}
+          wrapperClassName="block h-full w-full"
+          className="h-full w-full object-cover object-center"
         loading="lazy"
         enableBlur={false}
         fallbackSrc="https://via.placeholder.com/600x900?text=Evento"

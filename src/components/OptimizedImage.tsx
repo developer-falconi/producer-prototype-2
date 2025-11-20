@@ -15,6 +15,7 @@ export interface OptimizedImageProps
   enableBlur?: boolean;
   fallbackSrc?: string;
   wrapperClassName?: string;
+  disableResponsiveSrcSet?: boolean;
 }
 
 const DEFAULT_FALLBACK_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAPAAACwAAAAAAQABAAACAkQBADs=";
@@ -30,6 +31,8 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   wrapperClassName,
   onLoad,
   onError,
+  disableResponsiveSrcSet = false,
+  sizes: sizesProp,
   ...props
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -55,10 +58,11 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     return optimized;
   }, [cacheKey, src, fallbackSrc, transformKey, transformOptions]);
 
-  const { srcSet, sizes } = useMemo(() => {
+  const { srcSet, sizes: responsiveSizes } = useMemo(() => {
+    if (disableResponsiveSrcSet) return { srcSet: "", sizes: "" };
     const responsive = getResponsiveImageUrls(src || fallbackSrc, transformOptions);
     return responsive;
-  }, [src, fallbackSrc, transformKey]);
+  }, [src, fallbackSrc, transformKey, disableResponsiveSrcSet]);
 
   const blurDataUrl = useMemo(() => {
     if (!enableBlur || !src) return undefined;
@@ -86,8 +90,10 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
   const finalSrc = overrideSrc ?? optimizedSrc;
   const effectiveSrc = finalSrc || fallbackSrc;
-  const effectiveSrcSet = overrideSrc ? undefined : srcSet || undefined;
-  const effectiveSizes = overrideSrc ? undefined : sizes || undefined;
+  const effectiveSrcSet = overrideSrc || disableResponsiveSrcSet ? undefined : srcSet || undefined;
+  const effectiveSizes = overrideSrc || disableResponsiveSrcSet
+    ? undefined
+    : (sizesProp ?? responsiveSizes);
 
   return (
     <span className={cn("relative block overflow-hidden", wrapperClassName)}>

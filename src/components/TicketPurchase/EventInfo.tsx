@@ -65,8 +65,9 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
           <OptimizedImage
             src={event.flyer}
             alt={event.name}
-            transformOptions={{ width: 1920, height: 1080, crop: "fit", gravity: "center", quality: "auto" }}
+            transformOptions={{ width: 1920, height: 1080, crop: "fit", gravity: "center", quality: "auto:eco" }}
             wrapperClassName="absolute inset-0"
+            sizes="100vw"
             className={cn(
               "h-full w-full",
               isMobile ? "object-cover" : "object-contain"
