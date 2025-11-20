@@ -247,8 +247,9 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
                   ) : (
                     <span />
                   )} */}
+                  {/* {isActive && (prevent.endDate ? <CountdownPrevent to={prevent.endDate} /> : null)} */}
 
-                  {isActive ? (prevent.endDate ? <CountdownPrevent to={prevent.endDate} /> : null) : (
+                  {!isActive && (
                     <span className="rounded-md bg-rose-600/20 text-rose-200 border border-rose-400/20 text-xs px-2 py-1 font-semibold">
                       {preventStatusLabels[prevent.status]}
                     </span>

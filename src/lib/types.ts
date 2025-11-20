@@ -69,6 +69,7 @@ export interface EventDto {
   status: EventStatus;
   folder: boolean;
   featured: boolean;
+  showMap: boolean;
   alias: string | null;
   flyer: string;
   banner: string;

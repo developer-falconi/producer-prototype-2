@@ -139,13 +139,15 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
           {event.description}
         </motion.p>
       </motion.div>
-      <EventMap
-        lat={null}
-        lng={null}
-        address={event.location}
-        placeName={event.name}
-        className="p-6"
-      />
+      {event.showMap && (
+        <EventMap
+          lat={null}
+          lng={null}
+          address={event.location}
+          placeName={event.name}
+          className="p-6"
+        />
+      )}
     </motion.div>
   );
 };
