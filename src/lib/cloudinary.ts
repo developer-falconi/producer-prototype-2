@@ -47,7 +47,7 @@ export const getOptimizedImageUrl = (
     aspectRatio,
     crop = "fill",
     gravity = "auto",
-    quality = "auto",
+    quality = "auto:eco",
     format = "auto",
     dpr = "auto",
   } = options;
@@ -165,7 +165,7 @@ export const getResponsiveImageUrls = (
     })
     .join(", ");
 
-  const sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
+  const sizes = "100vw";
 
   return { srcSet, sizes };
 };
@@ -179,7 +179,7 @@ export const getBlurPlaceholder = (
   if (!imageUrl) return "";
   return getOptimizedImageUrl(imageUrl, {
     width: 20,
-    quality: "auto:low",
+    quality: "auto:eco",
     format: "auto",
   });
 };
@@ -212,7 +212,7 @@ export const imagePresets = {
       height: 1080,
       crop: "fill",
       gravity: "auto",
-      quality: "auto:best",
+      quality: "auto:eco",
     }),
 
   avatar: (url: string) =>
@@ -230,7 +230,7 @@ export const imagePresets = {
       height: 630,
       crop: "fill",
       gravity: "auto",
-      quality: "auto:good",
+      quality: "auto:eco",
       format: "jpg",
     }),
 };

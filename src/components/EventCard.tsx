@@ -178,11 +178,11 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
 
           <div className="absolute inset-0">
             <OptimizedImage
-              src={event.flyer}
-              alt={event.name}
-              transformOptions={{ width: 1080, aspectRatio: "9:16", crop: "fill", gravity: "auto", quality: "auto" }}
-              wrapperClassName="absolute inset-0"
-              className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
+                src={event.flyer}
+                alt={event.name}
+                transformOptions={{ width: 1080, aspectRatio: "9:16", crop: "fill", gravity: "auto", quality: "auto:eco" }}
+                wrapperClassName="absolute inset-0"
+                className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
               fallbackSrc="https://via.placeholder.com/1080x1920?text=Evento"
             />
           </div>
