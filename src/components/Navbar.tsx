@@ -3,7 +3,7 @@ import { Home, Ticket, Images, TicketSlash } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useProducer } from "@/context/ProducerContext";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const navItems = [
   { path: "/", label: "Inicio", icon: <Home size={20} /> },
@@ -16,6 +16,14 @@ const Navbar = () => {
   const { producer } = useProducer();
   const isMobile = useIsMobile();
   const location = useLocation();
+  const initials = producer?.name
+    ? producer.name
+        .split(" ")
+        .map((segment) => segment[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "PT";
   const { search } = location;
   const isActive = (path: string) => location.pathname === path;
 
@@ -53,10 +61,25 @@ const Navbar = () => {
               to={`/${search}`}
               className="flex items-center gap-2 font-medium text-white hover:scale-105 transition"
             >
-              <Avatar>
-                <AvatarImage src={producer?.logo} alt={producer?.name || "logo"} />
-                <AvatarFallback>{producer?.name}</AvatarFallback>
-              </Avatar>
+              <span className="relative h-9 w-9 flex-shrink-0 rounded-full overflow-hidden bg-transparent">
+                {producer?.logo ? (
+                  <OptimizedImage
+                    src={producer.logo}
+                    alt={producer.name || "logo"}
+                    transformOptions={{ width: 256, height: 256, crop: "fit", gravity: "auto" }}
+                    sizes="36px"
+                    wrapperClassName="absolute inset-0"
+                    className="h-full w-full object-cover"
+                    loading="eager"
+                    enableBlur={false}
+                    fallbackSrc="https://via.placeholder.com/256?text=Logo"
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase">
+                    {initials}
+                  </span>
+                )}
+              </span>
               {producer?.name}
             </Link>
             <div className="flex items-center space-x-8">{navItems.map(renderLink)}</div>
