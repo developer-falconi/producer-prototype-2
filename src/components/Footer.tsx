@@ -1,5 +1,5 @@
 import { Producer } from "@/lib/types";
-import { Link } from "react-router-dom";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const Footer = ({ producer }: { producer: Producer }) => {
   return (
@@ -8,8 +8,17 @@ const Footer = ({ producer }: { producer: Producer }) => {
         <div className="grid md:grid-cols-4 gap-8 mb-4">
           <div className="space-y-4 col-span-2">
             <div className="flex items-center space-x-2">
-              <img src={producer.logo} alt={`${producer.name} Logo`} className="block h-10 w-auto" />
-              <span className="text-[#951f1f] font-bold text-xl">
+              <OptimizedImage
+                src={producer.logo}
+                alt={`${producer.name} Logo`}
+                transformOptions={{ width: 256, height: 256, crop: "fit", gravity: "auto" }}
+                sizes="40px"
+                wrapperClassName="overflow-hidden rounded-md"
+                className="h-10 w-auto object-contain"
+                loading="lazy"
+                enableBlur={false}
+              />
+              <span className="text-white font-bold text-xl">
                 {producer.name}
               </span>
             </div>
@@ -42,6 +51,12 @@ const Footer = ({ producer }: { producer: Producer }) => {
                 className="block text-[#951f1f] hover:font-semibold transition-colors duration-300"
               >
                 Galería
+              </a>
+              <a
+                href="/devoluciones"
+                className="block text-white hover:text-[#001B97] transition-colors duration-300"
+              > 
+                Devoluciones
               </a>
             </div>
           </div>

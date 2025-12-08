@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Easing, motion } from 'framer-motion';
 import { EventDto, EventStatus } from '@/lib/types';
 import { cn, formatDate, formatTime } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Calendar } from 'lucide-react';
+import { Calendar, ImageOff } from 'lucide-react';
 import { EventArtistsDisplay } from '../EventArtistsDisplay';
 import { EventMap } from '../EventMap';
 import OptimizedImage from '@/components/OptimizedImage';
@@ -14,6 +14,11 @@ interface EventInfoProps {
 
 export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
   const isMobile = useIsMobile();
+  const [hasImageError, setHasImageError] = useState(false);
+
+  useEffect(() => {
+    setHasImageError(false);
+  }, [event.flyer]);
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -65,14 +70,23 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
           <OptimizedImage
             src={event.flyer}
             alt={event.name}
-            transformOptions={{ width: 1920, height: 1080, crop: "fit", gravity: "center", quality: "auto" }}
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 70vw, 60vw"
+            transformOptions={{ width: 1920, height: 1080, crop: "fit", gravity: "center" }}
             wrapperClassName="absolute inset-0"
             className={cn(
               "h-full w-full",
               isMobile ? "object-cover" : "object-contain"
             )}
             fallbackSrc="https://via.placeholder.com/1920x1080?text=Evento"
-          />
+            onLoad={() => setHasImageError(false)}
+            onError={() => setHasImageError(true)}
+            />
+          {hasImageError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/80 text-white">
+              <ImageOff className="h-10 w-10 text-white/80" />
+              <p className="text-sm font-semibold">Imagen no disponible</p>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
         </motion.div>
 
@@ -139,13 +153,15 @@ export const EventInfo: React.FC<EventInfoProps> = ({ event }) => {
           {event.description}
         </motion.p>
       </motion.div>
-      <EventMap
-        lat={null}
-        lng={null}
-        address={event.location}
-        placeName={event.name}
-        className="p-6"
-      />
+      {event.showMap && (
+        <EventMap
+          lat={null}
+          lng={null}
+          address={event.location}
+          placeName={event.name}
+          className="p-6"
+        />
+      )}
     </motion.div>
   );
 };

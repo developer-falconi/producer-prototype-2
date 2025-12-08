@@ -5,7 +5,7 @@ import { fill, scale, fit, pad } from "@cloudinary/url-gen/actions/resize";
 import { autoGravity, focusOn } from "@cloudinary/url-gen/qualifiers/gravity";
 import { FocusOn } from "@cloudinary/url-gen/qualifiers/focusOn";
 
-const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "demo";
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "djecjeokj";
 
 export const cloudinary = new Cloudinary({
   cloud: {
@@ -22,7 +22,7 @@ export type ImageTransformOptions = {
   aspectRatio?: string;
   crop?: "fill" | "scale" | "fit" | "pad";
   gravity?: "auto" | "face" | "faces" | "center";
-  quality?: "auto" | "auto:best" | "auto:good" | "auto:eco" | "auto:low" | number;
+  quality?: "auto" | "auto:best" | "auto:good" | "auto:low" | "auto:low" | number;
   format?: "auto" | "webp" | "avif" | "jpg" | "png";
   dpr?: number | "auto";
 };
@@ -47,9 +47,9 @@ export const getOptimizedImageUrl = (
     aspectRatio,
     crop = "fill",
     gravity = "auto",
-    quality = "auto",
+    quality = "auto:low",
     format = "auto",
-    dpr = "auto",
+    dpr = 1.0,
   } = options;
 
   try {
@@ -156,7 +156,7 @@ export const getResponsiveImageUrls = (
     return { srcSet: "", sizes: "" };
   }
 
-  const widths = [320, 640, 768, 1024, 1280, 1536, 1920];
+  const widths = [320, 640, 768, 1024, 1280];
 
   const srcSet = widths
     .map((w) => {
@@ -165,7 +165,7 @@ export const getResponsiveImageUrls = (
     })
     .join(", ");
 
-  const sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
+  const sizes = "";
 
   return { srcSet, sizes };
 };
@@ -194,7 +194,7 @@ export const imagePresets = {
       height: 200,
       crop: "fill",
       gravity: "auto",
-      quality: "auto:eco",
+      quality: "auto:low",
     }),
 
   card: (url: string) =>
@@ -203,7 +203,7 @@ export const imagePresets = {
       aspectRatio: "16:9",
       crop: "fill",
       gravity: "auto",
-      quality: "auto:eco",
+      quality: "auto:low",
     }),
 
   hero: (url: string) =>
@@ -212,7 +212,7 @@ export const imagePresets = {
       height: 1080,
       crop: "fill",
       gravity: "auto",
-      quality: "auto:best",
+      quality: "auto:low",
     }),
 
   avatar: (url: string) =>
@@ -221,7 +221,7 @@ export const imagePresets = {
       height: 150,
       crop: "fill",
       gravity: "face",
-      quality: "auto:eco",
+      quality: "auto:low",
     }),
 
   og: (url: string) =>
@@ -230,7 +230,7 @@ export const imagePresets = {
       height: 630,
       crop: "fill",
       gravity: "auto",
-      quality: "auto:good",
+      quality: "auto:low",
       format: "jpg",
     }),
 };

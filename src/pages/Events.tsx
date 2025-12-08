@@ -13,6 +13,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import Footer from "@/components/Footer";
 import EventCard from "@/components/EventCard";
 import { fetchProducerEventsData } from "@/lib/api";
+import { getOptimizedImageUrl, type ImageTransformOptions } from "@/lib/cloudinary";
 import { EventDto, StoredLiveOrderSnapshot } from "@/lib/types";
 import { useProducer } from "@/context/ProducerContext";
 import { useTracking } from "@/hooks/use-tracking";
@@ -83,7 +84,24 @@ const Events = () => {
 
   const rawImage = activeEvent?.flyer || producer?.logo || "/og-default.jpg";
   const image = absolutize(rawImage);
-  const iconHref = absolutize(activeEvent?.flyer || producer?.logo || "/favicon.png");
+
+  const optimizeImage = (options: ImageTransformOptions) => getOptimizedImageUrl(image, options) || image;
+
+  const optimizedSocialImage = useMemo(() =>
+    optimizeImage({
+      width: 900,
+      height: 500,
+      crop: "fit",
+      gravity: "auto",
+    }), [image]);
+
+  const optimizedFavicon = useMemo(() =>
+    optimizeImage({
+      width: 32,
+      height: 32,
+      crop: "fit",
+      gravity: "auto",
+    }), [image]);
 
   const shareUrl = buildShareUrl(activeEvent, promoterKey);
 
@@ -352,7 +370,7 @@ const Events = () => {
     <>
       <Helmet prioritizeSeoTags>
         <title>{title}</title>
-        <link rel="icon" href={iconHref} />
+        <link rel="icon" href={optimizedFavicon} />
         <meta name="theme-color" content="#000000" />
 
         <link rel="canonical" href={shareUrl} />
@@ -364,8 +382,8 @@ const Events = () => {
         <meta property="og:site_name" content={siteName} />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
-        <meta property="og:image" content={image} />
-        <meta property="og:image:secure_url" content={image} />
+        <meta property="og:image" content={optimizedSocialImage} />
+        <meta property="og:image:secure_url" content={optimizedSocialImage} />
         <meta property="og:image:alt" content={activeEvent ? activeEvent.name : siteName} />
         {/* Tamaños típicos para previews grandes */}
         <meta property="og:image:width" content="1200" />
@@ -376,7 +394,7 @@ const Events = () => {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
-        <meta name="twitter:image" content={image} />
+        <meta name="twitter:image" content={optimizedSocialImage} />
         <meta name="twitter:image:alt" content={activeEvent ? activeEvent.name : siteName} />
 
         {activeEvent && (

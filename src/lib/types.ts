@@ -69,6 +69,7 @@ export interface EventDto {
   status: EventStatus;
   folder: boolean;
   featured: boolean;
+  showMap: boolean;
   alias: string | null;
   flyer: string;
   banner: string;
@@ -563,6 +564,25 @@ export interface CouponEvent {
   usesCount: number;
   totalGrossAmount: string;
   totalDiscountAmount: string;
+}
+
+export enum PaymentMethodEnum {
+  MERCADO_PAGO = 'MERCADO PAGO',
+  TRANSFER = 'TRANSFER'
+}
+
+export interface ReturnRequestPayload {
+  eventId: number;
+  fullName: string;
+  docNumber: string;
+  email: string;
+  phone: string;
+  orderReference: string;
+  ticketCount: number;
+  reason: string;
+  paymentMethod: PaymentMethodEnum;
+  bank?: string;
+  accountReference?: string;
 }
 
 export interface CourtesyDto {

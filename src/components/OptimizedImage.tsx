@@ -15,6 +15,7 @@ export interface OptimizedImageProps
   enableBlur?: boolean;
   fallbackSrc?: string;
   wrapperClassName?: string;
+  disableResponsiveSrcSet?: boolean;
 }
 
 const DEFAULT_FALLBACK_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAPAAACwAAAAAAQABAAACAkQBADs=";
@@ -30,13 +31,28 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   wrapperClassName,
   onLoad,
   onError,
+  disableResponsiveSrcSet = false,
+  sizes: sizesProp,
   ...props
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [overrideSrc, setOverrideSrc] = useState<string | null>(null);
 
-  const transformKey = useMemo(() => JSON.stringify(transformOptions || {}), [transformOptions]);
+  const sanitizedTransformOptions = useMemo<Omit<ImageTransformOptions, "quality" | "dpr">>(() => {
+    if (!transformOptions) return {};
+    const { quality, dpr, ...rest } = transformOptions;
+    return rest;
+  }, [transformOptions]);
+
+  const aggressiveOptions = useMemo(() => ({
+    quality: "auto:low" as const, // 1. Calidad baja por defecto
+    format: "auto" as const,      // 2. Formato AVIF/WebP automático
+    dpr: 1.0 as const,            // 3. Bloquea resoluciones Retina (DPR=1.0)
+    ...sanitizedTransformOptions,
+  }), [sanitizedTransformOptions]);
+
+  const transformKey = useMemo(() => JSON.stringify(aggressiveOptions || {}), [aggressiveOptions]);
   const cacheKey = useMemo(
     () => `${src ?? "__fallback__"}|${fallbackSrc}|${transformKey}`,
     [src, fallbackSrc, transformKey]
@@ -48,17 +64,18 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     if (optimizedUrlCache.has(cacheKey)) {
       return optimizedUrlCache.get(cacheKey)!;
     }
-    const optimized = getOptimizedImageUrl(imageUrl, transformOptions);
+    const optimized = getOptimizedImageUrl(imageUrl, aggressiveOptions);
     if (optimized) {
       optimizedUrlCache.set(cacheKey, optimized);
     }
     return optimized;
-  }, [cacheKey, src, fallbackSrc, transformKey, transformOptions]);
+  }, [cacheKey, src, fallbackSrc, transformKey, aggressiveOptions]);
 
-  const { srcSet, sizes } = useMemo(() => {
-    const responsive = getResponsiveImageUrls(src || fallbackSrc, transformOptions);
+  const { srcSet, sizes: responsiveSizes } = useMemo(() => {
+    if (disableResponsiveSrcSet) return { srcSet: "", sizes: "" };
+    const responsive = getResponsiveImageUrls(src || fallbackSrc, aggressiveOptions);
     return responsive;
-  }, [src, fallbackSrc, transformKey]);
+  }, [src, fallbackSrc, transformKey, disableResponsiveSrcSet]);
 
   const blurDataUrl = useMemo(() => {
     if (!enableBlur || !src) return undefined;
@@ -86,8 +103,10 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
   const finalSrc = overrideSrc ?? optimizedSrc;
   const effectiveSrc = finalSrc || fallbackSrc;
-  const effectiveSrcSet = overrideSrc ? undefined : srcSet || undefined;
-  const effectiveSizes = overrideSrc ? undefined : sizes || undefined;
+  const effectiveSrcSet = overrideSrc || disableResponsiveSrcSet ? undefined : srcSet || undefined;
+  const effectiveSizes = overrideSrc || disableResponsiveSrcSet
+    ? undefined
+    : (sizesProp ?? responsiveSizes);
 
   return (
     <span className={cn("relative block overflow-hidden", wrapperClassName)}>
