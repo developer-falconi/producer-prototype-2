@@ -46,7 +46,7 @@ const Navbar = () => {
   return (
     <nav
       className={cn(
-        "fixed inset-x-0 z-40 bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60",
+        "fixed inset-x-0 z-40 bg-stone-300 backdrop-blur supports-[backdrop-filter]:bg-stone-300",
         isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
       )}
     >
@@ -59,7 +59,7 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-16">
             <Link
               to={`/${search}`}
-              className="flex items-center gap-2 font-medium text-white hover:scale-105 transition"
+              className="flex items-center gap-2 font-medium text-[#951f1f] hover:scale-105 transition"
             >
               <span className="relative h-9 w-9 flex-shrink-0 rounded-full overflow-hidden bg-transparent">
                 {producer?.logo ? (

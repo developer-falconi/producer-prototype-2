@@ -54,7 +54,7 @@ const Footer = ({ producer }: { producer: Producer }) => {
               </a>
               <a
                 href="/devoluciones"
-                className="block text-white hover:text-[#001B97] transition-colors duration-300"
+                className="block text-[#951f1f] hover:font-semibold transition-colors duration-300"
               > 
                 Devoluciones
               </a>
@@ -171,7 +171,7 @@ const Footer = ({ producer }: { producer: Producer }) => {
         </div>
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-t border-white/10 pt-4 text-center pb-16 md:pb-0">
-          <p className="text-white text-sm">
+          <p className="text-[#951f1f] text-sm">
             © {new Date().getFullYear()} {producer.name}. Todos los derechos
             reservados.
           </p>
@@ -179,7 +179,7 @@ const Footer = ({ producer }: { producer: Producer }) => {
             href="https://app.produtik.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80 hover:text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 transition"
+            className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#951f1f]/80 hover:text-[#951f1f] hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 transition"
             aria-label="Abrir Produtik en una nueva pestaña"
             title="Impulsado por Produtik"
           >
