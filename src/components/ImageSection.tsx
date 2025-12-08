@@ -48,11 +48,12 @@ export default function ImageSection({ producer }: ImageSectionProps) {
         variants={popVariant}
       >
         <OptimizedImage
-            src={producer.logo}
-            alt={producer.name}
-            transformOptions={{ width: 512, height: 512, crop: "fit", gravity: "auto", quality: "auto:eco" }}
-            wrapperClassName="absolute inset-0"
-            className="h-full w-full object-contain bg-gradient-to-br from-black to-gray-600 backdrop-blur-md"
+          src={producer.logo}
+          alt={producer.name}
+          sizes="(min-width: 1024px) 18rem, (min-width: 768px) 14rem, 10rem"
+          transformOptions={{ width: 512, height: 512, crop: "fit", gravity: "auto" }}
+          wrapperClassName="absolute inset-0"
+          className="h-full w-full object-contain bg-gradient-to-br from-black to-gray-600 backdrop-blur-md"
         />
       </motion.div>
 

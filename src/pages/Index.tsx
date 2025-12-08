@@ -341,7 +341,8 @@ const Index = () => {
                   <OptimizedImage
                     src={producer.logo}
                     alt={`Logo de ${producer.name}`}
-                    transformOptions={{ width: 512, height: 512, crop: "fit", gravity: "center", quality: "auto:good" }}
+                    sizes="(min-width: 1024px) 16rem, (min-width: 768px) 12rem, 6rem"
+                    transformOptions={{ width: 512, height: 512, crop: "fit", gravity: "center" }}
                     wrapperClassName={cn(
                       "mx-auto mb-4 rounded-full ring-1 ring-white/15",
                       eventsForHeroCarousel.length > 0 ? "h-20 w-20 md:h-48 md:w-48" : "h-24 w-24 md:h-64 md:w-64"

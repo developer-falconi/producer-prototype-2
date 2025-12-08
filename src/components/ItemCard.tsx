@@ -67,7 +67,8 @@ export default function ItemCard({
           <OptimizedImage
             src={imageUrl}
             alt={title}
-            transformOptions={{ width: 600, height: 400, crop: "fit", gravity: "auto", quality: "auto:eco" }}
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            transformOptions={{ width: 600, height: 400, crop: "fit", gravity: "auto" }}
             wrapperClassName="absolute inset-0"
             className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
             loading="lazy"
