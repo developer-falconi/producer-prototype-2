@@ -18,11 +18,11 @@ const Navbar = () => {
   const location = useLocation();
   const initials = producer?.name
     ? producer.name
-        .split(" ")
-        .map((segment) => segment[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
+      .split(" ")
+      .map((segment) => segment[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
     : "PT";
   const { search } = location;
   const isActive = (path: string) => location.pathname === path;
@@ -46,7 +46,7 @@ const Navbar = () => {
   return (
     <nav
       className={cn(
-        "fixed inset-x-0 z-40 bg-slate-950/80 backdrop-blur supports-[backdrop-filter]:bg-slate-950/60",
+        "fixed inset-x-0 z-40 bg-black backdrop-blur supports-[backdrop-filter]:bg-black/60",
         isMobile ? "bottom-4 rounded-lg mx-4" : "top-0 border-b border-white/10"
       )}
     >
