@@ -39,7 +39,20 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const [hasError, setHasError] = useState(false);
   const [overrideSrc, setOverrideSrc] = useState<string | null>(null);
 
-  const transformKey = useMemo(() => JSON.stringify(transformOptions || {}), [transformOptions]);
+  const sanitizedTransformOptions = useMemo<Omit<ImageTransformOptions, "quality" | "dpr">>(() => {
+    if (!transformOptions) return {};
+    const { quality, dpr, ...rest } = transformOptions;
+    return rest;
+  }, [transformOptions]);
+
+  const aggressiveOptions = useMemo(() => ({
+    quality: "auto:low" as const, // 1. Calidad baja por defecto
+    format: "auto" as const,      // 2. Formato AVIF/WebP automático
+    dpr: 1.0 as const,            // 3. Bloquea resoluciones Retina (DPR=1.0)
+    ...sanitizedTransformOptions,
+  }), [sanitizedTransformOptions]);
+
+  const transformKey = useMemo(() => JSON.stringify(aggressiveOptions || {}), [aggressiveOptions]);
   const cacheKey = useMemo(
     () => `${src ?? "__fallback__"}|${fallbackSrc}|${transformKey}`,
     [src, fallbackSrc, transformKey]
@@ -51,16 +64,16 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     if (optimizedUrlCache.has(cacheKey)) {
       return optimizedUrlCache.get(cacheKey)!;
     }
-    const optimized = getOptimizedImageUrl(imageUrl, transformOptions);
+    const optimized = getOptimizedImageUrl(imageUrl, aggressiveOptions);
     if (optimized) {
       optimizedUrlCache.set(cacheKey, optimized);
     }
     return optimized;
-  }, [cacheKey, src, fallbackSrc, transformKey, transformOptions]);
+  }, [cacheKey, src, fallbackSrc, transformKey, aggressiveOptions]);
 
   const { srcSet, sizes: responsiveSizes } = useMemo(() => {
     if (disableResponsiveSrcSet) return { srcSet: "", sizes: "" };
-    const responsive = getResponsiveImageUrls(src || fallbackSrc, transformOptions);
+    const responsive = getResponsiveImageUrls(src || fallbackSrc, aggressiveOptions);
     return responsive;
   }, [src, fallbackSrc, transformKey, disableResponsiveSrcSet]);
 
