@@ -11,6 +11,8 @@ import {
   Ticket,
   ShoppingCart,
   Boxes,
+  RefreshCw,
+  Info,
 } from "lucide-react";
 import { PurchaseData, Voucher } from "@/lib/types";
 import { cn, formatPrice } from "@/lib/utils";
@@ -21,6 +23,7 @@ interface PurchaseStatusProps {
   status: { status: "success" | "error"; message: string } | null;
   voucher: Voucher[] | null;
   onResetAndClose: () => void;
+  onRetry?: () => void;
 }
 
 export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
@@ -29,10 +32,15 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
   status,
   voucher,
   onResetAndClose,
+  onRetry,
 }) => {
   const isSuccess = status?.status === "success";
+  const errorMessage = status?.status === "error" ? status.message : null;
 
   const title = isSuccess ? "¡Pedido cargado con éxito!" : "No pudimos completar tu compra";
+  const helperText = isSuccess
+    ? "Ya estamos generando tus accesos. Te enviamos todo por email."
+    : "Chequeá los datos de confirmación y reintentá si son correctos.";
 
   const ticketsCount = purchaseData.ticketQuantity ?? 0;
   const prodCount = purchaseData.products?.length ?? 0;
@@ -70,7 +78,7 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
 
   return (
     <motion.div
-      className="relative h-full w-full flex flex-col items-center justify-center text-center p-6 overflow-hidden"
+      className="relative w-full flex-1 flex flex-col min-h-full items-center justify-between text-center p-6 overflow-hidden"
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: "easeOut" }}
@@ -104,15 +112,35 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
         {isSuccess ? <Check className="h-10 w-10" /> : <X className="h-10 w-10" />}
       </motion.div>
 
-      {/* Título */}
-      <motion.h2
-        className="text-2xl font-extrabold tracking-tight text-white"
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.12 }}
-      >
-        {title}
-      </motion.h2>
+      <div className="text-center">
+        <motion.h2
+          className="text-2xl font-extrabold tracking-tight text-white my-2"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+        >
+          {title}
+        </motion.h2>
+        <motion.p
+          className="text-sm text-zinc-300 my-4"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.16 }}
+        >
+          {helperText}
+        </motion.p>
+        {errorMessage && (
+          <motion.div
+            className="mx-auto my-8 flex max-w-sm items-center gap-2 rounded-2xl border border-rose-500/60 bg-rose-500/10 px-4 py-2 text-sm text-rose-100"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.18 }}
+          >
+            <Info className="h-4 w-4" />
+            <span>{errorMessage}</span>
+          </motion.div>
+        )}
+      </div>
 
       {/* Pill resumen / acciones */}
       {isSuccess && (
@@ -252,11 +280,20 @@ export const PurchaseStatus: React.FC<PurchaseStatusProps> = ({
 
       {/* CTA principal */}
       <motion.div
-        className="mt-6 w-full max-w-md"
+        className="mt-6 w-full max-w-md flex gap-2 mt-auto"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.36 }}
       >
+        {errorMessage && onRetry && (
+          <Button
+            onClick={onRetry}
+            variant="outline"
+            className="w-full h-11 font-semibold rounded-xl"
+          >
+            Reintentar
+          </Button>
+        )}
         <Button
           onClick={onResetAndClose}
           className={cn(

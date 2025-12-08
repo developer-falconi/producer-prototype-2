@@ -3,6 +3,7 @@ import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { Percent, AlertTriangle } from "lucide-react";
 import { useId } from "react";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const PRIMARY = "#001B97";
 
@@ -63,12 +64,16 @@ export default function ItemCard({
       {/* Media / Header compacto para combos sin imagen */}
       {imageUrl && (
         <div className="relative h-28 w-full overflow-hidden bg-zinc-900">
-          <img
+          <OptimizedImage
             src={imageUrl}
             alt={title}
-            loading="lazy"
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            transformOptions={{ width: 600, height: 400, crop: "fit", gravity: "auto" }}
+            wrapperClassName="absolute inset-0"
             className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+            loading="lazy"
             draggable={false}
+            fallbackSrc="https://via.placeholder.com/600x400?text=Item"
           />
           {/* Badges */}
           <Badges

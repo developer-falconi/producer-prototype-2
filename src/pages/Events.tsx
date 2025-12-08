@@ -13,14 +13,17 @@ import { Link, useSearchParams } from "react-router-dom";
 import Footer from "@/components/Footer";
 import EventCard from "@/components/EventCard";
 import { fetchProducerEventsData } from "@/lib/api";
-import { EventDto } from "@/lib/types";
+import { getOptimizedImageUrl, type ImageTransformOptions } from "@/lib/cloudinary";
+import { EventDto, StoredLiveOrderSnapshot } from "@/lib/types";
 import { useProducer } from "@/context/ProducerContext";
 import { useTracking } from "@/hooks/use-tracking";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import Spinner from "@/components/Spinner";
 import { Helmet } from "react-helmet-async";
+import { readPendingLivePurchase, readSavedOrderSnapshot, removeEventOrderSnapshot, removeSavedOrderSnapshot, writePendingLivePurchase } from "@/lib/live-order-storage";
 
 const VALID_STATUS = new Set(["all", "active", "completed", "upcoming"]);
+const APPROVED_RETURN_STATUSES = new Set(["approved", "accredited", "pagado", "paid"]);
 
 const absolutize = (u?: string | null) => {
   if (!u) return "";
@@ -81,7 +84,24 @@ const Events = () => {
 
   const rawImage = activeEvent?.flyer || producer?.logo || "/og-default.jpg";
   const image = absolutize(rawImage);
-  const iconHref = absolutize(activeEvent?.flyer || producer?.logo || "/favicon.png");
+
+  const optimizeImage = (options: ImageTransformOptions) => getOptimizedImageUrl(image, options) || image;
+
+  const optimizedSocialImage = useMemo(() =>
+    optimizeImage({
+      width: 900,
+      height: 500,
+      crop: "fit",
+      gravity: "auto",
+    }), [image]);
+
+  const optimizedFavicon = useMemo(() =>
+    optimizeImage({
+      width: 32,
+      height: 32,
+      crop: "fit",
+      gravity: "auto",
+    }), [image]);
 
   const shareUrl = buildShareUrl(activeEvent, promoterKey);
 
@@ -115,6 +135,7 @@ const Events = () => {
   }, []);
 
   useEffect(() => {
+    const orderParam = searchParams.get("order");
     const param = searchParams.get("event") || null;
     const promoterKeyParam = searchParams.get("promoter");
 
@@ -129,22 +150,142 @@ const Events = () => {
       : "all";
     if (normalized !== statusFilter) setStatusFilter(normalized);
 
-    if (!param) {
+    const statusValue = (searchParams.get("collection_status") || searchParams.get("status") || "").toLowerCase();
+    const hasStatus = Boolean(statusValue);
+    const isApprovedStatus = APPROVED_RETURN_STATUSES.has(statusValue);
+
+    let targetEventIdFromOrder: number | null = null;
+    if (orderParam) {
+      const orderId = Number(orderParam);
+      if (Number.isFinite(orderId)) {
+        const snapshot = readSavedOrderSnapshot(orderId);
+        if (snapshot) {
+          if (hasStatus && !isApprovedStatus) {
+            removeSavedOrderSnapshot(orderId);
+            removeEventOrderSnapshot(snapshot.eventId);
+            writePendingLivePurchase(null);
+            setInitialOpenEventId(null);
+            setSearchParams((prev) => {
+              const next = new URLSearchParams(prev);
+              next.delete("order");
+              next.delete("paid");
+              next.delete("status");
+              next.delete("collection_status");
+              return next;
+            }, { replace: true });
+            return;
+          }
+          targetEventIdFromOrder = snapshot.eventId;
+        }
+      }
+    }
+
+    let eventParamToUse = param;
+    if (targetEventIdFromOrder != null) {
+      eventParamToUse = String(targetEventIdFromOrder);
+      if (param !== eventParamToUse) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("event", eventParamToUse!);
+          return next;
+        }, { replace: true });
+      }
+    }
+
+    if (!eventParamToUse) {
       setInitialOpenEventId(null);
       return;
     }
 
-    const maybeId = Number(param);
+    const maybeId = Number(eventParamToUse);
     if (Number.isFinite(maybeId)) {
       setInitialOpenEventId(maybeId);
       return;
     }
 
-    const normalizedKey = param.trim().toLowerCase();
+    const normalizedKey = eventParamToUse.trim().toLowerCase();
     const match = events.find(e => (e.key || "").toLowerCase() === normalizedKey);
     setInitialOpenEventId(match ? match.id : null);
-  }, [searchParams, events]);
+  }, [searchParams, events, setSearchParams]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const orderParam = searchParams.get("order");
+    const paidFlag = searchParams.get("paid");
+    const statusParam = (searchParams.get("collection_status") || searchParams.get("status") || "").toLowerCase();
+    const hasStatus = Boolean(statusParam);
+    const isApprovedStatus = APPROVED_RETURN_STATUSES.has(statusParam);
+    const isSuccessfulReturn = paidFlag === "1" || isApprovedStatus;
+    const isFailedReturn = hasStatus && !isApprovedStatus;
+
+    let targetEventId: number | null = null;
+    let snapshotFromOrder: StoredLiveOrderSnapshot | null = null;
+    let parsedOrderId: number | null = null;
+
+    if (orderParam) {
+      const orderId = Number(orderParam);
+      if (Number.isFinite(orderId)) {
+        parsedOrderId = orderId;
+        snapshotFromOrder = readSavedOrderSnapshot(orderId);
+        if (snapshotFromOrder) targetEventId = snapshotFromOrder.eventId;
+      }
+    }
+
+    if (parsedOrderId != null && isFailedReturn) {
+      if (snapshotFromOrder) {
+        removeEventOrderSnapshot(snapshotFromOrder.eventId);
+      }
+      removeSavedOrderSnapshot(parsedOrderId);
+      writePendingLivePurchase(null);
+      setInitialOpenEventId(null);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("order");
+        next.delete("paid");
+        next.delete("status");
+        next.delete("collection_status");
+        return next;
+      }, { replace: true });
+      return;
+    }
+
+    if (!targetEventId && isSuccessfulReturn) {
+      const pending = readPendingLivePurchase();
+      if (pending) targetEventId = pending.eventId;
+    }
+
+    if (!targetEventId) {
+      if (isSuccessfulReturn || isFailedReturn) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("paid");
+          next.delete("status");
+          next.delete("collection_status");
+          return next;
+        }, { replace: true });
+      }
+      return;
+    }
+
+    const eventIdStr = String(targetEventId);
+    setInitialOpenEventId(targetEventId);
+
+    const shouldUpdateEvent = searchParams.get("event") !== eventIdStr;
+
+    if (!shouldUpdateEvent && !isSuccessfulReturn) return;
+
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("event", eventIdStr);
+      if (isSuccessfulReturn) {
+        next.delete("paid");
+        next.delete("status");
+        next.delete("collection_status");
+      }
+      return next;
+    }, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     const currentQ = searchParams.get("q") ?? "";
@@ -229,7 +370,7 @@ const Events = () => {
     <>
       <Helmet prioritizeSeoTags>
         <title>{title}</title>
-        <link rel="icon" href={iconHref} />
+        <link rel="icon" href={optimizedFavicon} />
         <meta name="theme-color" content="#000000" />
 
         <link rel="canonical" href={shareUrl} />
@@ -241,8 +382,8 @@ const Events = () => {
         <meta property="og:site_name" content={siteName} />
         <meta property="og:title" content={title} />
         <meta property="og:description" content={description} />
-        <meta property="og:image" content={image} />
-        <meta property="og:image:secure_url" content={image} />
+        <meta property="og:image" content={optimizedSocialImage} />
+        <meta property="og:image:secure_url" content={optimizedSocialImage} />
         <meta property="og:image:alt" content={activeEvent ? activeEvent.name : siteName} />
         {/* Tamaños típicos para previews grandes */}
         <meta property="og:image:width" content="1200" />
@@ -253,7 +394,7 @@ const Events = () => {
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
-        <meta name="twitter:image" content={image} />
+        <meta name="twitter:image" content={optimizedSocialImage} />
         <meta name="twitter:image:alt" content={activeEvent ? activeEvent.name : siteName} />
 
         {activeEvent && (

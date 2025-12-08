@@ -1,5 +1,6 @@
-import { Calendar, CircleDollarSign, Radio } from "lucide-react";
+import { Calendar, CircleDollarSign, ImageOff, Radio } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import OptimizedImage from "@/components/OptimizedImage";
 import { cn, formatEventDate, formatEventPrice } from "@/lib/utils";
 import { EventDto, EventStatus, Prevent, PreventStatusEnum } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -21,12 +22,17 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
   const tracking = useTracking({ producer });
 
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
+  const [cardImageError, setCardImageError] = useState(false);
 
   useEffect(() => {
     if (initialOpenEventId && event.id === initialOpenEventId) {
       setIsEventDetailsOpen(true);
     }
   }, [initialOpenEventId, event.id]);
+
+  useEffect(() => {
+    setCardImageError(false);
+  }, [event.flyer]);
 
   useEffect(() => {
     if (isEventDetailsOpen) {
@@ -175,11 +181,24 @@ const EventCard: React.FC<EventCardProps> = ({ event, initialOpenEventId, promot
             </div>
           )}
 
-          <img
-            src={event.flyer}
-            alt={event.name}
-            className="absolute inset-0 w-full h-full aspect-9/16 object-cover group-hover:scale-110 transition-transform duration-700"
-          />
+          <div className="absolute inset-0">
+            <OptimizedImage
+              src={event.flyer}
+              alt={event.name}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              transformOptions={{ width: 1080, aspectRatio: "9:16", crop: "fill", gravity: "auto" }}
+              wrapperClassName="absolute inset-0"
+              className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-700"
+              fallbackSrc="https://via.placeholder.com/1080x1920?text=Evento"
+              onLoad={() => setCardImageError(false)}
+              onError={() => setCardImageError(true)}
+            />
+            {cardImageError && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 text-white">
+                <ImageOff className="h-12 w-12" />
+              </div>
+            )}
+          </div>
           <div className="absolute inset-0 flex flex-col justify-between p-6 bg-gradient-to-t from-black via-black/50 to-transparent">
             {
               !isCompleted && (

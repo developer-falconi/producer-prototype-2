@@ -128,7 +128,6 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
     return lines.reduce((sum, l) => sum + toNum(l.prevent.price) * l.quantity, 0);
   }, [purchaseData.ticketLines]);
 
-  const activePreventsExist = sortedPrevents.some(p => p.status === PreventStatusEnum.ACTIVE);
   const activePreventsQty = sortedPrevents.filter(p => p.status === PreventStatusEnum.ACTIVE).length;
   const noTicketsAvailableGlobally = allAvailablePrevents.length === 0;
   const totalSelectedQty = totalTicketLinesQty(purchaseData.ticketLines);
@@ -236,7 +235,7 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
 
                 {/* Footer: fecha / estado / contador */}
                 <div className="mt-1 flex w-full items-center justify-between gap-3">
-                  {prevent.endDate ? (
+                  {/* {prevent.endDate ? (
                     <div className="flex items-center gap-2 text-xs text-zinc-300">
                       <span className="inline-flex items-center rounded-md bg-white/5 px-2 py-1 border border-white/10">
                         Hasta:{' '}
@@ -247,9 +246,10 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
                     </div>
                   ) : (
                     <span />
-                  )}
+                  )} */}
+                  {/* {isActive && (prevent.endDate ? <CountdownPrevent to={prevent.endDate} /> : null)} */}
 
-                  {isActive ? (prevent.endDate ? <CountdownPrevent to={prevent.endDate} /> : null) : (
+                  {!isActive && (
                     <span className="rounded-md bg-rose-600/20 text-rose-200 border border-rose-400/20 text-xs px-2 py-1 font-semibold">
                       {preventStatusLabels[prevent.status]}
                     </span>

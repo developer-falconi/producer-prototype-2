@@ -129,6 +129,15 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return currentDynamicSteps;
   }, [fullEventDetails, initialEvent]);
 
+  const statusRetryStep = useMemo(() => {
+    const confirmationIndex = dynamicSteps.findIndex(step => step === 'Confirmacion');
+    if (confirmationIndex >= 0) {
+      return confirmationIndex + 1;
+    }
+    const fallbackIndex = dynamicSteps.length > 1 ? dynamicSteps.length - 1 : 1;
+    return fallbackIndex;
+  }, [dynamicSteps]);
+
   const { producer } = useProducer();
   const tracking = useTracking({ producer, channel: 'prevent' });
 
@@ -714,7 +723,9 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     });
     setMpPreferenceId(null);
     setMpGeneratingPreference(false);
-  }, []);
+    setSubmissionStatus(null);
+    setSubmissionData(null);
+  }, [setSubmissionStatus, setSubmissionData]);
 
   const handleComplete = useCallback(async () => {
     if (!purchaseRequestPayload) {
@@ -772,6 +783,12 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     getCheckoutCoupon,
     dynamicSteps.length
   ]);
+
+  const handleStatusRetry = useCallback(() => {
+    setSubmissionStatus(null);
+    setSubmissionData(null);
+    setCurrentStep(statusRetryStep);
+  }, [setCurrentStep, setSubmissionStatus, setSubmissionData, statusRetryStep]);
   const handleCloseDrawer = useCallback(async () => {
     await animate(scope.current, { opacity: [1, 0] }, { duration: 0.3 });
 
@@ -937,6 +954,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
             status={submissionStatus}
             voucher={submissionData}
             onResetAndClose={handleCloseDrawer}
+            onRetry={handleStatusRetry}
           />
         );
       default:
@@ -1160,7 +1178,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
                   {currentStep > 0 && currentStep <= dynamicSteps.length - 1 && (
                     <ProgressBar currentStep={currentStep} steps={dynamicSteps} />
                   )}
-                  <div className="animate-fade-in overflow-hidden">
+                  <div className="animate-fade-in overflow-hidden min-h-0">
                     {renderCurrentStep()}
                   </div>
                 </>
