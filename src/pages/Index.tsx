@@ -169,25 +169,24 @@ const Index = () => {
       },
     };
 
-    const eventsLd =
-      eventsForHeroCarousel.length > 0
-        ? {
-          "@context": "https://schema.org",
-          "@type": "ItemList",
-          itemListElement: eventsForHeroCarousel.slice(0, 5).map((ev, i) => ({
-            "@type": "ListItem",
-            position: i + 1,
-            item: {
-              "@type": "Event",
-              name: ev.name,
-              startDate: ev.startDate,
-              endDate: ev.endDate,
-              image: ev.flyer,
-              url: `${origin}/events?event=${ev.id}`,
-            },
-          })),
-        }
-        : null;
+    const eventsLd = eventsForHeroCarousel.length > 0
+      ? {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        itemListElement: eventsForHeroCarousel.slice(0, 5).map((ev, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          item: {
+            "@type": "Event",
+            name: ev.name,
+            startDate: ev.startDate,
+            endDate: ev.endDate,
+            image: ev.flyer ? imagePresets.card(ev.flyer) : undefined,
+            url: `${origin}/events?event=${ev.id}`,
+          },
+        })),
+      }
+      : null;
 
     return { siteName, title, description, url, ogImage, favicon, orgLd, siteLd, eventsLd };
   }, [producer, eventsForHeroCarousel, location.pathname, location.search, heroPrimaryImage]);
@@ -327,7 +326,7 @@ const Index = () => {
                 eventsForHeroCarousel.length > 0 ? "md:w-1/2 md:items-start" : "max-w-4xl"
               )}
             >
-        
+
               <motion.h1
                 className={cn(
                   "font-extrabold mb-5 leading-tight drop-shadow-lg text-center w-full",
