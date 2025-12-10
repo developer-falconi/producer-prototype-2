@@ -64,16 +64,13 @@ export default function ItemCard({
       {/* Media / Header compacto para combos sin imagen */}
       {imageUrl && (
         <div className="relative h-28 w-full overflow-hidden bg-zinc-900">
-          <OptimizedImage
+          <img
             src={imageUrl}
             alt={title}
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            transformOptions={{ width: 600, height: 400, crop: "fit", gravity: "auto" }}
-            wrapperClassName="absolute inset-0"
             className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
             loading="lazy"
             draggable={false}
-            fallbackSrc="https://via.placeholder.com/600x400?text=Item"
           />
           {/* Badges */}
           <Badges
@@ -85,7 +82,7 @@ export default function ItemCard({
         </div>
       )}
 
-      <CardContent className="p-3 space-y-3">
+      <CardContent className="p-3 space-y-1">
         {/* Título + descripción */}
         <div className="space-y-1">
           <div className="line-clamp-1 text-sm font-semibold text-white">
