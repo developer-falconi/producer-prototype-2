@@ -49,7 +49,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     quality: "auto:low" as const, // 1. Calidad baja por defecto
     format: "auto" as const,      // 2. Formato AVIF/WebP automático
     dpr: 1.0 as const,            // 3. Bloquea resoluciones Retina (DPR=1.0)
-    ...sanitizedTransformOptions,
+    ...sanitizedTransformOptions, // other transformations
   }), [sanitizedTransformOptions]);
 
   const transformKey = useMemo(() => JSON.stringify(aggressiveOptions || {}), [aggressiveOptions]);
