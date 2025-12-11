@@ -309,26 +309,11 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
           if (resp.success && resp.data) {
             setFullEventDetails(resp.data);
-            let initialSelectedPrevent: Prevent | null = null;
-            let shouldPreselectQuantity = false;
-
-            const featuredPrevent = (resp.data.prevents || []).find(
-              (p: Prevent) =>
-                p.featured &&
-                p.status === PreventStatusEnum.ACTIVE &&
-                p.quantity > 0
-            );
-
-            if (featuredPrevent) {
-              initialSelectedPrevent = featuredPrevent;
-              shouldPreselectQuantity = true;
-            }
-
             setPurchaseData(prev => ({
               ...prev,
-              selectedPrevent: initialSelectedPrevent,
-              ticketQuantity: shouldPreselectQuantity ? 1 : 0,
-              clients: Array.from({ length: shouldPreselectQuantity ? 1 : 0 }, () => ({ fullName: '', docNumber: '', gender: '' as GenderEnum, phone: '', isCompleted: false }))
+              selectedPrevent: null,
+              ticketQuantity: 0,
+              clients: []
             }));
           } else {
             setErrorDetails("Error al cargar detalles.");
@@ -1213,4 +1198,3 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     </AnimatePresence>
   );
 };
-
