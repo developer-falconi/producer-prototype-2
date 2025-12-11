@@ -3,6 +3,12 @@ import { IdCard, User, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FormInput } from "../ui/form-input";
 
+const DOC_NUMBER_MIN_LENGTH = 6;
+const DOC_NUMBER_MAX_LENGTH = 12;
+const docNumberPattern = /^[A-Z0-9]+$/;
+const hasNumber = (value: string) => /\d/.test(value);
+const normalizeDocNumber = (value: string) => value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
 export default function BuyerStep({
   buyer,
   setBuyer,
@@ -12,7 +18,11 @@ export default function BuyerStep({
 }) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const isEmailValid = emailRegex.test(buyer.email);
-  const isDocOk = buyer.docNumber.length >= 6 && buyer.docNumber.length <= 12;
+  const isDocOk =
+    docNumberPattern.test(buyer.docNumber) &&
+    hasNumber(buyer.docNumber) &&
+    buyer.docNumber.length >= DOC_NUMBER_MIN_LENGTH &&
+    buyer.docNumber.length <= DOC_NUMBER_MAX_LENGTH;
   const isNameOk = buyer.fullName.trim().length >= 6;
 
   return (
@@ -45,18 +55,25 @@ export default function BuyerStep({
             <FormInput
               id="doc"
               label="Documento"
-              placeholder="DNI o Pasaporte"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={12}
+              placeholder="Ej.: ABC123456"
+              maxLength={DOC_NUMBER_MAX_LENGTH}
+              autoCapitalize="characters"
               autoComplete="off"
               value={buyer.docNumber}
               onChange={(e) =>
-                setBuyer({ ...buyer, docNumber: e.target.value.replace(/\D/g, "") })
+                setBuyer({ ...buyer, docNumber: normalizeDocNumber(e.target.value) })
               }
               iconLeft={<IdCard className="h-4 w-4" />}
-              error={!isDocOk && buyer.docNumber ? "El documento debe tener entre 6 y 12 dígitos." : undefined}
-              hint={isDocOk || buyer.docNumber === "" ? "Solo números, sin puntos ni espacios." : undefined}
+              error={
+                !isDocOk && buyer.docNumber
+                  ? "El documento debe tener entre 6 y 12 caracteres alfanuméricos en mayúscula y contener al menos un número."
+                  : undefined
+              }
+              hint={
+                isDocOk || buyer.docNumber === ""
+                  ? "Usa letras mayúsculas y números, sin espacios ni símbolos."
+                  : undefined
+              }
             />
 
             <FormInput

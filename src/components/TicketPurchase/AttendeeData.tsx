@@ -20,9 +20,31 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as Easing } },
 };
 
+const DOC_NUMBER_MIN_LENGTH = 6;
+const DOC_NUMBER_MAX_LENGTH = 12;
+const docNumberPattern = /^[A-Z0-9]+$/;
+
+const docNumberSchema = z
+  .string()
+  .transform(value => value.trim().toUpperCase())
+  .refine(value => docNumberPattern.test(value), {
+    message: 'Solo letras mayúsculas y números.',
+  })
+  .refine(value => /\d/.test(value), {
+    message: 'Debe contener al menos un número.',
+  })
+  .refine(
+    value => value.length >= DOC_NUMBER_MIN_LENGTH && value.length <= DOC_NUMBER_MAX_LENGTH,
+    {
+      message: `El documento debe tener entre ${DOC_NUMBER_MIN_LENGTH} y ${DOC_NUMBER_MAX_LENGTH} caracteres.`,
+    }
+  );
+
+const normalizeDocNumber = (value: string) => value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
 const clientSchemaRequired = z.object({
   fullName: z.string().min(6, 'El nombre completo es obligatorio.'),
-  docNumber: z.string().regex(/^[0-9]+$/, 'Solo numeros.').min(6, 'El documento es obligatorio.'),
+  docNumber: docNumberSchema,
   phone: z.string().regex(/^[0-9]+$/, 'Solo numeros.').min(6, 'El telefono es obligatorio.'),
   gender: z.enum([GenderEnum.HOMBRE, GenderEnum.MUJER, GenderEnum.OTRO], {
     errorMap: () => ({ message: 'El genero es obligatorio.' }),
@@ -31,7 +53,7 @@ const clientSchemaRequired = z.object({
 
 const clientSchemaOptional = z.object({
   fullName: z.string().optional().or(z.literal('')),
-  docNumber: z.string().optional().or(z.literal('')),
+  docNumber: z.union([docNumberSchema, z.literal('')]),
   phone: z.string().optional().or(z.literal('')),
   gender: z
     .enum([GenderEnum.HOMBRE, GenderEnum.MUJER, GenderEnum.OTRO])
@@ -455,12 +477,13 @@ export const AttendeeData: React.FC<AttendeeDataProps> = ({
                                             {...field}
                                             id={`docNumber-${index}`}
                                             onChange={event => {
-                                              field.onChange(event);
-                                              onUpdateClient(index, 'docNumber', event.target.value);
+                                              const normalized = normalizeDocNumber(event.target.value);
+                                              field.onChange(normalized);
+                                              onUpdateClient(index, 'docNumber', normalized);
                                             }}
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            placeholder="12345678"
+                                            maxLength={DOC_NUMBER_MAX_LENGTH}
+                                            autoCapitalize="characters"
+                                            placeholder="ABC123456"
                                             className={cn(
                                               'rounded-lg bg-white/5 text-white placeholder:text-zinc-400',
                                               'border border-white/10 outline-none',
