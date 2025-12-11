@@ -6,7 +6,7 @@ import { FormInput } from "../ui/form-input";
 const DOC_NUMBER_MIN_LENGTH = 6;
 const DOC_NUMBER_MAX_LENGTH = 12;
 const docNumberPattern = /^[A-Z0-9]+$/;
-const hasLetterAndNumber = (value: string) => /[A-Z]/.test(value) && /\d/.test(value);
+const hasNumber = (value: string) => /\d/.test(value);
 const normalizeDocNumber = (value: string) => value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
 export default function BuyerStep({
@@ -20,7 +20,7 @@ export default function BuyerStep({
   const isEmailValid = emailRegex.test(buyer.email);
   const isDocOk =
     docNumberPattern.test(buyer.docNumber) &&
-    hasLetterAndNumber(buyer.docNumber) &&
+    hasNumber(buyer.docNumber) &&
     buyer.docNumber.length >= DOC_NUMBER_MIN_LENGTH &&
     buyer.docNumber.length <= DOC_NUMBER_MAX_LENGTH;
   const isNameOk = buyer.fullName.trim().length >= 6;
@@ -66,7 +66,7 @@ export default function BuyerStep({
               iconLeft={<IdCard className="h-4 w-4" />}
               error={
                 !isDocOk && buyer.docNumber
-                  ? "El documento debe tener entre 6 y 12 caracteres alfanuméricos en mayúscula y combinar letras con números."
+                  ? "El documento debe tener entre 6 y 12 caracteres alfanuméricos en mayúscula y contener al menos un número."
                   : undefined
               }
               hint={
