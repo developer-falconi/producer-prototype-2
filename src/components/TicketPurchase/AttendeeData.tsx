@@ -30,8 +30,8 @@ const docNumberSchema = z
   .refine(value => docNumberPattern.test(value), {
     message: 'Solo letras mayúsculas y números.',
   })
-  .refine(value => /[A-Z]/.test(value) && /\d/.test(value), {
-    message: 'Debe contener al menos una letra y un número.',
+  .refine(value => /\d/.test(value), {
+    message: 'Debe contener al menos un número.',
   })
   .refine(
     value => value.length >= DOC_NUMBER_MIN_LENGTH && value.length <= DOC_NUMBER_MAX_LENGTH,
