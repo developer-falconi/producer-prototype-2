@@ -85,6 +85,30 @@ export interface EventDto {
   payments: EventPaymentDto[];
   fee: EventFeeDto;
   emptyBanners?: EmptyBannerDto[];
+  volumeDiscounts?: VolumeDiscount[];
+}
+
+export interface VolumeDiscountTier {
+  quantity: number;
+  discountPercent: number;
+}
+
+export interface VolumeDiscount {
+  id: string;
+  eventId: number;
+  producerId: number;
+  name: string;
+  description?: string | null;
+  enabled: boolean;
+  tiers: VolumeDiscountTier[];
+  applicableProductIds?: number[] | null;
+  applicablePreventIds?: number[] | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  maxDiscount?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+  version?: number;
 }
 
 export enum PreventPromoTypeEnum {
