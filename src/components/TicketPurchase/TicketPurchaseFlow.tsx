@@ -341,55 +341,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
-  useEffect(() => {
-    const subtotalTickets = (purchaseData.ticketLines ?? []).reduce(
-      (sum, l) => sum + toNum(l.prevent.price) * l.quantity, 0
-    );
-    const ticketDiscount = volumeDiscount?.discountAmount ?? 0;
-    const discountedTicketsSubtotal = Math.max(0, subtotalTickets - ticketDiscount);
-
-    const totalProductsPrice = purchaseData.products.reduce((sum, item) => {
-      const priceNum = toNum(item.product.price);
-      const discountNum = toNum(item.product.discountPercentage);
-      const effectivePrice = priceNum * (1 - discountNum / 100);
-      return sum + effectivePrice * item.quantity;
-    }, 0);
-
-    const totalCombosPrice = purchaseData.combos.reduce((sum, item) => {
-      const priceNum = toNum(item.combo.price);
-      return sum + priceNum * item.quantity;
-    }, 0);
-
-    const totalExperiencesPrice = purchaseData.experiences.reduce((sum, item) => {
-      const priceNum = toNum(item.experience.price);
-      return sum + priceNum * item.quantity;
-    }, 0);
-
-    const subtotalAllItems = discountedTicketsSubtotal + totalProductsPrice + totalCombosPrice + totalExperiencesPrice;
-
-    let discount = 0;
-    if (appliedCoupon) {
-      const minOrder = appliedCoupon.minOrderAmount != null ? toNum(appliedCoupon.minOrderAmount) : null;
-      if (minOrder == null || subtotalAllItems >= minOrder) {
-        discount = computeCouponDiscount(subtotalAllItems, appliedCoupon);
-      }
-    }
-
-    const finalTotal = Math.max(0, subtotalAllItems - discount);
-
-    setPurchaseData(prev => ({
-      ...prev,
-      total: finalTotal,
-      totalWithDiscount: appliedCoupon ? finalTotal : null,
-    }));
-  }, [
-    purchaseData.ticketLines,
-    purchaseData.products,
-    purchaseData.combos,
-    purchaseData.experiences,
-    appliedCoupon,
-    volumeDiscount,
-  ]);
 
   const onUpdatePurchase = useCallback((data: Partial<PurchaseData>) => {
     setPurchaseData(prevPurchaseData => {
@@ -499,15 +450,16 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   }, [appliedCoupon, currentSubtotal]);
 
   useEffect(() => {
-    const total = currentSubtotal;
+    const volumeDiscountAmount = volumeDiscount?.discountAmount ?? 0;
+    const grossSubtotal = currentSubtotal + volumeDiscountAmount;
     const totalWithDiscount = Math.max(0, currentSubtotal - currentDiscount);
 
     setPurchaseData(prev => ({
       ...prev,
-      total,
+      total: grossSubtotal,
       totalWithDiscount,
     }));
-  }, [currentSubtotal, currentDiscount]);
+  }, [currentSubtotal, currentDiscount, volumeDiscount]);
 
   const purchaseRequestPayload = useMemo(() => {
     if (purchaseData.ticketQuantity === 0) return null;
