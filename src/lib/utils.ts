@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { EventFeeDto, PreventStatusEnum, SettlementEnum, ShareMeta } from "./types";
+import { EventFeeDto, PreventStatusEnum, SettlementEnum, ShareMeta, TicketLine, VolumeDiscount, VolumeDiscountTier } from "./types";
 import * as qrcode from 'qrcode';
 
 export function cn(...inputs: ClassValue[]) {
@@ -110,6 +110,130 @@ export const generateQrCode = async (data: string): Promise<string> => {
 export const toNum = (v: string | number | null | undefined) => {
   const n = typeof v === 'number' ? v : Number(v);
   return Number.isFinite(n) ? n : 0;
+};
+
+export type VolumeDiscountComputed = {
+  discountAmount: number;
+  discountPercent: number;
+  appliedTier?: VolumeDiscountTier;
+  nextTier?: VolumeDiscountTier;
+  remainingToNextTier?: number;
+  applicableQuantity: number;
+  applicableSubtotal: number;
+  tiers: VolumeDiscountTier[];
+  discountName?: string;
+  discountId?: string;
+};
+
+const isWithinDateRange = (now: Date, start?: string | null, end?: string | null) => {
+  if (start) {
+    const startDate = new Date(start);
+    if (Number.isFinite(startDate.getTime()) && now < startDate) return false;
+  }
+  if (end) {
+    const endDate = new Date(end);
+    if (Number.isFinite(endDate.getTime()) && now > endDate) return false;
+  }
+  return true;
+};
+
+const sortTiers = (tiers: VolumeDiscountTier[] | undefined | null) =>
+  [...(tiers ?? [])].sort((a, b) => toNum(a.quantity) - toNum(b.quantity));
+
+const computeDiscountForRule = (
+  rule: VolumeDiscount,
+  ticketLines: TicketLine[] | undefined,
+  now: Date
+): VolumeDiscountComputed | null => {
+  if (!rule.enabled) return null;
+  if (!isWithinDateRange(now, rule.startDate, rule.endDate)) return null;
+
+  const tiers = sortTiers(rule.tiers);
+  if (tiers.length === 0) return null;
+
+  const applicableIds = rule.applicablePreventIds;
+  const applicableLines = (ticketLines ?? []).filter(line => {
+    if (!applicableIds || applicableIds.length === 0) return true;
+    return applicableIds.includes(line.prevent.id);
+  });
+
+  const applicableQuantity = applicableLines.reduce((sum, line) => sum + toNum(line.quantity), 0);
+  const applicableSubtotal = applicableLines.reduce(
+    (sum, line) => sum + toNum(line.prevent.price) * toNum(line.quantity),
+    0
+  );
+
+  let appliedTier: VolumeDiscountTier | undefined;
+  for (const tier of tiers) {
+    if (applicableQuantity >= toNum(tier.quantity)) {
+      appliedTier = tier;
+    } else {
+      break;
+    }
+  }
+
+  const nextTier = tiers.find(tier => toNum(tier.quantity) > applicableQuantity);
+  const remainingToNextTier = nextTier
+    ? Math.max(0, toNum(nextTier.quantity) - applicableQuantity)
+    : undefined;
+
+  let discountPercent = appliedTier ? toNum(appliedTier.discountPercent) : 0;
+  if (rule.maxDiscount != null) {
+    discountPercent = Math.min(discountPercent, toNum(rule.maxDiscount));
+  }
+
+  const discountAmount = appliedTier
+    ? Math.max(0, applicableSubtotal * (discountPercent / 100))
+    : 0;
+
+  return {
+    discountAmount,
+    discountPercent,
+    appliedTier,
+    nextTier,
+    remainingToNextTier,
+    applicableQuantity,
+    applicableSubtotal,
+    tiers,
+    discountName: rule.name,
+    discountId: rule.id,
+  };
+};
+
+export const computeVolumeDiscountForTickets = ({
+  volumeDiscounts,
+  ticketLines,
+  now = new Date(),
+}: {
+  volumeDiscounts?: VolumeDiscount[] | null;
+  ticketLines?: TicketLine[];
+  now?: Date;
+}): VolumeDiscountComputed | null => {
+  const candidates = (volumeDiscounts ?? [])
+    .map(rule => computeDiscountForRule(rule, ticketLines, now))
+    .filter((item): item is VolumeDiscountComputed => Boolean(item));
+
+  if (candidates.length === 0) return null;
+
+  let bestApplied: VolumeDiscountComputed | null = null;
+  let bestUpcoming: VolumeDiscountComputed | null = null;
+
+  for (const candidate of candidates) {
+    if (candidate.discountAmount > 0) {
+      if (!bestApplied || candidate.discountAmount > bestApplied.discountAmount) {
+        bestApplied = candidate;
+      }
+    } else if (candidate.nextTier) {
+      if (
+        !bestUpcoming ||
+        (candidate.remainingToNextTier ?? Infinity) < (bestUpcoming.remainingToNextTier ?? Infinity)
+      ) {
+        bestUpcoming = candidate;
+      }
+    }
+  }
+
+  return bestApplied ?? bestUpcoming ?? candidates[0];
 };
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));

@@ -16,7 +16,7 @@ import useMeasure from "react-use-measure";
 import { ProductSelection } from './ProductSelection';
 import { ExperienceSelection } from './ExperienceSelection';
 import { toast } from 'sonner';
-import { buildShareMeta, toNum } from '@/lib/utils';
+import { buildShareMeta, computeVolumeDiscountForTickets, toNum } from '@/lib/utils';
 import { useProducer } from '@/context/ProducerContext';
 import { useTracking } from '@/hooks/use-tracking';
 import { Send } from 'lucide-react';
@@ -178,6 +178,14 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return (purchaseData.ticketLines ?? []).reduce((acc, line) => acc + line.quantity, 0);
   }, [purchaseData.ticketLines]);
 
+  const volumeDiscount = useMemo(() => {
+    const eventSource = fullEventDetails ?? initialEvent;
+    return computeVolumeDiscountForTickets({
+      volumeDiscounts: eventSource?.volumeDiscounts ?? [],
+      ticketLines: purchaseData.ticketLines,
+    });
+  }, [fullEventDetails, initialEvent, purchaseData.ticketLines]);
+
   const allClientsCompleted = useMemo(() => {
     if (totalSelectedTickets === 0) return false;
     if (purchaseData.clients.length < totalSelectedTickets) return false;
@@ -333,52 +341,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
-  useEffect(() => {
-    const subtotalTickets = (purchaseData.ticketLines ?? []).reduce(
-      (sum, l) => sum + toNum(l.prevent.price) * l.quantity, 0
-    );
-
-    const totalProductsPrice = purchaseData.products.reduce((sum, item) => {
-      const priceNum = toNum(item.product.price);
-      const discountNum = toNum(item.product.discountPercentage);
-      const effectivePrice = priceNum * (1 - discountNum / 100);
-      return sum + effectivePrice * item.quantity;
-    }, 0);
-
-    const totalCombosPrice = purchaseData.combos.reduce((sum, item) => {
-      const priceNum = toNum(item.combo.price);
-      return sum + priceNum * item.quantity;
-    }, 0);
-
-    const totalExperiencesPrice = purchaseData.experiences.reduce((sum, item) => {
-      const priceNum = toNum(item.experience.price);
-      return sum + priceNum * item.quantity;
-    }, 0);
-
-    const subtotalAllItems = subtotalTickets + totalProductsPrice + totalCombosPrice + totalExperiencesPrice;
-
-    let discount = 0;
-    if (appliedCoupon) {
-      const minOrder = appliedCoupon.minOrderAmount != null ? toNum(appliedCoupon.minOrderAmount) : null;
-      if (minOrder == null || subtotalAllItems >= minOrder) {
-        discount = computeCouponDiscount(subtotalAllItems, appliedCoupon);
-      }
-    }
-
-    const finalTotal = Math.max(0, subtotalAllItems - discount);
-
-    setPurchaseData(prev => ({
-      ...prev,
-      total: finalTotal,
-      totalWithDiscount: appliedCoupon ? finalTotal : null,
-    }));
-  }, [
-    purchaseData.ticketLines,
-    purchaseData.products,
-    purchaseData.combos,
-    purchaseData.experiences,
-    appliedCoupon,
-  ]);
 
   const onUpdatePurchase = useCallback((data: Partial<PurchaseData>) => {
     setPurchaseData(prevPurchaseData => {
@@ -434,6 +396,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     const subtotalTickets = (purchaseData.ticketLines ?? []).reduce(
       (sum, l) => sum + toNum(l.prevent.price) * l.quantity, 0
     );
+    const ticketDiscount = volumeDiscount?.discountAmount ?? 0;
+    const discountedTicketsSubtotal = Math.max(0, subtotalTickets - ticketDiscount);
 
     const productsSum = purchaseData.products.reduce((s, i) => {
       const p = toNum(i.product.price);
@@ -449,12 +413,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
       (s, i) => s + toNum(i.experience.price) * i.quantity, 0
     );
 
-    return subtotalTickets + productsSum + combosSum + experiencesSum;
+    return discountedTicketsSubtotal + productsSum + combosSum + experiencesSum;
   }, [
     purchaseData.ticketLines,
     purchaseData.products,
     purchaseData.combos,
     purchaseData.experiences,
+    volumeDiscount,
   ]);
 
   const computeCouponDiscount = (subtotal: number, coupon: CouponEvent | null): number => {
@@ -485,22 +450,39 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
   }, [appliedCoupon, currentSubtotal]);
 
   useEffect(() => {
-    const total = currentSubtotal;
+    const volumeDiscountAmount = volumeDiscount?.discountAmount ?? 0;
+    const grossSubtotal = currentSubtotal + volumeDiscountAmount;
     const totalWithDiscount = Math.max(0, currentSubtotal - currentDiscount);
 
     setPurchaseData(prev => ({
       ...prev,
-      total,
+      total: grossSubtotal,
       totalWithDiscount,
     }));
-  }, [currentSubtotal, currentDiscount]);
+  }, [currentSubtotal, currentDiscount, volumeDiscount]);
 
   const purchaseRequestPayload = useMemo(() => {
     if (purchaseData.ticketQuantity === 0) return null;
-    if (!purchaseData.clients.every(client => client.isCompleted)) return null;
     if (!EMAIL_REGEX.test(purchaseData.email ?? '')) return null;
 
-    const clients = purchaseData.clients.map(client => ({
+    const isClientFilled = (client?: ClientData & { isCompleted?: boolean }) => {
+      if (!client) return false;
+      const hasName = (client.fullName ?? '').trim().length > 0;
+      const hasDoc = (client.docNumber ?? '').trim().length > 0;
+      const hasPhone = (client.phone ?? '').trim().length > 0;
+      const hasGender = String(client.gender ?? '').trim().length > 0;
+      return hasName && hasDoc && hasPhone && hasGender;
+    };
+
+    const filledClients = purchaseData.clients.filter(isClientFilled);
+
+    if (requiresClientData) {
+      if (filledClients.length < purchaseData.ticketQuantity) return null;
+    } else {
+      if (filledClients.length === 0) return null;
+    }
+
+    const clients = (requiresClientData ? filledClients : [filledClients[0]]).map(client => ({
       fullName: client.fullName?.trim() ?? '',
       docNumber: client.docNumber?.trim() ?? '',
       phone: client.phone?.trim() ?? '',
@@ -535,13 +517,13 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
 
     for (const line of purchaseData.ticketLines ?? []) {
       for (let i = 0; i < line.quantity; i += 1) {
-        if (cursor >= purchaseData.clients.length) {
+        if (requiresClientData && cursor >= clients.length) {
           missingClient = true;
           break;
         }
         ticketRequests.push({
           preventId: line.prevent.id,
-          clientIndex: cursor,
+          clientIndex: requiresClientData ? cursor : 0,
           bundles: 1,
         });
         cursor += 1;
@@ -586,6 +568,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({ initialE
     purchaseData.total,
     purchaseData.promoter,
     purchaseData.coupon,
+    requiresClientData,
   ]);
 
   const generateMercadoPagoPreference = useCallback(async () => {

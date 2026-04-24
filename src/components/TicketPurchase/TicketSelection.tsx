@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { cn, formatDate, formatPrice, preventStatusLabels, toNum } from '@/lib/utils';
+import { cn, computeVolumeDiscountForTickets, formatDate, formatPrice, preventStatusLabels, toNum } from '@/lib/utils';
 import {
   EventDto,
   PurchaseData,
@@ -128,9 +128,17 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
     return lines.reduce((sum, l) => sum + toNum(l.prevent.price) * l.quantity, 0);
   }, [purchaseData.ticketLines]);
 
+  const volumeDiscount = useMemo(() => {
+    return computeVolumeDiscountForTickets({
+      volumeDiscounts: eventData.volumeDiscounts ?? [],
+      ticketLines: purchaseData.ticketLines,
+    });
+  }, [eventData.volumeDiscounts, purchaseData.ticketLines]);
+
   const activePreventsQty = sortedPrevents.filter(p => p.status === PreventStatusEnum.ACTIVE).length;
   const noTicketsAvailableGlobally = allAvailablePrevents.length === 0;
   const totalSelectedQty = totalTicketLinesQty(purchaseData.ticketLines);
+  const hasVolumeDiscount = Boolean(volumeDiscount && volumeDiscount.tiers.length > 0);
 
   useEffect(() => {
     if (
@@ -293,6 +301,82 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
         )}
       </motion.div>
 
+      {hasVolumeDiscount && (
+        <motion.div
+          variants={itemVariants}
+          className="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/60 to-zinc-900/30 backdrop-blur p-5 shadow"
+        >
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-white">Descuento por volumen</div>
+            {volumeDiscount?.discountName && (
+              <span className="text-xs text-zinc-400">{volumeDiscount.discountName}</span>
+            )}
+          </div>
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-between text-[11px] uppercase tracking-wider text-zinc-400">
+              <span>Progreso</span>
+              <span>{volumeDiscount?.applicableQuantity ?? 0} tickets</span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-white/5">
+              <div
+                className="h-2 rounded-full bg-gradient-to-r from-emerald-500/70 via-emerald-400/70 to-lime-300/70 transition-all"
+                style={{
+                  width: `${Math.min(
+                    100,
+                    ((volumeDiscount?.applicableQuantity ?? 0) /
+                      Math.max(
+                        1,
+                        ...(volumeDiscount?.tiers.map((tier) => toNum(tier.quantity)) ?? [1])
+                      )) * 100
+                  )}%`,
+                }}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {volumeDiscount?.tiers.map((tier) => {
+                const tierQty = toNum(tier.quantity);
+                const appliedTierQty = volumeDiscount.appliedTier ? toNum(volumeDiscount.appliedTier.quantity) : 0;
+                const isCurrent = volumeDiscount.appliedTier && tierQty === appliedTierQty;
+                const isUnlocked = volumeDiscount.appliedTier && tierQty <= appliedTierQty;
+                return (
+                  <div
+                    key={`${tier.quantity}-${tier.discountPercent}`}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-left text-xs font-semibold",
+                      isCurrent
+                        ? "border-emerald-300/40 bg-emerald-500/20 text-emerald-200 shadow-[0_0_0_1px_rgba(16,185,129,0.15)]"
+                        : isUnlocked
+                          ? "border-emerald-400/20 bg-emerald-900/20 text-emerald-200/80"
+                          : "border-white/10 bg-white/5 text-zinc-300"
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{tierQty}+ tickets</span>
+                      {isCurrent && <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px]">Actual</span>}
+                    </div>
+                    <div className="mt-1 text-sm font-bold text-white">{toNum(tier.discountPercent)}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-3 text-xs text-zinc-300">
+            {volumeDiscount && volumeDiscount.discountAmount > 0 ? (
+              <span className="text-emerald-300">
+                Descuento aplicado: - {formatPrice(volumeDiscount.discountAmount)}
+              </span>
+            ) : volumeDiscount?.nextTier && volumeDiscount.remainingToNextTier ? (
+              <span>
+                Agrega {volumeDiscount.remainingToNextTier} mas para {toNum(volumeDiscount.nextTier.discountPercent)}%
+              </span>
+            ) : (
+              <span>Selecciona tickets para aplicar el descuento.</span>
+            )}
+          </div>
+        </motion.div>
+      )}
+
       {/* 3) Resumen de precio */}
       {totalSelectedQty > 0 && (
         <motion.div
@@ -317,11 +401,19 @@ export const TicketSelection: React.FC<TicketSelectionProps> = ({
             ))}
           </div>
 
-          <div className="mt-3 border-t border-white/10 pt-3 flex items-center justify-between">
-            <span className="text-base font-medium text-white">Subtotal</span>
-            <span className="text-base font-bold text-sky-400">
-              {ticketSubtotal === 0 ? 'Liberado' : formatPrice(ticketSubtotal)}
-            </span>
+          <div className="mt-3 border-t border-white/10 pt-3 space-y-2">
+            {volumeDiscount?.discountAmount > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-zinc-300">Descuento por volumen</span>
+                <span className="text-emerald-300">- {formatPrice(volumeDiscount.discountAmount)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-base font-medium text-white">Subtotal</span>
+              <span className="text-base font-bold text-sky-400">
+                {ticketSubtotal === 0 ? 'Liberado' : formatPrice(Math.max(0, ticketSubtotal - (volumeDiscount?.discountAmount ?? 0)))}
+              </span>
+            </div>
           </div>
         </motion.div>
       )}

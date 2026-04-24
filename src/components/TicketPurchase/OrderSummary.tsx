@@ -1,7 +1,7 @@
 import { useProducer } from '@/context/ProducerContext';
 import { useTracking } from '@/hooks/use-tracking';
 import { CouponEvent, EventDto, PurchaseData } from '@/lib/types';
-import { cn, formatPrice, paymentMethodLabels, solveFeesFront, toNum } from '@/lib/utils';
+import { cn, computeVolumeDiscountForTickets, formatPrice, paymentMethodLabels, solveFeesFront, toNum } from '@/lib/utils';
 import React, { useEffect, useMemo } from 'react';
 
 interface OrderSummaryProps {
@@ -68,6 +68,16 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
     };
   });
   const subtotalTickets = ticketLinesSummary.reduce((s, i) => s + i.price * i.quantity, 0);
+  const volumeDiscount = useMemo(
+    () =>
+      computeVolumeDiscountForTickets({
+        volumeDiscounts: eventData.volumeDiscounts ?? [],
+        ticketLines: purchaseData.ticketLines,
+      }),
+    [eventData.volumeDiscounts, purchaseData.ticketLines]
+  );
+  const ticketDiscount = volumeDiscount?.discountAmount ?? 0;
+  const discountedTicketsSubtotal = Math.max(0, subtotalTickets - ticketDiscount);
 
   const productsSummary = purchaseData.products.map(it => {
     const p = num(it.product.price);
@@ -95,7 +105,7 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
   }));
   const totalExperiencesPrice = experiencesSummary.reduce((s, i) => s + i.price * i.quantity, 0);
 
-  const subtotalAllItems = subtotalTickets + totalProductsPrice + totalCombosPrice + totalExperiencesPrice;
+  const subtotalAllItems = discountedTicketsSubtotal + totalProductsPrice + totalCombosPrice + totalExperiencesPrice;
 
   const { discount, details: couponDetails, reason: couponReason } = calcCouponDiscount(
     subtotalAllItems,
@@ -235,7 +245,21 @@ export const OrderSummary: React.FC<OrderSummaryProps> = ({ eventData, purchaseD
             )}
 
             {/* Totales */}
-            <LineRow left={<span className="text-zinc-400">Subtotal</span>} right={<span>{formatPrice(subtotalAllItems)}</span>} />
+            {ticketDiscount > 0 && (
+              <LineRow
+                left={<span className="text-zinc-400">Descuento por volumen</span>}
+                right={<span className="text-emerald-300">- {formatPrice(ticketDiscount)}</span>}
+              />
+            )}
+
+            <LineRow
+              left={
+                <span className="text-zinc-400">
+                  {ticketDiscount > 0 ? 'Subtotal (con descuento)' : 'Subtotal'}
+                </span>
+              }
+              right={<span>{formatPrice(subtotalAllItems)}</span>}
+            />
 
             {purchaseData.coupon && (
               <>
