@@ -313,7 +313,7 @@ export const PaymentMethod: React.FC<PaymentMethodProps> = ({
 
           {discountAmount > 0 && (
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-emerald-400">Descuento cupón</span>
+              <span className="text-emerald-400">Descuento</span>
               <span className="font-semibold text-emerald-400">– {formatPrice(discountAmount)}</span>
             </div>
           )}
